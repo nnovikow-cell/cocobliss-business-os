@@ -77,7 +77,7 @@ function ReportPage() {
   return (
     <AppShell>
       <header className="mb-4 flex items-center gap-3">
-        <Link to="/sales/$sessionId" params={{ sessionId }} className="rounded-full p-2 hover:bg-muted">
+        <Link to="/sales" className="rounded-full p-2 hover:bg-muted" aria-label="Back to Sales Tracker">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>

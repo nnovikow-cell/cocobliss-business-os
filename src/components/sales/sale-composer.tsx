@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Minus, X, Check, Users, User } from "lucide-react";
+import { Plus, Minus, X, Check, Users, User, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,7 +145,23 @@ export function SaleComposer(props: Props) {
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="bottom" className="h-[92vh] overflow-y-auto p-0">
         <SheetHeader className="sticky top-0 z-10 border-b border-border bg-card px-4 py-3">
-          <SheetTitle className="text-left text-xl font-black">New sale</SheetTitle>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              aria-label="Close without saving"
+              className="rounded-full p-2 hover:bg-muted active:scale-95"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <SheetTitle className="flex-1 text-left text-xl font-black">New sale</SheetTitle>
+            <button
+              onClick={onClose}
+              aria-label="Close without saving"
+              className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           <div className="mt-2 flex gap-2">
             <button onClick={() => switchKind("single")}
               className={cn("flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-colors",
@@ -181,13 +197,31 @@ export function SaleComposer(props: Props) {
             <section>
               <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Shakes</h3>
               <div className="grid grid-cols-2 gap-2">
-                {shakes.map((p) => (
-                  <button key={p.id} onClick={() => addShake(p)}
-                    className="rounded-2xl border-2 border-border bg-card p-4 text-left font-bold transition-all hover:-translate-y-0.5 hover:border-primary active:scale-95">
-                    <div className="text-base">{p.name}</div>
-                    <div className="mt-1 text-sm text-primary">{fmt(Number(p.price))}</div>
-                  </button>
-                ))}
+                {shakes.map((p) => {
+                  const count = carts[activeCustomer].lines
+                    .filter((l) => l.productId === p.id)
+                    .reduce((s, l) => s + l.quantity, 0);
+                  const selected = count > 0;
+                  return (
+                    <button key={p.id} onClick={() => addShake(p)}
+                      className={cn(
+                        "relative rounded-2xl border-2 p-4 text-left font-bold transition-all hover:-translate-y-0.5 active:scale-95",
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground shadow-md"
+                          : "border-border bg-card hover:border-primary"
+                      )}>
+                      <div className="text-base">{p.name}</div>
+                      <div className={cn("mt-1 text-sm", selected ? "text-primary-foreground/90" : "text-primary")}>
+                        {fmt(Number(p.price))}
+                      </div>
+                      {selected && (
+                        <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-black text-accent-foreground shadow-md">
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -197,13 +231,31 @@ export function SaleComposer(props: Props) {
             <section>
               <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Paletas</h3>
               <div className="grid grid-cols-2 gap-2">
-                {paletas.map((p) => (
-                  <button key={p.id} onClick={() => tapPaleta(p)}
-                    className="rounded-2xl border-2 border-border bg-card p-4 text-left font-bold transition-all hover:-translate-y-0.5 hover:border-primary active:scale-95">
-                    <div className="text-base">{p.name}</div>
-                    <div className="mt-1 text-sm text-primary">{fmt(Number(p.price))}</div>
-                  </button>
-                ))}
+                {paletas.map((p) => {
+                  const count = carts[activeCustomer].lines
+                    .filter((l) => l.productId === p.id)
+                    .reduce((s, l) => s + l.quantity, 0);
+                  const selected = count > 0 || pendingPaleta?.id === p.id;
+                  return (
+                    <button key={p.id} onClick={() => tapPaleta(p)}
+                      className={cn(
+                        "relative rounded-2xl border-2 p-4 text-left font-bold transition-all hover:-translate-y-0.5 active:scale-95",
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground shadow-md"
+                          : "border-border bg-card hover:border-primary"
+                      )}>
+                      <div className="text-base">{p.name}</div>
+                      <div className={cn("mt-1 text-sm", selected ? "text-primary-foreground/90" : "text-primary")}>
+                        {fmt(Number(p.price))}
+                      </div>
+                      {count > 0 && (
+                        <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-black text-accent-foreground shadow-md">
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
               {pendingPaleta && (
                 <div className="mt-3 rounded-2xl border-2 border-primary bg-primary/5 p-3">
