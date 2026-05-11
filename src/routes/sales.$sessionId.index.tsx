@@ -44,7 +44,8 @@ function ActiveSession() {
   const [demographics, setDemographics] = useState<DemographicOption[]>([]);
   const [tipOptions, setTipOptions] = useState<TipOption[]>([]);
   const [taxRate, setTaxRate] = useState(0);
-  const [composerMode, setComposerMode] = useState<null | "sale" | "sample">(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [sampling, setSampling] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
@@ -158,7 +159,23 @@ function ActiveSession() {
     if (demos.length) await supabase.from("sale_demographics").insert(demos);
 
     toast.success(input.isSample ? "Sample logged" : `Sale logged · ${fmt(totals.total)}`);
-    setComposerMode(null);
+    setComposerOpen(false);
+    loadSales();
+  };
+
+  const quickSample = async () => {
+    if (!user || sampling) return;
+    setSampling(true);
+    const { error } = await supabase.from("sales").insert({
+      session_id: sessionId, logged_by: user.id, sale_kind: "single",
+      payment_method_id: null, payment_method_name_snapshot: "Sample",
+      applies_tax_snapshot: false, tax_rate_snapshot: 0,
+      subtotal: 0, tax_amount: 0, tip_amount: 0, total: 0,
+      is_sample: true, note: null,
+    });
+    setSampling(false);
+    if (error) return toast.error(error.message);
+    toast.success("Sample logged");
     loadSales();
   };
 
@@ -337,8 +354,8 @@ function ActiveSession() {
       </section>
 
       <SaleComposer
-        open={composerMode !== null} onClose={() => setComposerMode(null)}
-        mode={composerMode ?? "sale"}
+        open={composerOpen} onClose={() => setComposerOpen(false)}
+        mode="sale"
         products={products} flavors={flavors} paymentMethods={paymentMethods}
         demographics={demographics} tipOptions={tipOptions} taxRate={taxRate} onSubmit={submitSale}
       />
@@ -346,11 +363,11 @@ function ActiveSession() {
       {isOpen && (
         <div className="fixed inset-x-0 bottom-16 z-30 mx-auto max-w-md px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="flex gap-2 rounded-2xl bg-background/80 p-1.5 backdrop-blur-md ring-1 ring-border">
-            <Button onClick={() => setComposerMode("sale")} className="h-14 flex-[2] rounded-xl text-base font-bold shadow-lg"
+            <Button onClick={() => setComposerOpen(true)} className="h-14 flex-[2] rounded-xl text-base font-bold shadow-lg"
               style={{ background: "var(--gradient-hero)" }}>
               <Plus className="mr-2 h-5 w-5" /> New sale
             </Button>
-            <Button onClick={() => setComposerMode("sample")} variant="outline"
+            <Button onClick={quickSample} disabled={sampling} variant="outline"
               className="h-14 flex-1 rounded-xl border-2 text-sm font-bold">
               <Gift className="mr-1 h-4 w-4" /> Sample
             </Button>
