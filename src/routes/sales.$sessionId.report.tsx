@@ -42,7 +42,7 @@ function ReportPage() {
       setSession(s as Session | null);
 
       const { data: sales } = await supabase
-        .from("sales").select("id,subtotal,tax_amount,tip_amount,total,payment_method_name_snapshot,is_sample")
+        .from("sales").select("id,subtotal,tax_amount,tip_amount,total,payment_method_name_snapshot,is_sample,created_at")
         .eq("session_id", sessionId).is("deleted_at", null);
       const real = (sales ?? []).filter((r) => !r.is_sample);
       const sampleCount = (sales ?? []).length - real.length;
@@ -97,6 +97,7 @@ function ReportPage() {
       setStats({
         total, subtotal, tax, tip, count: real.length, sampleCount, avgTicket,
         byPayment, byProduct, byDemo, unitsSold: { shakes: shakeUnits, paletas: paletaUnits },
+        byHour: bucketByHour(real.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
       });
     })();
   }, [sessionId]);
