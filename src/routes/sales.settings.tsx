@@ -29,16 +29,26 @@ function SettingsPage() {
           <TabsTrigger value="flavors">Flavors</TabsTrigger>
           <TabsTrigger value="payments">Payment</TabsTrigger>
         </TabsList>
-        <TabsList className="mt-2 grid w-full grid-cols-2">
+        <TabsList className="mt-2 grid w-full grid-cols-3">
+          <TabsTrigger value="tips">Tips</TabsTrigger>
+          <TabsTrigger value="weather">Weather</TabsTrigger>
+          <TabsTrigger value="attendants">Staff</TabsTrigger>
+        </TabsList>
+        <TabsList className="mt-2 grid w-full grid-cols-3">
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
           <TabsTrigger value="tax">Tax</TabsTrigger>
+          <TabsTrigger value="shake">Shake</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products" className="mt-4"><ProductsTab /></TabsContent>
         <TabsContent value="flavors" className="mt-4"><FlavorsTab /></TabsContent>
         <TabsContent value="payments" className="mt-4"><PaymentMethodsTab /></TabsContent>
+        <TabsContent value="tips" className="mt-4"><TipsTab /></TabsContent>
+        <TabsContent value="weather" className="mt-4"><WeatherTab /></TabsContent>
+        <TabsContent value="attendants" className="mt-4"><AttendantsTab /></TabsContent>
         <TabsContent value="demographics" className="mt-4"><DemographicsTab /></TabsContent>
         <TabsContent value="tax" className="mt-4"><TaxTab /></TabsContent>
+        <TabsContent value="shake" className="mt-4"><ShakeSizeTab /></TabsContent>
       </Tabs>
     </AppShell>
   );
