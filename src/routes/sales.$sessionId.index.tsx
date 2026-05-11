@@ -264,15 +264,16 @@ function ActiveSession() {
               </div>
             </div>
           )}
-          {counts.samples > 0 && (
-            <div className="flex items-center justify-between border-t border-border/50 pt-2 text-xs">
-              <span className="font-bold">Samples → Sales</span>
-              <span className="tabular-nums text-muted-foreground">
-                {counts.sales} sales / {counts.samples} samples
-                {conversion !== null && <span className="ml-2 font-black text-foreground">{conversion.toFixed(2)}×</span>}
-              </span>
-            </div>
-          )}
+        </div>
+      )}
+
+      {counts.samples > 0 && (
+        <div className="mt-2 flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2 text-xs">
+          <span className="font-bold">Samples → Sales</span>
+          <span className="tabular-nums text-muted-foreground">
+            {counts.sales} / {counts.samples}
+            {conversion !== null && <span className="ml-2 font-black text-foreground">{conversion.toFixed(2)}× conv.</span>}
+          </span>
         </div>
       )}
 
