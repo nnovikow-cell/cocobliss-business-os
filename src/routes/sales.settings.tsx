@@ -34,7 +34,8 @@ function SettingsPage() {
           <TabsTrigger value="weather">Weather</TabsTrigger>
           <TabsTrigger value="attendants">Staff</TabsTrigger>
         </TabsList>
-        <TabsList className="mt-2 grid w-full grid-cols-3">
+        <TabsList className="mt-2 grid w-full grid-cols-4">
+          <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
           <TabsTrigger value="tax">Tax</TabsTrigger>
           <TabsTrigger value="shake">Shake</TabsTrigger>
@@ -46,11 +47,76 @@ function SettingsPage() {
         <TabsContent value="tips" className="mt-4"><TipsTab /></TabsContent>
         <TabsContent value="weather" className="mt-4"><WeatherTab /></TabsContent>
         <TabsContent value="attendants" className="mt-4"><AttendantsTab /></TabsContent>
+        <TabsContent value="events" className="mt-4"><EventsTab /></TabsContent>
         <TabsContent value="demographics" className="mt-4"><DemographicsTab /></TabsContent>
         <TabsContent value="tax" className="mt-4"><TaxTab /></TabsContent>
         <TabsContent value="shake" className="mt-4"><ShakeSizeTab /></TabsContent>
       </Tabs>
     </AppShell>
+  );
+}
+
+/* ---------- Events ---------- */
+function EventsTab() {
+  const [items, setItems] = useState<Array<{ id: string; name: string; location: string | null }>>([]);
+  const [newName, setNewName] = useState("");
+  const [newLocation, setNewLocation] = useState("");
+
+  const load = async () => {
+    const { data } = await supabase.from("events").select("id,name,location").is("deleted_at", null).order("sort_order");
+    setItems((data ?? []) as Array<{ id: string; name: string; location: string | null }>);
+  };
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    if (!newName.trim()) return;
+    const { error } = await supabase.from("events").insert({
+      name: newName.trim(), location: newLocation.trim() || null, sort_order: items.length * 10,
+    });
+    if (error) return toast.error(error.message);
+    setNewName(""); setNewLocation(""); toast.success("Event added"); load();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
+        <h3 className="mb-3 font-bold">Add event</h3>
+        <Input placeholder="Name (e.g. Saturday Market)" value={newName} onChange={(e) => setNewName(e.target.value)} />
+        <Input placeholder="Location (optional)" value={newLocation} onChange={(e) => setNewLocation(e.target.value)} className="mt-2" />
+        <Button onClick={add} className="mt-3 w-full"><Plus className="mr-2 h-4 w-4" />Add</Button>
+      </div>
+      <div className="space-y-2">
+        {items.map((e) => (
+          <EventRow key={e.id} value={e} onUpdate={load} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EventRow({ value, onUpdate }: { value: { id: string; name: string; location: string | null }; onUpdate: () => void }) {
+  const [name, setName] = useState(value.name);
+  const [location, setLocation] = useState(value.location ?? "");
+  const dirty = name !== value.name || location !== (value.location ?? "");
+  return (
+    <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3">
+      <Input value={name} onChange={(e) => setName(e.target.value)} className="flex-1" />
+      <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" className="flex-1" />
+      <Button size="icon" variant="ghost" disabled={!dirty} onClick={async () => {
+        const { error } = await supabase.from("events").update({ name, location: location.trim() || null }).eq("id", value.id);
+        if (error) return toast.error(error.message);
+        onUpdate();
+      }}>
+        <Save className="h-4 w-4" />
+      </Button>
+      <Button size="icon" variant="ghost" onClick={async () => {
+        if (!confirm("Archive event?")) return;
+        await supabase.from("events").update({ deleted_at: new Date().toISOString() }).eq("id", value.id);
+        onUpdate();
+      }}>
+        <Trash2 className="h-4 w-4 text-destructive" />
+      </Button>
+    </div>
   );
 }
 

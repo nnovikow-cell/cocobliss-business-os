@@ -101,6 +101,39 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          location: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          location?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          location?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       paleta_flavor_upgrades: {
         Row: {
           created_at: string

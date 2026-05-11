@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Settings, Receipt, Lock, Unlock, Minus, BarChart3, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Settings, Receipt, Lock, Unlock, BarChart3, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { WheelPicker } from "@/components/app/wheel-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fmt } from "@/lib/money";
@@ -26,8 +28,8 @@ function SalesIndex() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
+  const [eventId, setEventId] = useState<string>("");
+  const [events, setEvents] = useState<Array<{ id: string; name: string; location: string | null }>>([]);
   const todayLocal = () => {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -71,15 +73,18 @@ function SalesIndex() {
       supabase.from("weather_options").select("id,label").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("attendants").select("id,name").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("app_settings").select("shake_size_oz").limit(1).maybeSingle(),
-    ]).then(([w, a, s]) => {
+      supabase.from("events").select("id,name,location").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
+    ]).then(([w, a, s, e]) => {
       setWeatherOpts((w.data ?? []) as Array<{ id: string; label: string }>);
       setAttendantOpts((a.data ?? []) as Array<{ id: string; name: string }>);
       setShakeSize(Number(s.data?.shake_size_oz ?? 12));
+      setEvents((e.data ?? []) as Array<{ id: string; name: string; location: string | null }>);
     });
   }, [open]);
 
   const create = async () => {
-    if (!name.trim() || !user) return;
+    const ev = events.find((x) => x.id === eventId);
+    if (!ev || !user) return;
     const weather = weatherOpts.find((w) => w.id === weatherId) ?? null;
     const selectedAttendants = attendantOpts.filter((a) => attendantIds.includes(a.id));
     // Use the selected calendar date but keep current time-of-day so sales
@@ -94,8 +99,8 @@ function SalesIndex() {
     const { data, error } = await supabase
       .from("sales_sessions")
       .insert({
-        name: name.trim(),
-        location: location.trim() || null,
+        name: ev.name,
+        location: ev.location,
         opened_by: user.id,
         ...(openedAt ? { opened_at: openedAt } : {}),
         shakes_quarts_brought: shakesQuarts,
@@ -108,7 +113,7 @@ function SalesIndex() {
       })
       .select("id").single();
     if (error) return toast.error(error.message);
-    setOpen(false); setName(""); setLocation(""); setSessionDate(todayLocal());
+    setOpen(false); setEventId(""); setSessionDate(todayLocal());
     setShakesQuarts(0); setPaletas(0); setWeatherId(""); setAttendantIds([]);
     navigate({ to: "/sales/$sessionId", params: { sessionId: data.id } });
   };
@@ -164,12 +169,23 @@ function SalesIndex() {
           <DialogHeader><DialogTitle>Open a new session</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Saturday Market" />
-            </div>
-            <div>
-              <Label>Location (optional)</Label>
-              <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Downtown park" />
+              <Label>Event</Label>
+              {events.length === 0 ? (
+                <p className="mt-1 rounded-xl border-2 border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  No events yet. Add one in <Link to="/sales/settings" className="font-semibold text-primary underline">Settings → Events</Link>.
+                </p>
+              ) : (
+                <Select value={eventId} onValueChange={setEventId}>
+                  <SelectTrigger><SelectValue placeholder="Pick an event" /></SelectTrigger>
+                  <SelectContent>
+                    {events.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}{e.location ? ` · ${e.location}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
@@ -179,8 +195,8 @@ function SalesIndex() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <ScrollPicker label="Shakes (quarts)" value={shakesQuarts} setValue={setShakesQuarts} step={0.5} max={50} suffix="qt" />
-              <ScrollPicker label="Paletas (units)" value={paletas} setValue={setPaletas} step={1} max={500} suffix="" />
+              <WheelPicker label="Shakes (quarts)" value={shakesQuarts} onChange={setShakesQuarts} step={0.5} max={50} suffix="qt" />
+              <WheelPicker label="Paletas (units)" value={paletas} onChange={setPaletas} step={1} max={500} />
             </div>
 
             {weatherOpts.length > 0 && (
@@ -224,7 +240,7 @@ function SalesIndex() {
               </div>
             )}
 
-            <Button onClick={create} className="w-full">Open session</Button>
+            <Button onClick={create} disabled={!eventId} className="w-full">Open session</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -313,30 +329,6 @@ function SessionCard({ s, total, onReopen, canReopen, onDelete }: { s: Session; 
           <Trash2 className="h-4 w-4" />
         </button>
       )}
-    </div>
-  );
-}
-
-function ScrollPicker({ label, value, setValue, step, max, suffix }: {
-  label: string; value: number; setValue: (v: number) => void; step: number; max: number; suffix: string;
-}) {
-  const dec = () => setValue(Math.max(0, +(value - step).toFixed(2)));
-  const inc = () => setValue(Math.min(max, +(value + step).toFixed(2)));
-  return (
-    <div>
-      <Label>{label}</Label>
-      <div className="mt-1.5 flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1">
-        <button type="button" onClick={dec} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted active:scale-95">
-          <Minus className="h-4 w-4" />
-        </button>
-        <div className="flex-1 text-center">
-          <span className="text-2xl font-black tabular-nums">{value}</span>
-          {suffix && <span className="ml-1 text-xs text-muted-foreground">{suffix}</span>}
-        </div>
-        <button type="button" onClick={inc} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted active:scale-95">
-          <Plus className="h-4 w-4" />
-        </button>
-      </div>
     </div>
   );
 }
