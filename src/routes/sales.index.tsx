@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Settings, Receipt, Lock, Unlock, Minus } from "lucide-react";
+import { Plus, Settings, Receipt, Lock, Unlock, Minus, BarChart3 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,9 +113,14 @@ function SalesIndex() {
           <h1 className="text-3xl font-black tracking-tight">Sales Tracker</h1>
           <p className="text-sm text-muted-foreground">Open a session to start logging.</p>
         </div>
-        <Link to="/sales/settings" className="rounded-full p-3 hover:bg-muted">
-          <Settings className="h-6 w-6" />
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link to="/sales/stats" className="rounded-full p-3 hover:bg-muted" aria-label="Stats">
+            <BarChart3 className="h-6 w-6" />
+          </Link>
+          <Link to="/sales/settings" className="rounded-full p-3 hover:bg-muted" aria-label="Settings">
+            <Settings className="h-6 w-6" />
+          </Link>
+        </div>
       </header>
 
       <Dialog open={open} onOpenChange={setOpen}>
