@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Plus, Trash2, Lock } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,7 +41,8 @@ function ActiveSession() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
 
   const loadConfig = async () => {
     const [{ data: prods }, { data: flv }, { data: pm }, { data: dem }, { data: settings }] = await Promise.all([
@@ -74,6 +74,18 @@ function ActiveSession() {
       ...r,
       subtotal: Number(r.subtotal), tax_amount: Number(r.tax_amount), total: Number(r.total),
     })) as SaleRow[]);
+    const ids = (data ?? []).map((r) => r.id);
+    if (ids.length === 0) { setTopProduct(null); return; }
+    const { data: items } = await supabase
+      .from("sale_items")
+      .select("product_name_snapshot,quantity")
+      .in("sale_id", ids).is("deleted_at", null);
+    const counts = new Map<string, number>();
+    (items ?? []).forEach((i) => {
+      counts.set(i.product_name_snapshot, (counts.get(i.product_name_snapshot) ?? 0) + (i.quantity ?? 0));
+    });
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    setTopProduct(top ? { name: top[0], qty: top[1] } : null);
   };
 
   useEffect(() => { loadConfig(); loadSession(); loadSales(); }, [sessionId]);
@@ -128,12 +140,11 @@ function ActiveSession() {
     loadSales();
   };
 
-  const confirmDelete = async () => {
-    if (deleteConfirm !== "DELETE" || !deleteId) return;
-    const { error } = await supabase.from("sales").update({ deleted_at: new Date().toISOString() }).eq("id", deleteId);
+  const performDelete = async (id: string) => {
+    const { error } = await supabase.from("sales").update({ deleted_at: new Date().toISOString() }).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Sale deleted");
-    setDeleteId(null); setDeleteConfirm("");
+    setConfirmDeleteId(null);
     loadSales();
   };
 
@@ -160,7 +171,14 @@ function ActiveSession() {
           <h1 className="text-xl font-black">{session.name}</h1>
           <p className="text-xs text-muted-foreground">{session.location ?? "—"}</p>
         </div>
-        {!isOpen && (
+        {isOpen ? (
+          <button
+            onClick={() => setCloseOpen(true)}
+            className="inline-flex items-center gap-1 rounded-full border-2 border-border bg-card px-3 py-2 text-xs font-bold hover:border-destructive hover:text-destructive"
+          >
+            <Lock className="h-3.5 w-3.5" /> Close
+          </button>
+        ) : (
           <Link to="/sales/$sessionId/report" params={{ sessionId }} className="rounded-full bg-secondary px-3 py-2 text-xs font-bold">
             Report
           </Link>
@@ -168,9 +186,20 @@ function ActiveSession() {
       </header>
 
       <div className="rounded-3xl p-6 text-white shadow-xl" style={{ background: "var(--gradient-hero)" }}>
-        <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Live revenue</p>
-        <p className="mt-1 text-5xl font-black tabular-nums">{fmt(total)}</p>
-        <p className="mt-1 text-xs opacity-90">{sales.length} sale{sales.length === 1 ? "" : "s"}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Live revenue</p>
+            <p className="mt-1 text-5xl font-black tabular-nums">{fmt(total)}</p>
+            <p className="mt-1 text-xs opacity-90">{sales.length} sale{sales.length === 1 ? "" : "s"}</p>
+          </div>
+          {topProduct && (
+            <div className="shrink-0 rounded-2xl bg-white/15 px-3 py-2 text-right backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Top seller</p>
+              <p className="mt-0.5 max-w-[10rem] truncate text-sm font-black">{topProduct.name}</p>
+              <p className="text-xs opacity-90">{topProduct.qty} sold</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {isOpen ? (
@@ -202,21 +231,35 @@ function ActiveSession() {
                   </p>
                 </div>
                 {isOpen && (
-                  <button onClick={() => setDeleteId(s.id)} className="p-2 text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  confirmDeleteId === s.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => performDelete(s.id)}
+                        className="rounded-full bg-destructive px-3 py-1.5 text-xs font-bold text-destructive-foreground"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="rounded-full bg-muted px-3 py-1.5 text-xs font-bold"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteId(s.id)}
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  )
                 )}
               </div>
             ))}
           </div>
         )}
       </section>
-
-      {isOpen && (
-        <Button variant="outline" onClick={() => setCloseOpen(true)} className="mt-6 h-12 w-full rounded-2xl border-2 font-bold">
-          <Lock className="mr-2 h-4 w-4" /> Close session
-        </Button>
-      )}
 
       <SaleComposer
         open={composerOpen} onClose={() => setComposerOpen(false)}
@@ -237,17 +280,6 @@ function ActiveSession() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && (setDeleteId(null), setDeleteConfirm(""))}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Delete sale?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">This is a soft-delete. Type <strong>DELETE</strong> below to confirm.</p>
-          <Input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteId(null); setDeleteConfirm(""); }}>Cancel</Button>
-            <Button variant="destructive" disabled={deleteConfirm !== "DELETE"} onClick={confirmDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppShell>
   );
 }
