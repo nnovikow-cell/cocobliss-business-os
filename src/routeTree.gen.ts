@@ -9,38 +9,174 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MeetingsRouteImport } from './routes/meetings'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as CostsRouteImport } from './routes/costs'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SalesIndexRouteImport } from './routes/sales.index'
+import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
+import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
+import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
 
+const MeetingsRoute = MeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CostsRoute = CostsRouteImport.update({
+  id: '/costs',
+  path: '/costs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesIndexRoute = SalesIndexRouteImport.update({
+  id: '/sales/',
+  path: '/sales/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesSettingsRoute = SalesSettingsRouteImport.update({
+  id: '/sales/settings',
+  path: '/sales/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesSessionIdIndexRoute = SalesSessionIdIndexRouteImport.update({
+  id: '/sales/$sessionId/',
+  path: '/sales/$sessionId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesSessionIdReportRoute = SalesSessionIdReportRouteImport.update({
+  id: '/sales/$sessionId/report',
+  path: '/sales/$sessionId/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/costs': typeof CostsRoute
+  '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/meetings': typeof MeetingsRoute
+  '/sales/settings': typeof SalesSettingsRoute
+  '/sales/': typeof SalesIndexRoute
+  '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
+  '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/costs': typeof CostsRoute
+  '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/meetings': typeof MeetingsRoute
+  '/sales/settings': typeof SalesSettingsRoute
+  '/sales': typeof SalesIndexRoute
+  '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
+  '/sales/$sessionId': typeof SalesSessionIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/costs': typeof CostsRoute
+  '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/meetings': typeof MeetingsRoute
+  '/sales/settings': typeof SalesSettingsRoute
+  '/sales/': typeof SalesIndexRoute
+  '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
+  '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/costs'
+    | '/inventory'
+    | '/login'
+    | '/meetings'
+    | '/sales/settings'
+    | '/sales/'
+    | '/sales/$sessionId/report'
+    | '/sales/$sessionId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/costs'
+    | '/inventory'
+    | '/login'
+    | '/meetings'
+    | '/sales/settings'
+    | '/sales'
+    | '/sales/$sessionId/report'
+    | '/sales/$sessionId'
+  id:
+    | '__root__'
+    | '/'
+    | '/costs'
+    | '/inventory'
+    | '/login'
+    | '/meetings'
+    | '/sales/settings'
+    | '/sales/'
+    | '/sales/$sessionId/report'
+    | '/sales/$sessionId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CostsRoute: typeof CostsRoute
+  InventoryRoute: typeof InventoryRoute
+  LoginRoute: typeof LoginRoute
+  MeetingsRoute: typeof MeetingsRoute
+  SalesSettingsRoute: typeof SalesSettingsRoute
+  SalesIndexRoute: typeof SalesIndexRoute
+  SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
+  SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/meetings': {
+      id: '/meetings'
+      path: '/meetings'
+      fullPath: '/meetings'
+      preLoaderRoute: typeof MeetingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/costs': {
+      id: '/costs'
+      path: '/costs'
+      fullPath: '/costs'
+      preLoaderRoute: typeof CostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +184,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales/': {
+      id: '/sales/'
+      path: '/sales'
+      fullPath: '/sales/'
+      preLoaderRoute: typeof SalesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/settings': {
+      id: '/sales/settings'
+      path: '/sales/settings'
+      fullPath: '/sales/settings'
+      preLoaderRoute: typeof SalesSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/$sessionId/': {
+      id: '/sales/$sessionId/'
+      path: '/sales/$sessionId'
+      fullPath: '/sales/$sessionId/'
+      preLoaderRoute: typeof SalesSessionIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/$sessionId/report': {
+      id: '/sales/$sessionId/report'
+      path: '/sales/$sessionId/report'
+      fullPath: '/sales/$sessionId/report'
+      preLoaderRoute: typeof SalesSessionIdReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CostsRoute: CostsRoute,
+  InventoryRoute: InventoryRoute,
+  LoginRoute: LoginRoute,
+  MeetingsRoute: MeetingsRoute,
+  SalesSettingsRoute: SalesSettingsRoute,
+  SalesIndexRoute: SalesIndexRoute,
+  SalesSessionIdReportRoute: SalesSessionIdReportRoute,
+  SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
