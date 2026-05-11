@@ -27,7 +27,29 @@ type Stats = {
   byProduct: Array<{ name: string; qty: number; total: number }>;
   byDemo: Array<{ category: string; label: string; count: number }>;
   unitsSold: { shakes: number; paletas: number };
+  byHour: Array<{ hour: number; label: string; count: number; total: number }>;
 };
+
+function bucketByHour(rows: Array<{ created_at: string; total: number }>) {
+  const m = new Map<number, { count: number; total: number }>();
+  rows.forEach((r) => {
+    const h = new Date(r.created_at).getHours();
+    const cur = m.get(h) ?? { count: 0, total: 0 };
+    cur.count += 1; cur.total += r.total;
+    m.set(h, cur);
+  });
+  if (m.size === 0) return [];
+  const min = Math.min(...m.keys());
+  const max = Math.max(...m.keys());
+  const out: Array<{ hour: number; label: string; count: number; total: number }> = [];
+  for (let h = min; h <= max; h++) {
+    const v = m.get(h) ?? { count: 0, total: 0 };
+    const hr12 = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "am" : "pm";
+    out.push({ hour: h, label: `${hr12}${ampm}`, count: v.count, total: +v.total.toFixed(2) });
+  }
+  return out;
+}
 
 function ReportPage() {
   const { sessionId } = Route.useParams();
