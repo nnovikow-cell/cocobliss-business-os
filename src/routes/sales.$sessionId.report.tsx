@@ -284,6 +284,24 @@ function ReportPage() {
               </ResponsiveContainer>
             </ChartCard>
           )}
+
+          {/* Sales by time of day */}
+          {stats.byHour.length > 0 && (
+            <ChartCard title="Sales by time of day">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={stats.byHour} margin={{ left: 8, right: 8 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                    formatter={(v: number, _n, p) => [`${v} sales`, fmt(p.payload.total)]}
+                  />
+                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
         </>
       )}
     </AppShell>
