@@ -44,11 +44,13 @@ function ActiveSession() {
   const [demographics, setDemographics] = useState<DemographicOption[]>([]);
   const [tipOptions, setTipOptions] = useState<TipOption[]>([]);
   const [taxRate, setTaxRate] = useState(0);
-  const [composerMode, setComposerMode] = useState<null | "sale" | "sample">(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [sampling, setSampling] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
   const [unitsSold, setUnitsSold] = useState<{ shakes: number; paletas: number }>({ shakes: 0, paletas: 0 });
+  const [counts, setCounts] = useState<{ sales: number; samples: number }>({ sales: 0, samples: 0 });
 
   const loadConfig = async () => {
     const [{ data: prods }, { data: flv }, { data: pm }, { data: dem }, { data: tips }, { data: settings }] = await Promise.all([
@@ -84,7 +86,11 @@ function ActiveSession() {
       ...r,
       subtotal: Number(r.subtotal), tax_amount: Number(r.tax_amount), tip_amount: Number(r.tip_amount ?? 0), total: Number(r.total),
     })) as SaleRow[]);
-    const ids = (data ?? []).map((r) => r.id);
+    const rows = data ?? [];
+    const realSales = rows.filter((r) => !r.is_sample);
+    const sampleCount = rows.length - realSales.length;
+    setCounts({ sales: realSales.length, samples: sampleCount });
+    const ids = realSales.map((r) => r.id);
     if (ids.length === 0) { setTopProduct(null); setUnitsSold({ shakes: 0, paletas: 0 }); return; }
     const { data: items } = await supabase
       .from("sale_items")
@@ -153,7 +159,23 @@ function ActiveSession() {
     if (demos.length) await supabase.from("sale_demographics").insert(demos);
 
     toast.success(input.isSample ? "Sample logged" : `Sale logged · ${fmt(totals.total)}`);
-    setComposerMode(null);
+    setComposerOpen(false);
+    loadSales();
+  };
+
+  const quickSample = async () => {
+    if (!user || sampling) return;
+    setSampling(true);
+    const { error } = await supabase.from("sales").insert({
+      session_id: sessionId, logged_by: user.id, sale_kind: "single",
+      payment_method_id: null, payment_method_name_snapshot: "Sample",
+      applies_tax_snapshot: false, tax_rate_snapshot: 0,
+      subtotal: 0, tax_amount: 0, tip_amount: 0, total: 0,
+      is_sample: true, note: null,
+    });
+    setSampling(false);
+    if (error) return toast.error(error.message);
+    toast.success("Sample logged");
     loadSales();
   };
 
@@ -184,6 +206,11 @@ function ActiveSession() {
   const shakesAvail = Math.max(0, Math.floor(totalShakeOz / shakeSize) - unitsSold.shakes);
   const paletasAvail = Math.max(0, (session.paletas_brought ?? 0) - unitsSold.paletas);
   const hasInventory = (session.shakes_quarts_brought ?? 0) > 0 || (session.paletas_brought ?? 0) > 0;
+  const totalShakes = Math.floor(totalShakeOz / shakeSize);
+  const totalPaletas = session.paletas_brought ?? 0;
+  const shakePct = totalShakes > 0 ? Math.min(100, (unitsSold.shakes / totalShakes) * 100) : 0;
+  const paletaPct = totalPaletas > 0 ? Math.min(100, (unitsSold.paletas / totalPaletas) * 100) : 0;
+  const conversion = counts.samples > 0 ? counts.sales / counts.samples : null;
 
   return (
     <AppShell>
@@ -231,17 +258,39 @@ function ActiveSession() {
       </div>
 
       {hasInventory && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-2xl border-2 border-border bg-card p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Shakes left</p>
-            <p className="mt-0.5 text-2xl font-black tabular-nums">{shakesAvail}</p>
-            <p className="text-[10px] text-muted-foreground">{unitsSold.shakes} sold · {session.shakes_quarts_brought} qt @ {shakeSize}oz</p>
-          </div>
-          <div className="rounded-2xl border-2 border-border bg-card p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Paletas left</p>
-            <p className="mt-0.5 text-2xl font-black tabular-nums">{paletasAvail}</p>
-            <p className="text-[10px] text-muted-foreground">{unitsSold.paletas} sold · {session.paletas_brought} brought</p>
-          </div>
+        <div className="mt-3 space-y-2 rounded-2xl border border-border bg-card p-3">
+          {totalShakes > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="font-bold">Shakes</span>
+                <span className="tabular-nums text-muted-foreground"><span className="font-black text-foreground">{shakesAvail}</span> left · {unitsSold.shakes}/{totalShakes}</span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${shakePct}%` }} />
+              </div>
+            </div>
+          )}
+          {totalPaletas > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="font-bold">Paletas</span>
+                <span className="tabular-nums text-muted-foreground"><span className="font-black text-foreground">{paletasAvail}</span> left · {unitsSold.paletas}/{totalPaletas}</span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${paletaPct}%` }} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {counts.samples > 0 && (
+        <div className="mt-2 flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2 text-xs">
+          <span className="font-bold">Samples → Sales</span>
+          <span className="tabular-nums text-muted-foreground">
+            {counts.sales} / {counts.samples}
+            {conversion !== null && <span className="ml-2 font-black text-foreground">{conversion.toFixed(2)}× conv.</span>}
+          </span>
         </div>
       )}
 
@@ -305,8 +354,8 @@ function ActiveSession() {
       </section>
 
       <SaleComposer
-        open={composerMode !== null} onClose={() => setComposerMode(null)}
-        mode={composerMode ?? "sale"}
+        open={composerOpen} onClose={() => setComposerOpen(false)}
+        mode="sale"
         products={products} flavors={flavors} paymentMethods={paymentMethods}
         demographics={demographics} tipOptions={tipOptions} taxRate={taxRate} onSubmit={submitSale}
       />
@@ -314,11 +363,11 @@ function ActiveSession() {
       {isOpen && (
         <div className="fixed inset-x-0 bottom-16 z-30 mx-auto max-w-md px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="flex gap-2 rounded-2xl bg-background/80 p-1.5 backdrop-blur-md ring-1 ring-border">
-            <Button onClick={() => setComposerMode("sale")} className="h-14 flex-[2] rounded-xl text-base font-bold shadow-lg"
+            <Button onClick={() => setComposerOpen(true)} className="h-14 flex-[2] rounded-xl text-base font-bold shadow-lg"
               style={{ background: "var(--gradient-hero)" }}>
               <Plus className="mr-2 h-5 w-5" /> New sale
             </Button>
-            <Button onClick={() => setComposerMode("sample")} variant="outline"
+            <Button onClick={quickSample} disabled={sampling} variant="outline"
               className="h-14 flex-1 rounded-xl border-2 text-sm font-bold">
               <Gift className="mr-1 h-4 w-4" /> Sample
             </Button>
