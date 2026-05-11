@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as CostsRouteImport } from './routes/costs'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
 
 const MeetingsRoute = MeetingsRouteImport.update({
   id: '/meetings',
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesSettingsRoute = SalesSettingsRouteImport.update({
+  id: '/sales/settings',
+  path: '/sales/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/sales/settings': typeof SalesSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/sales/settings': typeof SalesSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,27 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/sales/settings': typeof SalesSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/costs' | '/inventory' | '/login' | '/meetings'
+  fullPaths:
+    | '/'
+    | '/costs'
+    | '/inventory'
+    | '/login'
+    | '/meetings'
+    | '/sales/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/costs' | '/inventory' | '/login' | '/meetings'
-  id: '__root__' | '/' | '/costs' | '/inventory' | '/login' | '/meetings'
+  to: '/' | '/costs' | '/inventory' | '/login' | '/meetings' | '/sales/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/costs'
+    | '/inventory'
+    | '/login'
+    | '/meetings'
+    | '/sales/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +99,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRoute
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
+  SalesSettingsRoute: typeof SalesSettingsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales/settings': {
+      id: '/sales/settings'
+      path: '/sales/settings'
+      fullPath: '/sales/settings'
+      preLoaderRoute: typeof SalesSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,7 +155,18 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRoute,
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
+  SalesSettingsRoute: SalesSettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
