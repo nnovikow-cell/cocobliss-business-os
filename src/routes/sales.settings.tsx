@@ -181,7 +181,13 @@ function FlavorsTab() {
             value={p as unknown as { id: string; name: string }}
             priceField="upgrade_price"
             priceLabel="Upgrade price"
-            onChange={(patch) => supabase.from("paleta_flavor_upgrades").update(patch).eq("id", p.id).then(load)}
+            onChange={(patch) =>
+              supabase
+                .from("paleta_flavor_upgrades")
+                .update(patch as { name?: string; upgrade_price?: number })
+                .eq("id", p.id)
+                .then(load)
+            }
             onDelete={() => {
               if (!confirm("Archive flavor?")) return;
               supabase.from("paleta_flavor_upgrades").update({ deleted_at: new Date().toISOString() }).eq("id", p.id).then(load);
