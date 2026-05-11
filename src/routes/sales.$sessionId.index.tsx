@@ -40,7 +40,6 @@ function ActiveSession() {
   const [taxRate, setTaxRate] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
 
