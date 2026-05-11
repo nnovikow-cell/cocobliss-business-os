@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { AuthProvider } from "@/hooks/use-auth";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -72,16 +74,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "cocobliss-business-os is a cloud-enabled business operating system." },
+      { title: "CocoBLiss Business OS" },
+      { name: "description", content: "Live sales tracking & operations for CocoBLiss paletas and shakes." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "cocobliss-business-os is a cloud-enabled business operating system." },
+      { property: "og:title", content: "CocoBLiss Business OS" },
+      { property: "og:description", content: "Live sales tracking & operations for CocoBLiss paletas and shakes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "cocobliss-business-os is a cloud-enabled business operating system." },
+      { name: "twitter:title", content: "CocoBLiss Business OS" },
+      { name: "twitter:description", content: "Live sales tracking & operations for CocoBLiss paletas and shakes." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/63a264f5-ff72-4944-a8da-c6fe604aeed2/id-preview-4ed4c8e8--a5c8ad6a-fc4a-4a22-b740-dfa5fcbc92f4.lovable.app-1778475644555.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/63a264f5-ff72-4944-a8da-c6fe604aeed2/id-preview-4ed4c8e8--a5c8ad6a-fc4a-4a22-b740-dfa5fcbc92f4.lovable.app-1778475644555.png" },
     ],
@@ -117,7 +119,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+        <Toaster richColors position="top-center" />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
