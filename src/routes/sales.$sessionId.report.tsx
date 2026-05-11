@@ -27,7 +27,29 @@ type Stats = {
   byProduct: Array<{ name: string; qty: number; total: number }>;
   byDemo: Array<{ category: string; label: string; count: number }>;
   unitsSold: { shakes: number; paletas: number };
+  byHour: Array<{ hour: number; label: string; count: number; total: number }>;
 };
+
+function bucketByHour(rows: Array<{ created_at: string; total: number }>) {
+  const m = new Map<number, { count: number; total: number }>();
+  rows.forEach((r) => {
+    const h = new Date(r.created_at).getHours();
+    const cur = m.get(h) ?? { count: 0, total: 0 };
+    cur.count += 1; cur.total += r.total;
+    m.set(h, cur);
+  });
+  if (m.size === 0) return [];
+  const min = Math.min(...m.keys());
+  const max = Math.max(...m.keys());
+  const out: Array<{ hour: number; label: string; count: number; total: number }> = [];
+  for (let h = min; h <= max; h++) {
+    const v = m.get(h) ?? { count: 0, total: 0 };
+    const hr12 = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "am" : "pm";
+    out.push({ hour: h, label: `${hr12}${ampm}`, count: v.count, total: +v.total.toFixed(2) });
+  }
+  return out;
+}
 
 function ReportPage() {
   const { sessionId } = Route.useParams();
@@ -42,7 +64,7 @@ function ReportPage() {
       setSession(s as Session | null);
 
       const { data: sales } = await supabase
-        .from("sales").select("id,subtotal,tax_amount,tip_amount,total,payment_method_name_snapshot,is_sample")
+        .from("sales").select("id,subtotal,tax_amount,tip_amount,total,payment_method_name_snapshot,is_sample,created_at")
         .eq("session_id", sessionId).is("deleted_at", null);
       const real = (sales ?? []).filter((r) => !r.is_sample);
       const sampleCount = (sales ?? []).length - real.length;
@@ -97,6 +119,7 @@ function ReportPage() {
       setStats({
         total, subtotal, tax, tip, count: real.length, sampleCount, avgTicket,
         byPayment, byProduct, byDemo, unitsSold: { shakes: shakeUnits, paletas: paletaUnits },
+        byHour: bucketByHour(real.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
       });
     })();
   }, [sessionId]);
@@ -257,6 +280,24 @@ function ReportPage() {
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="brought" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="sold" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
+
+          {/* Sales by time of day */}
+          {stats.byHour.length > 0 && (
+            <ChartCard title="Sales by time of day">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={stats.byHour} margin={{ left: 8, right: 8 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                    formatter={(v: number, _n, p) => [`${v} sales`, fmt(p.payload.total)]}
+                  />
+                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
