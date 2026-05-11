@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Settings, Receipt, Lock, Unlock } from "lucide-react";
+import { Plus, Settings, Receipt, Lock, Unlock, Minus } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fmt } from "@/lib/money";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/sales/")({ component: SalesIndex });
 
@@ -26,6 +27,13 @@ function SalesIndex() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [shakesQuarts, setShakesQuarts] = useState(0);
+  const [paletas, setPaletas] = useState(0);
+  const [weatherId, setWeatherId] = useState<string>("");
+  const [attendantIds, setAttendantIds] = useState<string[]>([]);
+  const [weatherOpts, setWeatherOpts] = useState<Array<{ id: string; label: string }>>([]);
+  const [attendantOpts, setAttendantOpts] = useState<Array<{ id: string; name: string }>>([]);
+  const [shakeSize, setShakeSize] = useState(12);
 
   const load = async () => {
     const { data } = await supabase
@@ -48,14 +56,41 @@ function SalesIndex() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    Promise.all([
+      supabase.from("weather_options").select("id,label").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
+      supabase.from("attendants").select("id,name").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
+      supabase.from("app_settings").select("shake_size_oz").limit(1).maybeSingle(),
+    ]).then(([w, a, s]) => {
+      setWeatherOpts((w.data ?? []) as Array<{ id: string; label: string }>);
+      setAttendantOpts((a.data ?? []) as Array<{ id: string; name: string }>);
+      setShakeSize(Number(s.data?.shake_size_oz ?? 12));
+    });
+  }, [open]);
+
   const create = async () => {
     if (!name.trim() || !user) return;
+    const weather = weatherOpts.find((w) => w.id === weatherId) ?? null;
+    const selectedAttendants = attendantOpts.filter((a) => attendantIds.includes(a.id));
     const { data, error } = await supabase
       .from("sales_sessions")
-      .insert({ name: name.trim(), location: location.trim() || null, opened_by: user.id })
+      .insert({
+        name: name.trim(),
+        location: location.trim() || null,
+        opened_by: user.id,
+        shakes_quarts_brought: shakesQuarts,
+        paletas_brought: paletas,
+        shake_size_oz_snapshot: shakeSize,
+        weather_option_id: weather?.id ?? null,
+        weather_label_snapshot: weather?.label ?? null,
+        attendant_ids: attendantIds,
+        attendant_names_snapshot: selectedAttendants.map((a) => a.name),
+      })
       .select("id").single();
     if (error) return toast.error(error.message);
     setOpen(false); setName(""); setLocation("");
+    setShakesQuarts(0); setPaletas(0); setWeatherId(""); setAttendantIds([]);
     navigate({ to: "/sales/$sessionId", params: { sessionId: data.id } });
   };
 
@@ -89,9 +124,9 @@ function SalesIndex() {
             <Plus className="mr-2 h-5 w-5" /> New session
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Open a new session</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
               <Label>Name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Saturday Market" />
@@ -100,6 +135,53 @@ function SalesIndex() {
               <Label>Location (optional)</Label>
               <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Downtown park" />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <ScrollPicker label="Shakes (quarts)" value={shakesQuarts} setValue={setShakesQuarts} step={0.5} max={50} suffix="qt" />
+              <ScrollPicker label="Paletas (units)" value={paletas} setValue={setPaletas} step={1} max={500} suffix="" />
+            </div>
+
+            {weatherOpts.length > 0 && (
+              <div>
+                <Label>Weather</Label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {weatherOpts.map((w) => {
+                    const sel = w.id === weatherId;
+                    return (
+                      <button key={w.id} onClick={() => setWeatherId(sel ? "" : w.id)}
+                        className={cn("rounded-full border-2 px-4 py-2 text-sm font-bold transition-all",
+                          sel ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card")}>
+                        {w.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {attendantOpts.length > 0 && (
+              <div>
+                <Label>Attendants</Label>
+                <div className="mt-1.5 space-y-1.5">
+                  {attendantOpts.map((a) => {
+                    const on = attendantIds.includes(a.id);
+                    return (
+                      <button key={a.id}
+                        onClick={() => setAttendantIds((prev) => on ? prev.filter((x) => x !== a.id) : [...prev, a.id])}
+                        className={cn("flex w-full items-center justify-between rounded-xl border-2 px-3 py-2 text-left text-sm font-semibold",
+                          on ? "border-primary bg-primary/10" : "border-border bg-card")}>
+                        <span>{a.name}</span>
+                        <span className={cn("flex h-5 w-5 items-center justify-center rounded border-2",
+                          on ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
+                          {on && "✓"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <Button onClick={create} className="w-full">Open session</Button>
           </div>
         </DialogContent>
@@ -156,6 +238,30 @@ function SessionCard({ s, total, onReopen, canReopen }: { s: Session; total: num
           <Receipt className="h-4 w-4" />
         </Link>
       )}
+    </div>
+  );
+}
+
+function ScrollPicker({ label, value, setValue, step, max, suffix }: {
+  label: string; value: number; setValue: (v: number) => void; step: number; max: number; suffix: string;
+}) {
+  const dec = () => setValue(Math.max(0, +(value - step).toFixed(2)));
+  const inc = () => setValue(Math.min(max, +(value + step).toFixed(2)));
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-1.5 flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1">
+        <button type="button" onClick={dec} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted active:scale-95">
+          <Minus className="h-4 w-4" />
+        </button>
+        <div className="flex-1 text-center">
+          <span className="text-2xl font-black tabular-nums">{value}</span>
+          {suffix && <span className="ml-1 text-xs text-muted-foreground">{suffix}</span>}
+        </div>
+        <button type="button" onClick={inc} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted active:scale-95">
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }
