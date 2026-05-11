@@ -18,19 +18,52 @@ export type Database = {
         Row: {
           id: string
           is_singleton: boolean
+          shake_size_oz: number
           tax_rate: number
           updated_at: string
         }
         Insert: {
           id?: string
           is_singleton?: boolean
+          shake_size_oz?: number
           tax_rate?: number
           updated_at?: string
         }
         Update: {
           id?: string
           is_singleton?: boolean
+          shake_size_oz?: number
           tax_rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      attendants: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -318,6 +351,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          is_sample: boolean
           logged_by: string
           note: string | null
           payment_method_id: string | null
@@ -327,6 +361,7 @@ export type Database = {
           subtotal: number
           tax_amount: number
           tax_rate_snapshot: number
+          tip_amount: number
           total: number
           updated_at: string
         }
@@ -335,6 +370,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_sample?: boolean
           logged_by: string
           note?: string | null
           payment_method_id?: string | null
@@ -344,6 +380,7 @@ export type Database = {
           subtotal?: number
           tax_amount?: number
           tax_rate_snapshot?: number
+          tip_amount?: number
           total?: number
           updated_at?: string
         }
@@ -352,6 +389,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_sample?: boolean
           logged_by?: string
           note?: string | null
           payment_method_id?: string | null
@@ -361,6 +399,7 @@ export type Database = {
           subtotal?: number
           tax_amount?: number
           tax_rate_snapshot?: number
+          tip_amount?: number
           total?: number
           updated_at?: string
         }
@@ -383,6 +422,8 @@ export type Database = {
       }
       sales_sessions: {
         Row: {
+          attendant_ids: string[]
+          attendant_names_snapshot: string[]
           closed_at: string | null
           closed_by: string | null
           created_at: string
@@ -393,10 +434,17 @@ export type Database = {
           notes: string | null
           opened_at: string
           opened_by: string
+          paletas_brought: number
+          shake_size_oz_snapshot: number
+          shakes_quarts_brought: number
           status: Database["public"]["Enums"]["session_status"]
           updated_at: string
+          weather_label_snapshot: string | null
+          weather_option_id: string | null
         }
         Insert: {
+          attendant_ids?: string[]
+          attendant_names_snapshot?: string[]
           closed_at?: string | null
           closed_by?: string | null
           created_at?: string
@@ -407,10 +455,17 @@ export type Database = {
           notes?: string | null
           opened_at?: string
           opened_by: string
+          paletas_brought?: number
+          shake_size_oz_snapshot?: number
+          shakes_quarts_brought?: number
           status?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
+          weather_label_snapshot?: string | null
+          weather_option_id?: string | null
         }
         Update: {
+          attendant_ids?: string[]
+          attendant_names_snapshot?: string[]
           closed_at?: string | null
           closed_by?: string | null
           created_at?: string
@@ -421,7 +476,48 @@ export type Database = {
           notes?: string | null
           opened_at?: string
           opened_by?: string
+          paletas_brought?: number
+          shake_size_oz_snapshot?: number
+          shakes_quarts_brought?: number
           status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+          weather_label_snapshot?: string | null
+          weather_option_id?: string | null
+        }
+        Relationships: []
+      }
+      tip_options: {
+        Row: {
+          amount: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          kind: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          kind?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          kind?: string
+          label?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -444,6 +540,36 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      weather_options: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
