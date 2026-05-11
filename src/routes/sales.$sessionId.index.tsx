@@ -186,7 +186,8 @@ function ActiveSession() {
   const hasInventory = (session.shakes_quarts_brought ?? 0) > 0 || (session.paletas_brought ?? 0) > 0;
 
   return (
-    <AppShell className="pb-40">
+    <AppShell>
+    <div className="pb-32">
       <header className="mb-4 flex items-center gap-3">
         <Link to="/sales" className="rounded-full p-2 hover:bg-muted"><ArrowLeft className="h-5 w-5" /></Link>
         <div className="min-w-0 flex-1">
@@ -338,6 +339,7 @@ function ActiveSession() {
         </DialogContent>
       </Dialog>
 
+    </div>
     </AppShell>
   );
 }
