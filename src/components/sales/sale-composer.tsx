@@ -1,0 +1,331 @@
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Minus, X, Check, Users, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { fmt, computeTotals } from "@/lib/money";
+import {
+  type Product, type Flavor, type PaymentMethod, type DemographicOption,
+  type CartLine, type CustomerCart, lineTotal, cartSubtotal,
+} from "@/lib/sales-types";
+import { cn } from "@/lib/utils";
+
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  products: Product[];
+  flavors: Flavor[];
+  paymentMethods: PaymentMethod[];
+  demographics: DemographicOption[];
+  taxRate: number;
+  onSubmit: (input: {
+    kind: "single" | "group";
+    paymentMethod: PaymentMethod;
+    customers: CustomerCart[];
+    note: string;
+  }) => Promise<void>;
+};
+
+export function SaleComposer(props: Props) {
+  const { open, onClose, products, flavors, paymentMethods, demographics, taxRate, onSubmit } = props;
+  const [kind, setKind] = useState<"single" | "group">("single");
+  const [carts, setCarts] = useState<CustomerCart[]>([{ lines: [], demographicIds: [] }]);
+  const [activeCustomer, setActiveCustomer] = useState(0);
+  const [pendingPaleta, setPendingPaleta] = useState<Product | null>(null);
+  const [paymentId, setPaymentId] = useState<string>("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setKind("single");
+      setCarts([{ lines: [], demographicIds: [] }]);
+      setActiveCustomer(0);
+      setPendingPaleta(null);
+      setPaymentId("");
+      setNote("");
+    }
+  }, [open]);
+
+  const subtotal = useMemo(() => cartSubtotal(carts), [carts]);
+  const selectedMethod = paymentMethods.find((m) => m.id === paymentId);
+  const totals = computeTotals({
+    subtotal,
+    appliesTax: selectedMethod?.applies_tax ?? false,
+    taxRate,
+  });
+
+  const shakes = products.filter((p) => p.type === "shake");
+  const paletas = products.filter((p) => p.type === "paleta");
+
+  const updateCart = (idx: number, fn: (c: CustomerCart) => CustomerCart) => {
+    setCarts((cs) => cs.map((c, i) => (i === idx ? fn(c) : c)));
+  };
+
+  const addShake = (p: Product) => {
+    updateCart(activeCustomer, (c) => ({
+      ...c,
+      lines: [...c.lines, {
+        productId: p.id, productName: p.name, productType: "shake",
+        basePrice: Number(p.price), upgradePrice: 0, quantity: 1,
+      }],
+    }));
+  };
+
+  const tapPaleta = (p: Product) => {
+    if (flavors.length === 0) {
+      addPaletaWithFlavor(p, null);
+    } else {
+      setPendingPaleta(p);
+    }
+  };
+
+  const addPaletaWithFlavor = (p: Product, f: Flavor | null) => {
+    updateCart(activeCustomer, (c) => ({
+      ...c,
+      lines: [...c.lines, {
+        productId: p.id, productName: p.name, productType: "paleta",
+        basePrice: Number(p.price),
+        flavorId: f?.id, flavorName: f?.name,
+        upgradePrice: f ? Number(f.upgrade_price) : 0,
+        quantity: 1,
+      }],
+    }));
+    setPendingPaleta(null);
+  };
+
+  const removeLine = (custIdx: number, lineIdx: number) => {
+    updateCart(custIdx, (c) => ({ ...c, lines: c.lines.filter((_, i) => i !== lineIdx) }));
+  };
+
+  const adjustQty = (custIdx: number, lineIdx: number, delta: number) => {
+    updateCart(custIdx, (c) => ({
+      ...c,
+      lines: c.lines.map((l, i) => i === lineIdx ? { ...l, quantity: Math.max(1, l.quantity + delta) } : l),
+    }));
+  };
+
+  const toggleDemographic = (custIdx: number, demoId: string) => {
+    updateCart(custIdx, (c) => ({
+      ...c,
+      demographicIds: c.demographicIds.includes(demoId)
+        ? c.demographicIds.filter((d) => d !== demoId)
+        : [...c.demographicIds, demoId],
+    }));
+  };
+
+  const addCustomer = () => {
+    setCarts((cs) => [...cs, { lines: [], demographicIds: [] }]);
+    setActiveCustomer(carts.length);
+  };
+
+  const switchKind = (k: "single" | "group") => {
+    setKind(k);
+    if (k === "single") {
+      setCarts([carts[0] ?? { lines: [], demographicIds: [] }]);
+      setActiveCustomer(0);
+    }
+  };
+
+  const canSubmit = subtotal > 0 && !!selectedMethod && !busy;
+
+  const submit = async () => {
+    if (!selectedMethod) return;
+    setBusy(true);
+    try {
+      await onSubmit({ kind, paymentMethod: selectedMethod, customers: carts, note });
+    } finally { setBusy(false); }
+  };
+
+  const groupedDemographics = demographics.reduce<Record<string, DemographicOption[]>>((acc, d) => {
+    (acc[d.category] ??= []).push(d); return acc;
+  }, {});
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="bottom" className="h-[92vh] overflow-y-auto p-0">
+        <SheetHeader className="sticky top-0 z-10 border-b border-border bg-card px-4 py-3">
+          <SheetTitle className="text-left text-xl font-black">New sale</SheetTitle>
+          <div className="mt-2 flex gap-2">
+            <button onClick={() => switchKind("single")}
+              className={cn("flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-colors",
+                kind === "single" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
+              <User className="mr-1 inline h-4 w-4" /> Single
+            </button>
+            <button onClick={() => switchKind("group")}
+              className={cn("flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-colors",
+                kind === "group" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
+              <Users className="mr-1 inline h-4 w-4" /> Group
+            </button>
+          </div>
+        </SheetHeader>
+
+        <div className="space-y-5 px-4 py-4">
+          {kind === "group" && (
+            <div className="flex flex-wrap gap-2">
+              {carts.map((_, i) => (
+                <button key={i} onClick={() => setActiveCustomer(i)}
+                  className={cn("rounded-full px-4 py-2 text-sm font-bold",
+                    activeCustomer === i ? "bg-primary text-primary-foreground" : "bg-secondary")}>
+                  Customer {i + 1}
+                </button>
+              ))}
+              <button onClick={addCustomer} className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-foreground">
+                <Plus className="mr-1 inline h-4 w-4" /> Add
+              </button>
+            </div>
+          )}
+
+          {/* Shakes */}
+          {shakes.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Shakes</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {shakes.map((p) => (
+                  <button key={p.id} onClick={() => addShake(p)}
+                    className="rounded-2xl border-2 border-border bg-card p-4 text-left font-bold transition-all hover:-translate-y-0.5 hover:border-primary active:scale-95">
+                    <div className="text-base">{p.name}</div>
+                    <div className="mt-1 text-sm text-primary">{fmt(Number(p.price))}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Paletas */}
+          {paletas.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Paletas</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {paletas.map((p) => (
+                  <button key={p.id} onClick={() => tapPaleta(p)}
+                    className="rounded-2xl border-2 border-border bg-card p-4 text-left font-bold transition-all hover:-translate-y-0.5 hover:border-primary active:scale-95">
+                    <div className="text-base">{p.name}</div>
+                    <div className="mt-1 text-sm text-primary">{fmt(Number(p.price))}</div>
+                  </button>
+                ))}
+              </div>
+              {pendingPaleta && (
+                <div className="mt-3 rounded-2xl border-2 border-primary bg-primary/5 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-bold">Choose flavor for {pendingPaleta.name}</p>
+                    <button onClick={() => setPendingPaleta(null)}><X className="h-4 w-4" /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => addPaletaWithFlavor(pendingPaleta, null)}
+                      className="rounded-full bg-secondary px-4 py-2 text-sm font-bold">
+                      Plain (no upgrade)
+                    </button>
+                    {flavors.map((f) => (
+                      <button key={f.id} onClick={() => addPaletaWithFlavor(pendingPaleta, f)}
+                        className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-foreground">
+                        {f.name} +{fmt(Number(f.upgrade_price))}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Cart for active customer */}
+          <section>
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {kind === "group" ? `Customer ${activeCustomer + 1} cart` : "Cart"}
+            </h3>
+            {carts[activeCustomer].lines.length === 0 ? (
+              <p className="rounded-2xl border-2 border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                Tap a product above to add it.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {carts[activeCustomer].lines.map((l, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3">
+                    <div className="flex-1">
+                      <p className="font-bold">{l.productName}{l.flavorName ? ` · ${l.flavorName}` : ""}</p>
+                      <p className="text-xs text-muted-foreground">{fmt(l.basePrice + l.upgradePrice)} ea</p>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-full bg-muted px-1">
+                      <button onClick={() => adjustQty(activeCustomer, i, -1)} className="p-1"><Minus className="h-4 w-4" /></button>
+                      <span className="w-6 text-center font-bold">{l.quantity}</span>
+                      <button onClick={() => adjustQty(activeCustomer, i, +1)} className="p-1"><Plus className="h-4 w-4" /></button>
+                    </div>
+                    <span className="w-16 text-right font-bold">{fmt(lineTotal(l))}</span>
+                    <button onClick={() => removeLine(activeCustomer, i)} className="p-1 text-muted-foreground hover:text-destructive">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Demographics */}
+          {demographics.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Demographics (optional{kind === "group" ? ` · Customer ${activeCustomer + 1}` : ""})
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(groupedDemographics).map(([cat, opts]) => (
+                  <div key={cat}>
+                    <p className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">{cat}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {opts.map((d) => {
+                        const on = carts[activeCustomer].demographicIds.includes(d.id);
+                        return (
+                          <button key={d.id} onClick={() => toggleDemographic(activeCustomer, d.id)}
+                            className={cn("rounded-full px-3 py-1.5 text-sm font-semibold",
+                              on ? "bg-primary text-primary-foreground" : "bg-secondary")}>
+                            {d.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Note */}
+          <Textarea placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="resize-none" rows={2} />
+        </div>
+
+        {/* Sticky footer */}
+        <div className="sticky bottom-0 border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="mb-3">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Tap to charge & save</p>
+            <div className="flex flex-wrap gap-2">
+              {paymentMethods.length === 0 && (
+                <p className="text-sm text-destructive">Add a payment method in Settings.</p>
+              )}
+              {paymentMethods.map((m) => {
+                const selected = m.id === paymentId;
+                return (
+                  <button key={m.id} onClick={() => setPaymentId(m.id)}
+                    className={cn("flex-1 rounded-2xl border-2 px-3 py-3 text-sm font-bold transition-all",
+                      selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary/50")}>
+                    {m.name}
+                    {m.applies_tax && <span className="ml-1 text-[10px] opacity-80">+tax</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mb-3 flex items-baseline justify-between">
+            <div className="text-xs text-muted-foreground">
+              Subtotal {fmt(totals.subtotal)}{totals.tax > 0 && <span className="ml-2">+ tax {fmt(totals.tax)}</span>}
+            </div>
+            <div className="text-3xl font-black">{fmt(totals.total)}</div>
+          </div>
+          <Button onClick={submit} disabled={!canSubmit}
+            className="h-14 w-full rounded-2xl text-base font-bold shadow-lg"
+            style={canSubmit ? { background: "var(--gradient-hero)" } : undefined}>
+            <Check className="mr-2 h-5 w-5" /> {busy ? "Saving..." : "Save sale"}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
