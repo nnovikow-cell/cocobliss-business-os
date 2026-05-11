@@ -3,9 +3,10 @@ import { Plus, Minus, X, Check, Users, User, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { fmt, computeTotals } from "@/lib/money";
+import { fmt, computeTotals, computeTip } from "@/lib/money";
 import {
   type Product, type Flavor, type PaymentMethod, type DemographicOption,
+  type TipOption,
   type CartLine, type CustomerCart, lineTotal, cartSubtotal,
 } from "@/lib/sales-types";
 import { cn } from "@/lib/utils";
@@ -13,26 +14,32 @@ import { cn } from "@/lib/utils";
 type Props = {
   open: boolean;
   onClose: () => void;
+  mode?: "sale" | "sample";
   products: Product[];
   flavors: Flavor[];
   paymentMethods: PaymentMethod[];
   demographics: DemographicOption[];
+  tipOptions: TipOption[];
   taxRate: number;
   onSubmit: (input: {
     kind: "single" | "group";
-    paymentMethod: PaymentMethod;
+    paymentMethod: PaymentMethod | null;
     customers: CustomerCart[];
     note: string;
+    tipAmount: number;
+    isSample: boolean;
   }) => Promise<void>;
 };
 
 export function SaleComposer(props: Props) {
-  const { open, onClose, products, flavors, paymentMethods, demographics, taxRate, onSubmit } = props;
+  const { open, onClose, products, flavors, paymentMethods, demographics, tipOptions, taxRate, onSubmit, mode = "sale" } = props;
+  const isSample = mode === "sample";
   const [kind, setKind] = useState<"single" | "group">("single");
   const [carts, setCarts] = useState<CustomerCart[]>([{ lines: [], demographicIds: [] }]);
   const [activeCustomer, setActiveCustomer] = useState(0);
   const [pendingPaleta, setPendingPaleta] = useState<Product | null>(null);
   const [paymentId, setPaymentId] = useState<string>("");
+  const [tipId, setTipId] = useState<string>("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -43,16 +50,20 @@ export function SaleComposer(props: Props) {
       setActiveCustomer(0);
       setPendingPaleta(null);
       setPaymentId("");
+      setTipId("");
       setNote("");
     }
   }, [open]);
 
   const subtotal = useMemo(() => cartSubtotal(carts), [carts]);
-  const selectedMethod = paymentMethods.find((m) => m.id === paymentId);
+  const selectedMethod = paymentMethods.find((m) => m.id === paymentId) ?? null;
+  const selectedTip = tipOptions.find((t) => t.id === tipId) ?? null;
+  const tipAmount = isSample ? 0 : computeTip(selectedTip, subtotal);
   const totals = computeTotals({
-    subtotal,
-    appliesTax: selectedMethod?.applies_tax ?? false,
+    subtotal: isSample ? 0 : subtotal,
+    appliesTax: !isSample && (selectedMethod?.applies_tax ?? false),
     taxRate,
+    tip: tipAmount,
   });
 
   const shakes = products.filter((p) => p.type === "shake");
@@ -127,13 +138,21 @@ export function SaleComposer(props: Props) {
     }
   };
 
-  const canSubmit = subtotal > 0 && !!selectedMethod && !busy;
+  const hasItems = carts.some((c) => c.lines.length > 0);
+  const canSubmit = hasItems && (isSample || !!selectedMethod) && !busy;
 
   const submit = async () => {
-    if (!selectedMethod) return;
+    if (!isSample && !selectedMethod) return;
     setBusy(true);
     try {
-      await onSubmit({ kind, paymentMethod: selectedMethod, customers: carts, note });
+      await onSubmit({
+        kind,
+        paymentMethod: isSample ? null : selectedMethod,
+        customers: carts,
+        note,
+        tipAmount,
+        isSample,
+      });
     } finally { setBusy(false); }
   };
 
@@ -153,7 +172,9 @@ export function SaleComposer(props: Props) {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <SheetTitle className="flex-1 text-left text-xl font-black">New sale</SheetTitle>
+            <SheetTitle className="flex-1 text-left text-xl font-black">
+              {isSample ? "Free sample" : "New sale"}
+            </SheetTitle>
             <button
               onClick={onClose}
               aria-label="Close without saving"
@@ -176,7 +197,7 @@ export function SaleComposer(props: Props) {
           </div>
         </SheetHeader>
 
-        <div className="space-y-5 px-4 py-4">
+        <div className="space-y-4 px-3 py-3">
           {kind === "group" && (
             <div className="flex flex-wrap gap-2">
               {carts.map((_, i) => (
@@ -195,8 +216,8 @@ export function SaleComposer(props: Props) {
           {/* Shakes */}
           {shakes.length > 0 && (
             <section>
-              <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Shakes</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <h3 className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Shakes</h3>
+              <div className="grid grid-cols-3 gap-1.5">
                 {shakes.map((p) => {
                   const count = carts[activeCustomer].lines
                     .filter((l) => l.productId === p.id)
@@ -205,17 +226,17 @@ export function SaleComposer(props: Props) {
                   return (
                     <button key={p.id} onClick={() => addShake(p)}
                       className={cn(
-                        "relative rounded-2xl border-2 p-4 text-left font-bold transition-all hover:-translate-y-0.5 active:scale-95",
+                        "relative rounded-xl border-2 p-2 text-left font-bold transition-all active:scale-95",
                         selected
                           ? "border-primary bg-primary text-primary-foreground shadow-md"
                           : "border-border bg-card hover:border-primary"
                       )}>
-                      <div className="text-base">{p.name}</div>
-                      <div className={cn("mt-1 text-sm", selected ? "text-primary-foreground/90" : "text-primary")}>
-                        {fmt(Number(p.price))}
+                      <div className="text-[13px] leading-tight line-clamp-2">{p.name}</div>
+                      <div className={cn("mt-0.5 text-xs", selected ? "text-primary-foreground/90" : "text-primary")}>
+                        {isSample ? "free" : fmt(Number(p.price))}
                       </div>
                       {selected && (
-                        <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-black text-accent-foreground shadow-md">
+                        <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-black text-accent-foreground shadow-md">
                           {count}
                         </span>
                       )}
@@ -229,8 +250,8 @@ export function SaleComposer(props: Props) {
           {/* Paletas */}
           {paletas.length > 0 && (
             <section>
-              <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Paletas</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <h3 className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Paletas</h3>
+              <div className="grid grid-cols-3 gap-1.5">
                 {paletas.map((p) => {
                   const count = carts[activeCustomer].lines
                     .filter((l) => l.productId === p.id)
@@ -239,17 +260,17 @@ export function SaleComposer(props: Props) {
                   return (
                     <button key={p.id} onClick={() => tapPaleta(p)}
                       className={cn(
-                        "relative rounded-2xl border-2 p-4 text-left font-bold transition-all hover:-translate-y-0.5 active:scale-95",
+                        "relative rounded-xl border-2 p-2 text-left font-bold transition-all active:scale-95",
                         selected
                           ? "border-primary bg-primary text-primary-foreground shadow-md"
                           : "border-border bg-card hover:border-primary"
                       )}>
-                      <div className="text-base">{p.name}</div>
-                      <div className={cn("mt-1 text-sm", selected ? "text-primary-foreground/90" : "text-primary")}>
-                        {fmt(Number(p.price))}
+                      <div className="text-[13px] leading-tight line-clamp-2">{p.name}</div>
+                      <div className={cn("mt-0.5 text-xs", selected ? "text-primary-foreground/90" : "text-primary")}>
+                        {isSample ? "free" : fmt(Number(p.price))}
                       </div>
                       {count > 0 && (
-                        <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-black text-accent-foreground shadow-md">
+                        <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-black text-accent-foreground shadow-md">
                           {count}
                         </span>
                       )}
@@ -346,6 +367,8 @@ export function SaleComposer(props: Props) {
 
         {/* Sticky footer */}
         <div className="sticky bottom-0 border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {!isSample && (
+          <>
           <div className="mb-3">
             <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Tap to charge & save</p>
             <div className="flex flex-wrap gap-2">
@@ -365,16 +388,43 @@ export function SaleComposer(props: Props) {
               })}
             </div>
           </div>
+          {tipOptions.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Tip</p>
+              <div className="flex flex-wrap gap-2">
+                {tipOptions.map((t) => {
+                  const sel = t.id === tipId;
+                  return (
+                    <button key={t.id} onClick={() => setTipId(sel ? "" : t.id)}
+                      className={cn("rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all",
+                        sel ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card")}>
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          </>
+          )}
           <div className="mb-3 flex items-baseline justify-between">
             <div className="text-xs text-muted-foreground">
-              Subtotal {fmt(totals.subtotal)}{totals.tax > 0 && <span className="ml-2">+ tax {fmt(totals.tax)}</span>}
+              {isSample ? (
+                <span>Sample · no charge</span>
+              ) : (
+                <>
+                  Subtotal {fmt(totals.subtotal)}
+                  {totals.tax > 0 && <span className="ml-2">+ tax {fmt(totals.tax)}</span>}
+                  {totals.tip > 0 && <span className="ml-2">+ tip {fmt(totals.tip)}</span>}
+                </>
+              )}
             </div>
             <div className="text-3xl font-black">{fmt(totals.total)}</div>
           </div>
           <Button onClick={submit} disabled={!canSubmit}
             className="h-14 w-full rounded-2xl text-base font-bold shadow-lg"
             style={canSubmit ? { background: "var(--gradient-hero)" } : undefined}>
-            <Check className="mr-2 h-5 w-5" /> {busy ? "Saving..." : "Save sale"}
+            <Check className="mr-2 h-5 w-5" /> {busy ? "Saving..." : isSample ? "Save sample" : "Save sale"}
           </Button>
         </div>
       </SheetContent>
