@@ -127,6 +127,28 @@ function StatsPage() {
     })).sort((a, b) => b.avg - a.avg);
   }, [sessions, sales]);
 
+  // Sales by time of day (aggregated across sessions)
+  const hourSeries = useMemo(() => {
+    const m = new Map<number, { count: number; total: number }>();
+    sales.forEach((r) => {
+      const h = new Date(r.created_at).getHours();
+      const cur = m.get(h) ?? { count: 0, total: 0 };
+      cur.count += 1; cur.total += r.total;
+      m.set(h, cur);
+    });
+    if (m.size === 0) return [];
+    const min = Math.min(...m.keys());
+    const max = Math.max(...m.keys());
+    const out: Array<{ label: string; count: number; total: number }> = [];
+    for (let h = min; h <= max; h++) {
+      const v = m.get(h) ?? { count: 0, total: 0 };
+      const hr12 = h % 12 === 0 ? 12 : h % 12;
+      const ampm = h < 12 ? "am" : "pm";
+      out.push({ label: `${hr12}${ampm}`, count: v.count, total: +v.total.toFixed(2) });
+    }
+    return out;
+  }, [sales]);
+
   return (
     <AppShell>
       <header className="mb-4 flex items-center gap-3">
@@ -236,6 +258,24 @@ function StatsPage() {
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar name="Avg / session" dataKey="avg" fill="var(--chart-5)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
+
+          {/* Sales by time of day */}
+          {hourSeries.length > 0 && (
+            <ChartCard title="Sales by time of day">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={hourSeries} margin={{ left: 8, right: 8 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                    formatter={(v: number, _n, p) => [`${v} sales`, fmt(p.payload.total)]}
+                  />
+                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
