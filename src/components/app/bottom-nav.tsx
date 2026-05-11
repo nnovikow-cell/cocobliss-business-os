@@ -2,13 +2,14 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutGrid, Receipt, Boxes, Calculator, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const items = [
+type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
+const items: NavItem[] = [
   { to: "/", label: "Hub", icon: LayoutGrid, exact: true },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/costs", label: "Costs", icon: Calculator },
   { to: "/meetings", label: "Meet", icon: Users },
-] as const;
+];
 
 export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -21,7 +22,7 @@ export function BottomNav() {
           return (
             <li key={it.to} className="flex-1">
               <Link
-                to={it.to}
+                to={it.to as "/"}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 py-3 text-xs font-semibold transition-colors",
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground"
