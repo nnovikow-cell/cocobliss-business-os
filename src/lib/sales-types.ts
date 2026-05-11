@@ -23,6 +23,23 @@ export type DemographicOption = {
   label: string;
 };
 
+export type TipOption = {
+  id: string;
+  label: string;
+  kind: "percent" | "fixed";
+  amount: number;
+};
+
+export type WeatherOption = {
+  id: string;
+  label: string;
+};
+
+export type Attendant = {
+  id: string;
+  name: string;
+};
+
 export type CartLine = {
   productId: string;
   productName: string;

@@ -29,16 +29,26 @@ function SettingsPage() {
           <TabsTrigger value="flavors">Flavors</TabsTrigger>
           <TabsTrigger value="payments">Payment</TabsTrigger>
         </TabsList>
-        <TabsList className="mt-2 grid w-full grid-cols-2">
+        <TabsList className="mt-2 grid w-full grid-cols-3">
+          <TabsTrigger value="tips">Tips</TabsTrigger>
+          <TabsTrigger value="weather">Weather</TabsTrigger>
+          <TabsTrigger value="attendants">Staff</TabsTrigger>
+        </TabsList>
+        <TabsList className="mt-2 grid w-full grid-cols-3">
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
           <TabsTrigger value="tax">Tax</TabsTrigger>
+          <TabsTrigger value="shake">Shake</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products" className="mt-4"><ProductsTab /></TabsContent>
         <TabsContent value="flavors" className="mt-4"><FlavorsTab /></TabsContent>
         <TabsContent value="payments" className="mt-4"><PaymentMethodsTab /></TabsContent>
+        <TabsContent value="tips" className="mt-4"><TipsTab /></TabsContent>
+        <TabsContent value="weather" className="mt-4"><WeatherTab /></TabsContent>
+        <TabsContent value="attendants" className="mt-4"><AttendantsTab /></TabsContent>
         <TabsContent value="demographics" className="mt-4"><DemographicsTab /></TabsContent>
         <TabsContent value="tax" className="mt-4"><TaxTab /></TabsContent>
+        <TabsContent value="shake" className="mt-4"><ShakeSizeTab /></TabsContent>
       </Tabs>
     </AppShell>
   );
@@ -350,6 +360,189 @@ function TaxTab() {
         <p className="mb-3 text-sm text-muted-foreground">Applied to sales paid with a tax-enabled payment method.</p>
         <div className="flex gap-2">
           <Input id="tax-rate" type="number" step="0.01" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} className="text-2xl font-bold" />
+          <Button onClick={save}>Save</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tips ---------- */
+function TipsTab() {
+  const [items, setItems] = useState<Array<{ id: string; label: string; kind: "percent" | "fixed"; amount: number }>>([]);
+  const [newLabel, setNewLabel] = useState("");
+  const [newKind, setNewKind] = useState<"percent" | "fixed">("percent");
+  const [newAmt, setNewAmt] = useState("");
+
+  const load = async () => {
+    const { data } = await supabase.from("tip_options").select("*").is("deleted_at", null).order("sort_order");
+    setItems((data ?? []).map((d) => ({ ...d, amount: Number(d.amount) })) as Array<{ id: string; label: string; kind: "percent" | "fixed"; amount: number }>);
+  };
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    if (!newLabel.trim()) return;
+    const { error } = await supabase.from("tip_options").insert({
+      label: newLabel.trim(), kind: newKind, amount: parseFloat(newAmt) || 0, sort_order: items.length * 10,
+    });
+    if (error) return toast.error(error.message);
+    setNewLabel(""); setNewAmt(""); load();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
+        <h3 className="mb-3 font-bold">Add tip preset</h3>
+        <Input placeholder="Label (e.g. 15%, $1)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Select value={newKind} onValueChange={(v) => setNewKind(v as "percent" | "fixed")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="percent">Percent</SelectItem>
+              <SelectItem value="fixed">Fixed $</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="number" step="0.01" placeholder={newKind === "percent" ? "%" : "$"} value={newAmt} onChange={(e) => setNewAmt(e.target.value)} />
+        </div>
+        <Button onClick={add} className="mt-3 w-full"><Plus className="mr-2 h-4 w-4" />Add</Button>
+      </div>
+      <div className="space-y-2">
+        {items.map((t) => (
+          <div key={t.id} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3">
+            <span className="flex-1 font-bold">{t.label}</span>
+            <span className="text-sm text-muted-foreground">{t.kind === "percent" ? `${t.amount}%` : `$${t.amount}`}</span>
+            <Button size="icon" variant="ghost" onClick={async () => {
+              if (!confirm("Archive tip preset?")) return;
+              await supabase.from("tip_options").update({ deleted_at: new Date().toISOString() }).eq("id", t.id);
+              load();
+            }}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Weather ---------- */
+function WeatherTab() {
+  const [items, setItems] = useState<Array<{ id: string; label: string }>>([]);
+  const [newLabel, setNewLabel] = useState("");
+
+  const load = async () => {
+    const { data } = await supabase.from("weather_options").select("id,label").is("deleted_at", null).order("sort_order");
+    setItems((data ?? []) as Array<{ id: string; label: string }>);
+  };
+  useEffect(() => { load(); }, []);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
+        <h3 className="mb-3 font-bold">Add weather option</h3>
+        <div className="flex gap-2">
+          <Input placeholder="Label (e.g. Windy)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
+          <Button onClick={async () => {
+            if (!newLabel.trim()) return;
+            const { error } = await supabase.from("weather_options").insert({ label: newLabel.trim(), sort_order: items.length * 10 });
+            if (error) return toast.error(error.message);
+            setNewLabel(""); load();
+          }}><Plus className="h-4 w-4" /></Button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {items.map((w) => (
+          <div key={w.id} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3">
+            <span className="flex-1 font-medium">{w.label}</span>
+            <Button size="icon" variant="ghost" onClick={async () => {
+              if (!confirm("Archive?")) return;
+              await supabase.from("weather_options").update({ deleted_at: new Date().toISOString() }).eq("id", w.id);
+              load();
+            }}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Attendants ---------- */
+function AttendantsTab() {
+  const [items, setItems] = useState<Array<{ id: string; name: string }>>([]);
+  const [newName, setNewName] = useState("");
+
+  const load = async () => {
+    const { data } = await supabase.from("attendants").select("id,name").is("deleted_at", null).order("sort_order");
+    setItems((data ?? []) as Array<{ id: string; name: string }>);
+  };
+  useEffect(() => { load(); }, []);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
+        <h3 className="mb-3 font-bold">Add staff member</h3>
+        <div className="flex gap-2">
+          <Input placeholder="Name (e.g. Nicolas)" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <Button onClick={async () => {
+            if (!newName.trim()) return;
+            const { error } = await supabase.from("attendants").insert({ name: newName.trim(), sort_order: items.length * 10 });
+            if (error) return toast.error(error.message);
+            setNewName(""); load();
+          }}><Plus className="h-4 w-4" /></Button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {items.map((a) => (
+          <div key={a.id} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3">
+            <span className="flex-1 font-medium">{a.name}</span>
+            <Button size="icon" variant="ghost" onClick={async () => {
+              if (!confirm("Archive?")) return;
+              await supabase.from("attendants").update({ deleted_at: new Date().toISOString() }).eq("id", a.id);
+              load();
+            }}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Shake size ---------- */
+function ShakeSizeTab() {
+  const [size, setSize] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    supabase.from("app_settings").select("shake_size_oz").limit(1).maybeSingle().then(({ data }) => {
+      setSize(String(data?.shake_size_oz ?? 12));
+      setLoaded(true);
+    });
+  }, []);
+
+  const save = async () => {
+    const { data: existing } = await supabase.from("app_settings").select("id").limit(1).maybeSingle();
+    const value = parseFloat(size) || 12;
+    if (existing) {
+      const { error } = await supabase.from("app_settings").update({ shake_size_oz: value }).eq("id", existing.id);
+      if (error) return toast.error(error.message);
+    } else {
+      await supabase.from("app_settings").insert({ shake_size_oz: value });
+    }
+    toast.success("Shake size saved");
+  };
+
+  if (!loaded) return null;
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <Label htmlFor="shake-size" className="text-base font-bold">Shake size (fl oz)</Label>
+        <p className="mb-3 text-sm text-muted-foreground">Used to compute remaining shakes from quarts brought (1 qt = 32 oz).</p>
+        <div className="flex gap-2">
+          <Input id="shake-size" type="number" step="0.5" value={size} onChange={(e) => setSize(e.target.value)} className="text-2xl font-bold" />
           <Button onClick={save}>Save</Button>
         </div>
       </div>
