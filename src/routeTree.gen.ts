@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InventoryRouteImport } from './routes/inventory'
@@ -20,6 +21,11 @@ import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
 import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MeetingsRoute = MeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/settings': typeof SettingsRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/sales/': typeof SalesIndexRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/settings': typeof SettingsRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/sales': typeof SalesIndexRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/settings': typeof SettingsRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/sales/': typeof SalesIndexRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/login'
     | '/meetings'
+    | '/settings'
     | '/sales/settings'
     | '/sales/stats'
     | '/sales/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/login'
     | '/meetings'
+    | '/settings'
     | '/sales/settings'
     | '/sales/stats'
     | '/sales'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/login'
     | '/meetings'
+    | '/settings'
     | '/sales/settings'
     | '/sales/stats'
     | '/sales/'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRoute
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
+  SettingsRoute: typeof SettingsRoute
   SalesSettingsRoute: typeof SalesSettingsRoute
   SalesStatsRoute: typeof SalesStatsRoute
   SalesIndexRoute: typeof SalesIndexRoute
@@ -162,6 +175,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/meetings': {
       id: '/meetings'
       path: '/meetings'
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRoute,
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
+  SettingsRoute: SettingsRoute,
   SalesSettingsRoute: SalesSettingsRoute,
   SalesStatsRoute: SalesStatsRoute,
   SalesIndexRoute: SalesIndexRoute,
@@ -250,3 +271,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
