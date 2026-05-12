@@ -14,7 +14,7 @@ import { colorById } from "@/lib/checklist-colors";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/checklist/")({ component: ChecklistSession });
+export const Route = createFileRoute("/checklist/$sessionId")({ component: ChecklistSession });
 
 type Sess = {
   id: string; event_name_snapshot: string; event_location_snapshot: string | null;

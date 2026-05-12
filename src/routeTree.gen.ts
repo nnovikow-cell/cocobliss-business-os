@@ -19,6 +19,7 @@ import { Route as SalesIndexRouteImport } from './routes/sales.index'
 import { Route as ChecklistIndexRouteImport } from './routes/checklist.index'
 import { Route as SalesStatsRouteImport } from './routes/sales.stats'
 import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
+import { Route as ChecklistSessionIdRouteImport } from './routes/checklist.$sessionId'
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
 import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
 
@@ -72,6 +73,11 @@ const SalesSettingsRoute = SalesSettingsRouteImport.update({
   path: '/sales/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChecklistSessionIdRoute = ChecklistSessionIdRouteImport.update({
+  id: '/checklist/$sessionId',
+  path: '/checklist/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalesSessionIdIndexRoute = SalesSessionIdIndexRouteImport.update({
   id: '/sales/$sessionId/',
   path: '/sales/$sessionId/',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
+  '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
+  '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist': typeof ChecklistIndexRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
+  '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/meetings'
     | '/settings'
+    | '/checklist/$sessionId'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/meetings'
     | '/settings'
+    | '/checklist/$sessionId'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/meetings'
     | '/settings'
+    | '/checklist/$sessionId'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
+  ChecklistSessionIdRoute: typeof ChecklistSessionIdRoute
   SalesSettingsRoute: typeof SalesSettingsRoute
   SalesStatsRoute: typeof SalesStatsRoute
   ChecklistIndexRoute: typeof ChecklistIndexRoute
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checklist/$sessionId': {
+      id: '/checklist/$sessionId'
+      path: '/checklist/$sessionId'
+      fullPath: '/checklist/$sessionId'
+      preLoaderRoute: typeof ChecklistSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sales/$sessionId/': {
       id: '/sales/$sessionId/'
       path: '/sales/$sessionId'
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
+  ChecklistSessionIdRoute: ChecklistSessionIdRoute,
   SalesSettingsRoute: SalesSettingsRoute,
   SalesStatsRoute: SalesStatsRoute,
   ChecklistIndexRoute: ChecklistIndexRoute,
