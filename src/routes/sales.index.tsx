@@ -251,6 +251,19 @@ function SalesIndex() {
             )}
 
             <Button onClick={create} disabled={!eventId} className="w-full">Open session</Button>
+            {checklistSessions.length > 0 && (
+              <div>
+                <Label>Link checklist session (optional)</Label>
+                <Select value={linkedChecklistId} onValueChange={setLinkedChecklistId}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    {checklistSessions.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.event_name_snapshot}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
