@@ -45,6 +45,8 @@ function SalesIndex() {
   const [shakeSize, setShakeSize] = useState(12);
   const [deleteTarget, setDeleteTarget] = useState<Session | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [checklistSessions, setChecklistSessions] = useState<Array<{ id: string; event_name_snapshot: string }>>([]);
+  const [linkedChecklistId, setLinkedChecklistId] = useState<string>("");
 
   const load = async () => {
     const { data } = await supabase
@@ -74,11 +76,17 @@ function SalesIndex() {
       supabase.from("attendants").select("id,name").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("app_settings").select("shake_size_oz").limit(1).maybeSingle(),
       supabase.from("events").select("id,name,location").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
-    ]).then(([w, a, s, e]) => {
+      supabase.from("checklist_sessions")
+        .select("id,event_name_snapshot")
+        .eq("status", "active").is("deleted_at", null)
+        .gte("opened_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .order("opened_at", { ascending: false }),
+    ]).then(([w, a, s, e, c]) => {
       setWeatherOpts((w.data ?? []) as Array<{ id: string; label: string }>);
       setAttendantOpts((a.data ?? []) as Array<{ id: string; name: string }>);
       setShakeSize(Number(s.data?.shake_size_oz ?? 12));
       setEvents((e.data ?? []) as Array<{ id: string; name: string; location: string | null }>);
+      setChecklistSessions((c.data ?? []) as Array<{ id: string; event_name_snapshot: string }>);
     });
   }, [open]);
 
@@ -110,11 +118,13 @@ function SalesIndex() {
         weather_label_snapshot: weather?.label ?? null,
         attendant_ids: attendantIds,
         attendant_names_snapshot: selectedAttendants.map((a) => a.name),
+        linked_checklist_session_id: linkedChecklistId || null,
       })
       .select("id").single();
     if (error) return toast.error(error.message);
     setOpen(false); setEventId(""); setSessionDate(todayLocal());
     setShakesQuarts(0); setPaletas(0); setWeatherId(""); setAttendantIds([]);
+    setLinkedChecklistId("");
     navigate({ to: "/sales/$sessionId", params: { sessionId: data.id } });
   };
 
@@ -240,6 +250,19 @@ function SalesIndex() {
               </div>
             )}
 
+            {checklistSessions.length > 0 && (
+              <div>
+                <Label>Link checklist session (optional)</Label>
+                <Select value={linkedChecklistId} onValueChange={setLinkedChecklistId}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    {checklistSessions.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.event_name_snapshot}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Button onClick={create} disabled={!eventId} className="w-full">Open session</Button>
           </div>
         </DialogContent>

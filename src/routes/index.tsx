@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Receipt, Boxes, Calculator, Users, LogOut } from "lucide-react";
+import { Receipt, Boxes, Calculator, Users, LogOut, Settings as SettingsIcon, ListChecks } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ export const Route = createFileRoute("/")({ component: Index });
 
 const modules = [
   { to: "/sales", title: "Sales Tracker", desc: "Live market sessions, fast logging, real-time revenue.", icon: Receipt, active: true },
+  { to: "/checklist", title: "Event Checklist", desc: "Pack the van. Track who has what.", icon: ListChecks, active: true },
   { to: "/inventory", title: "Inventory", desc: "Track stock for shakes, paletas, and supplies.", icon: Boxes, active: false },
   { to: "/costs", title: "Cost Calculator", desc: "Recipes, COGS, margins.", icon: Calculator, active: false },
   { to: "/meetings", title: "Meetings & Decisions", desc: "Notes and action items.", icon: Users, active: false },
@@ -23,9 +24,14 @@ function Index() {
           <h1 className="text-3xl font-black tracking-tight text-foreground">CocoBLiss OS</h1>
           <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
         </div>
-        <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
-          <LogOut className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Link to="/settings" className="rounded-full p-2 hover:bg-muted" aria-label="Settings">
+            <SettingsIcon className="h-5 w-5" />
+          </Link>
+          <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
 
       <div
@@ -60,7 +66,7 @@ function Index() {
             </div>
           );
           return m.active ? (
-            <Link key={m.to} to={m.to as "/sales"}>{card}</Link>
+            <Link key={m.to} to={m.to as "/sales"} className="block">{card}</Link>
           ) : (
             <div key={m.to}>{card}</div>
           );

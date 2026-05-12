@@ -34,8 +34,7 @@ function SettingsPage() {
           <TabsTrigger value="weather">Weather</TabsTrigger>
           <TabsTrigger value="attendants">Staff</TabsTrigger>
         </TabsList>
-        <TabsList className="mt-2 grid w-full grid-cols-4">
-          <TabsTrigger value="events">Events</TabsTrigger>
+        <TabsList className="mt-2 grid w-full grid-cols-3">
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
           <TabsTrigger value="tax">Tax</TabsTrigger>
           <TabsTrigger value="shake">Shake</TabsTrigger>
@@ -47,11 +46,14 @@ function SettingsPage() {
         <TabsContent value="tips" className="mt-4"><TipsTab /></TabsContent>
         <TabsContent value="weather" className="mt-4"><WeatherTab /></TabsContent>
         <TabsContent value="attendants" className="mt-4"><AttendantsTab /></TabsContent>
-        <TabsContent value="events" className="mt-4"><EventsTab /></TabsContent>
         <TabsContent value="demographics" className="mt-4"><DemographicsTab /></TabsContent>
         <TabsContent value="tax" className="mt-4"><TaxTab /></TabsContent>
         <TabsContent value="shake" className="mt-4"><ShakeSizeTab /></TabsContent>
       </Tabs>
+
+      <p className="mt-6 rounded-2xl border-2 border-dashed border-border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
+        Events live in <Link to="/settings" className="font-bold text-primary underline">App Settings → Events</Link>.
+      </p>
     </AppShell>
   );
 }
