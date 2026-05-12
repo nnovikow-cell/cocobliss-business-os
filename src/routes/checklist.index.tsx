@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, ListChecks, Lock, Unlock, ArrowLeft } from "lucide-react";
+import { Plus, ListChecks, Lock, Unlock, ArrowLeft, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -100,6 +102,15 @@ function ChecklistIndex() {
   const active = sessions.filter((s) => s.status === "active");
   const closed = sessions.filter((s) => s.status === "closed");
 
+  const handleDelete = async (id: string): Promise<void> => {
+    const { error: itemsErr } = await supabase.from("checklist_session_items").delete().eq("session_id", id);
+    if (itemsErr) { toast.error(itemsErr.message); return; }
+    const { error } = await supabase.from("checklist_sessions").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Session deleted");
+    load();
+  };
+
   return (
     <AppShell>
       <header className="mb-6 flex items-center justify-between gap-3">
@@ -157,37 +168,70 @@ function ChecklistIndex() {
         {closed.length === 0 ? (
           <p className="text-sm text-muted-foreground">No archived sessions yet.</p>
         ) : (
-          <div className="space-y-2">{closed.map((s) => <Card key={s.id} s={s} c={counts[s.id]} />)}</div>
+          <div className="space-y-2">{closed.map((s) => <Card key={s.id} s={s} c={counts[s.id]} onDelete={handleDelete} />)}</div>
         )}
       </section>
     </AppShell>
   );
 }
 
-function Card({ s, c }: { s: Sess; c?: { packed: number; total: number } }) {
+function Card({ s, c, onDelete }: { s: Sess; c?: { packed: number; total: number }; onDelete?: (id: string) => void | Promise<void> }) {
   const isActive = s.status === "active";
   const pct = c && c.total > 0 ? Math.round((c.packed / c.total) * 100) : 0;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   return (
-    <Link to="/checklist/$sessionId" params={{ sessionId: s.id }}
-      className="flex items-center gap-3 rounded-2xl border-2 border-border bg-card p-4 transition-colors hover:border-primary">
-      <div className={`rounded-xl p-3 ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-        {isActive ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-bold">{s.event_name_snapshot}</p>
-        <p className="text-xs text-muted-foreground">
-          {s.event_location_snapshot ?? "—"} · {new Date(s.opened_at).toLocaleDateString()}
-        </p>
-        {c && c.total > 0 && (
-          <div className="mt-1.5 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+    <div className="flex items-center gap-2 rounded-2xl border-2 border-border bg-card p-4 transition-colors hover:border-primary">
+      <Link to="/checklist/$sessionId" params={{ sessionId: s.id }} className="flex min-w-0 flex-1 items-center gap-3">
+        <div className={`rounded-xl p-3 ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          {isActive ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-bold">{s.event_name_snapshot}</p>
+          <p className="text-xs text-muted-foreground">
+            {s.event_location_snapshot ?? "—"} · {new Date(s.opened_at).toLocaleDateString()}
+          </p>
+          {c && c.total > 0 && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-[11px] font-bold tabular-nums text-muted-foreground">{c.packed}/{c.total}</span>
             </div>
-            <span className="text-[11px] font-bold tabular-nums text-muted-foreground">{c.packed}/{c.total}</span>
-          </div>
-        )}
-      </div>
-      <ListChecks className="h-5 w-5 text-muted-foreground" />
-    </Link>
+          )}
+        </div>
+        <ListChecks className="h-5 w-5 shrink-0 text-muted-foreground" />
+      </Link>
+      {onDelete && !isActive && (
+        <AlertDialog open={confirmOpen} onOpenChange={(o) => { setConfirmOpen(o); if (!o) setConfirmText(""); }}>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" aria-label="Delete session">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this archived session?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently deletes <span className="font-semibold text-foreground">{s.event_name_snapshot}</span> and all of its packed item history. This cannot be undone.
+                <br /><br />
+                Type <span className="font-mono font-bold text-foreground">DELETE</span> to confirm.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="DELETE" autoFocus />
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={confirmText !== "DELETE"}
+                onClick={async () => { await onDelete(s.id); setConfirmOpen(false); setConfirmText(""); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete forever
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </div>
   );
 }
