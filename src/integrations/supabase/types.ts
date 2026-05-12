@@ -68,6 +68,199 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_categories: {
+        Row: {
+          color: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      checklist_items: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          location_tag: string | null
+          name: string
+          owner_user_id: string | null
+          size_tag: Database["public"]["Enums"]["checklist_item_size"]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          location_tag?: string | null
+          name: string
+          owner_user_id?: string | null
+          size_tag?: Database["public"]["Enums"]["checklist_item_size"]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          location_tag?: string | null
+          name?: string
+          owner_user_id?: string | null
+          size_tag?: Database["public"]["Enums"]["checklist_item_size"]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_session_items: {
+        Row: {
+          category_color_snapshot: string | null
+          category_id: string | null
+          category_name_snapshot: string | null
+          created_at: string
+          id: string
+          is_packed: boolean
+          item_id: string | null
+          item_name_snapshot: string
+          location_snapshot: string | null
+          owner_name_snapshot: string | null
+          owner_user_id_snapshot: string | null
+          packed_at: string | null
+          packed_by: string | null
+          session_id: string
+          size_snapshot: Database["public"]["Enums"]["checklist_item_size"]
+          updated_at: string
+        }
+        Insert: {
+          category_color_snapshot?: string | null
+          category_id?: string | null
+          category_name_snapshot?: string | null
+          created_at?: string
+          id?: string
+          is_packed?: boolean
+          item_id?: string | null
+          item_name_snapshot: string
+          location_snapshot?: string | null
+          owner_name_snapshot?: string | null
+          owner_user_id_snapshot?: string | null
+          packed_at?: string | null
+          packed_by?: string | null
+          session_id: string
+          size_snapshot?: Database["public"]["Enums"]["checklist_item_size"]
+          updated_at?: string
+        }
+        Update: {
+          category_color_snapshot?: string | null
+          category_id?: string | null
+          category_name_snapshot?: string | null
+          created_at?: string
+          id?: string
+          is_packed?: boolean
+          item_id?: string | null
+          item_name_snapshot?: string
+          location_snapshot?: string | null
+          owner_name_snapshot?: string | null
+          owner_user_id_snapshot?: string | null
+          packed_at?: string | null
+          packed_by?: string | null
+          session_id?: string
+          size_snapshot?: Database["public"]["Enums"]["checklist_item_size"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_session_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_sessions: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          deleted_at: string | null
+          event_id: string | null
+          event_location_snapshot: string | null
+          event_name_snapshot: string
+          id: string
+          opened_at: string
+          opened_by: string
+          status: Database["public"]["Enums"]["checklist_session_status"]
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          event_id?: string | null
+          event_location_snapshot?: string | null
+          event_name_snapshot: string
+          id?: string
+          opened_at?: string
+          opened_by: string
+          status?: Database["public"]["Enums"]["checklist_session_status"]
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          event_id?: string | null
+          event_location_snapshot?: string | null
+          event_name_snapshot?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string
+          status?: Database["public"]["Enums"]["checklist_session_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       demographic_options: {
         Row: {
           category: string
@@ -462,6 +655,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          linked_checklist_session_id: string | null
           location: string | null
           name: string
           notes: string | null
@@ -483,6 +677,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          linked_checklist_session_id?: string | null
           location?: string | null
           name: string
           notes?: string | null
@@ -504,6 +699,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          linked_checklist_session_id?: string | null
           location?: string | null
           name?: string
           notes?: string | null
@@ -621,6 +817,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff"
+      checklist_item_size: "S" | "M" | "L"
+      checklist_session_status: "active" | "closed"
       product_type: "shake" | "paleta"
       sale_kind: "single" | "group"
       session_status: "open" | "closed"
@@ -752,6 +950,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff"],
+      checklist_item_size: ["S", "M", "L"],
+      checklist_session_status: ["active", "closed"],
       product_type: ["shake", "paleta"],
       sale_kind: ["single", "group"],
       session_status: ["open", "closed"],
