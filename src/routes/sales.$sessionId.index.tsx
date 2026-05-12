@@ -193,6 +193,15 @@ function ActiveSession() {
       .update({ status: "closed", closed_by: user.id, closed_at: new Date().toISOString() })
       .eq("id", sessionId);
     if (error) return toast.error(error.message);
+    // Auto-close any linked checklist session
+    const { data: linked } = await supabase.from("sales_sessions")
+      .select("linked_checklist_session_id").eq("id", sessionId).maybeSingle();
+    const linkedId = (linked as { linked_checklist_session_id: string | null } | null)?.linked_checklist_session_id;
+    if (linkedId) {
+      await supabase.from("checklist_sessions")
+        .update({ status: "closed", closed_at: new Date().toISOString(), closed_by: user.id })
+        .eq("id", linkedId).eq("status", "active");
+    }
     toast.success("Session closed");
     setCloseOpen(false);
     navigate({ to: "/sales/$sessionId/report", params: { sessionId } });
