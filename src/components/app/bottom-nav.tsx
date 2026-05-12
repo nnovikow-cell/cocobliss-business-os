@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutGrid, Receipt, Boxes, Calculator, Users } from "lucide-react";
+import { LayoutGrid, Receipt, Boxes, Calculator, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
@@ -8,7 +8,7 @@ const items: NavItem[] = [
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/costs", label: "Costs", icon: Calculator },
-  { to: "/meetings", label: "Meet", icon: Users },
+  { to: "/checklist", label: "Pack", icon: ListChecks },
 ];
 
 export function BottomNav() {
