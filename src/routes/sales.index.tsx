@@ -250,7 +250,6 @@ function SalesIndex() {
               </div>
             )}
 
-            <Button onClick={create} disabled={!eventId} className="w-full">Open session</Button>
             {checklistSessions.length > 0 && (
               <div>
                 <Label>Link checklist session (optional)</Label>
@@ -264,6 +263,7 @@ function SalesIndex() {
                 </Select>
               </div>
             )}
+            <Button onClick={create} disabled={!eventId} className="w-full">Open session</Button>
           </div>
         </DialogContent>
       </Dialog>
