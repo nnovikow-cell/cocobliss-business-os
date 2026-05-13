@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as CostsRouteImport } from './routes/costs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SalesIndexRouteImport } from './routes/sales.index'
+import { Route as InventoryIndexRouteImport } from './routes/inventory.index'
 import { Route as ChecklistIndexRouteImport } from './routes/checklist.index'
 import { Route as SalesStatsRouteImport } from './routes/sales.stats'
 import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
@@ -50,6 +51,11 @@ const IndexRoute = IndexRouteImport.update({
 const SalesIndexRoute = SalesIndexRouteImport.update({
   id: '/sales/',
   path: '/sales/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryIndexRoute = InventoryIndexRouteImport.update({
+  id: '/inventory/',
+  path: '/inventory/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChecklistIndexRoute = ChecklistIndexRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
+  '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist': typeof ChecklistIndexRoute
+  '/inventory': typeof InventoryIndexRoute
   '/sales': typeof SalesIndexRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId': typeof SalesSessionIdIndexRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
+  '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
+    | '/inventory/'
     | '/sales/'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist'
+    | '/inventory'
     | '/sales'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
+    | '/inventory/'
     | '/sales/'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   SalesSettingsRoute: typeof SalesSettingsRoute
   SalesStatsRoute: typeof SalesStatsRoute
   ChecklistIndexRoute: typeof ChecklistIndexRoute
+  InventoryIndexRoute: typeof InventoryIndexRoute
   SalesIndexRoute: typeof SalesIndexRoute
   SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
   SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/sales'
       fullPath: '/sales/'
       preLoaderRoute: typeof SalesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory/': {
+      id: '/inventory/'
+      path: '/inventory'
+      fullPath: '/inventory/'
+      preLoaderRoute: typeof InventoryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checklist/': {
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalesSettingsRoute: SalesSettingsRoute,
   SalesStatsRoute: SalesStatsRoute,
   ChecklistIndexRoute: ChecklistIndexRoute,
+  InventoryIndexRoute: InventoryIndexRoute,
   SalesIndexRoute: SalesIndexRoute,
   SalesSessionIdReportRoute: SalesSessionIdReportRoute,
   SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,
@@ -292,3 +313,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
