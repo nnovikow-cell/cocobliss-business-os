@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { format, parseISO, startOfDay } from "date-fns";
-import { CalendarDays, Filter, Users } from "lucide-react";
+import {
+  format, parseISO, startOfDay, startOfMonth, endOfMonth, addMonths,
+  startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay,
+} from "date-fns";
+import { CalendarDays, ChevronLeft, ChevronRight, Filter, List, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   tagColor, INSTANCE_STATUS_LABEL, type InstanceStatus, staffShortName,
 } from "@/lib/events-helpers";
+import { InstanceDetailTrigger } from "@/components/events/instance-detail-trigger";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -47,6 +51,7 @@ function ScheduleTab() {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | InstanceStatus>("all");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [view, setView] = useState<"list" | "calendar">("list");
 
   const load = async () => {
     setLoading(true);
@@ -163,16 +168,32 @@ function ScheduleTab() {
           <Filter className="mr-1 h-3.5 w-3.5" />
           Date {sortDir === "asc" ? "↑" : "↓"}
         </Button>
-        <div className="ml-auto hidden md:flex">
-          <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            <CalendarDays className="mr-1 inline h-3 w-3" />
-            Calendar view — Phase 3
-          </span>
+        <div className="ml-auto hidden md:flex rounded-full bg-muted p-0.5">
+          <button
+            onClick={() => setView("list")}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors",
+              view === "list" ? "bg-background text-foreground shadow" : "text-muted-foreground",
+            )}
+          >
+            <List className="h-3 w-3" /> List
+          </button>
+          <button
+            onClick={() => setView("calendar")}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors",
+              view === "calendar" ? "bg-background text-foreground shadow" : "text-muted-foreground",
+            )}
+          >
+            <CalendarDays className="h-3 w-3" /> Calendar
+          </button>
         </div>
       </div>
 
       {loading ? (
         <div className="rounded-2xl border-2 border-border bg-card p-6 text-center text-sm text-muted-foreground">Loading…</div>
+      ) : view === "calendar" ? (
+        <CalendarView rows={filtered} onChanged={load} />
       ) : grouped.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-border bg-muted/30 p-10 text-center">
           <p className="text-sm font-semibold text-muted-foreground">No upcoming events.</p>
@@ -250,15 +271,28 @@ function InstanceRow({ row, staff, onChanged }: { row: RowVM; staff: Staff[]; on
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted text-center">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            {format(date, "MMM")}
-          </span>
-          <span className="text-lg font-black leading-none">{format(date, "d")}</span>
-        </div>
+        <InstanceDetailTrigger instanceId={row.id} onChanged={onChanged}>
+          {(open) => (
+            <button
+              onClick={open}
+              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted text-center transition-colors hover:bg-primary/10"
+              aria-label="Open event details"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {format(date, "MMM")}
+              </span>
+              <span className="text-lg font-black leading-none">{format(date, "d")}</span>
+            </button>
+          )}
+        </InstanceDetailTrigger>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-bold">{row.series.name}</p>
+          <InstanceDetailTrigger instanceId={row.id} onChanged={onChanged}>
+            {(open) => (
+              <button
+                onClick={open}
+                className="flex flex-wrap items-center gap-2 text-left"
+              >
+                <p className="truncate text-sm font-bold hover:underline">{row.series.name}</p>
             {row.tag && (
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-bold"
@@ -267,7 +301,9 @@ function InstanceRow({ row, staff, onChanged }: { row: RowVM; staff: Staff[]; on
                 {row.tag.name}
               </span>
             )}
-          </div>
+              </button>
+            )}
+          </InstanceDetailTrigger>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {format(date, "EEE, MMM d")} · {row.series.location ?? "—"}
           </p>
@@ -305,6 +341,100 @@ function InstanceRow({ row, staff, onChanged }: { row: RowVM; staff: Staff[]; on
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Calendar (desktop) ---------- */
+function CalendarView({ rows, onChanged }: { rows: RowVM[]; onChanged: () => void }) {
+  const [cursor, setCursor] = useState<Date>(() => startOfMonth(new Date()));
+  const monthStart = startOfMonth(cursor);
+  const monthEnd = endOfMonth(cursor);
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
+
+  const byDay = useMemo(() => {
+    const m = new Map<string, RowVM[]>();
+    rows.forEach((r) => {
+      const k = r.date;
+      const arr = m.get(k) ?? [];
+      arr.push(r);
+      m.set(k, arr);
+    });
+    return m;
+  }, [rows]);
+
+  return (
+    <div className="rounded-2xl border-2 border-border bg-card p-3">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-black">{format(cursor, "MMMM yyyy")}</h3>
+        <div className="flex gap-1">
+          <Button variant="outline" size="sm" className="h-8 w-8 rounded-full p-0" onClick={() => setCursor((d) => addMonths(d, -1))}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-xs" onClick={() => setCursor(startOfMonth(new Date()))}>
+            Today
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 w-8 rounded-full p-0" onClick={() => setCursor((d) => addMonths(d, 1))}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
+          <div key={d} className="px-2 py-1">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((d) => {
+          const key = format(d, "yyyy-MM-dd");
+          const items = byDay.get(key) ?? [];
+          const inMonth = isSameMonth(d, cursor);
+          const today = isSameDay(d, new Date());
+          return (
+            <div
+              key={key}
+              className={cn(
+                "min-h-[88px] rounded-lg border border-border p-1.5",
+                !inMonth && "bg-muted/30 opacity-50",
+                today && "border-primary",
+              )}
+            >
+              <div className={cn(
+                "mb-1 text-[11px] font-bold",
+                today && "text-primary",
+              )}>{format(d, "d")}</div>
+              <div className="space-y-1">
+                {items.slice(0, 3).map((it) => (
+                  <InstanceDetailTrigger key={it.id} instanceId={it.id} onChanged={onChanged}>
+                    {(open) => {
+                      const c2 = tagColor(it.tag?.color);
+                      const dim = it.status !== "confirmed";
+                      return (
+                        <button
+                          onClick={open}
+                          className={cn(
+                            "block w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold transition-opacity hover:opacity-100",
+                            dim && "opacity-50",
+                          )}
+                          style={{ background: c2.bg, color: c2.text }}
+                          title={it.series.name}
+                        >
+                          {it.series.name}
+                        </button>
+                      );
+                    }}
+                  </InstanceDetailTrigger>
+                ))}
+                {items.length > 3 && (
+                  <p className="px-1.5 text-[10px] font-semibold text-muted-foreground">+{items.length - 3} more</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
