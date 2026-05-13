@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
 const items: NavItem[] = [
   { to: "/", label: "Hub", icon: LayoutGrid, exact: true },
-  { to: "/settings", label: "Events", icon: CalendarDays },
+  { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/costs", label: "Costs", icon: Calculator },
