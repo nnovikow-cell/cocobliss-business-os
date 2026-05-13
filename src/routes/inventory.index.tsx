@@ -116,7 +116,7 @@ function InventoryIndex() {
       action.kind === "use"
         ? Math.max(0, Number(item.current_quantity) - qty)
         : Number(item.current_quantity) + qty;
-    const update: Record<string, unknown> = { current_quantity: newQty };
+    const update: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
     if (action.kind === "restock") update.last_restocked_at = new Date().toISOString();
     const { error: e1 } = await supabase.from("inventory_items").update(update).eq("id", item.id);
     if (e1) return toast.error(e1.message);
