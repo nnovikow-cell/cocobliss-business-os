@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { format, parseISO, isSameMonth, startOfDay } from "date-fns";
+import { format, parseISO, startOfDay } from "date-fns";
 import { CalendarDays, Filter, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,6 @@ function ScheduleTab() {
     setSeries((sers ?? []) as Series[]);
     setStaff((staffRows ?? []) as Staff[]);
     setLoading(false);
-    void tags;
   };
 
   useEffect(() => { load(); }, []);
@@ -310,6 +309,3 @@ function InstanceRow({ row, staff, onChanged }: { row: RowVM; staff: Staff[]; on
     </div>
   );
 }
-
-// silence unused import warning when isSameMonth not used in some builds
-void isSameMonth;
