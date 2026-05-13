@@ -23,6 +23,7 @@ import { Route as SalesStatsRouteImport } from './routes/sales.stats'
 import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
 import { Route as InventoryItemIdRouteImport } from './routes/inventory.$itemId'
 import { Route as EventsSeriesRouteImport } from './routes/events.series'
+import { Route as EventsScheduleRouteImport } from './routes/events.schedule'
 import { Route as EventsHistoryRouteImport } from './routes/events.history'
 import { Route as ChecklistSessionIdRouteImport } from './routes/checklist.$sessionId'
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
@@ -98,6 +99,11 @@ const EventsSeriesRoute = EventsSeriesRouteImport.update({
   path: '/series',
   getParentRoute: () => EventsRoute,
 } as any)
+const EventsScheduleRoute = EventsScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => EventsRoute,
+} as any)
 const EventsHistoryRoute = EventsHistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/events/history': typeof EventsHistoryRoute
+  '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
   '/sales/settings': typeof SalesSettingsRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/events/history': typeof EventsHistoryRoute
+  '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
   '/sales/settings': typeof SalesSettingsRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/events/history': typeof EventsHistoryRoute
+  '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
   '/sales/settings': typeof SalesSettingsRoute
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/checklist/$sessionId'
     | '/events/history'
+    | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
     | '/sales/settings'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/checklist/$sessionId'
     | '/events/history'
+    | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
     | '/sales/settings'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/checklist/$sessionId'
     | '/events/history'
+    | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
     | '/sales/settings'
@@ -359,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSeriesRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/events/schedule': {
+      id: '/events/schedule'
+      path: '/schedule'
+      fullPath: '/events/schedule'
+      preLoaderRoute: typeof EventsScheduleRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/events/history': {
       id: '/events/history'
       path: '/history'
@@ -392,12 +411,14 @@ declare module '@tanstack/react-router' {
 
 interface EventsRouteChildren {
   EventsHistoryRoute: typeof EventsHistoryRoute
+  EventsScheduleRoute: typeof EventsScheduleRoute
   EventsSeriesRoute: typeof EventsSeriesRoute
   EventsIndexRoute: typeof EventsIndexRoute
 }
 
 const EventsRouteChildren: EventsRouteChildren = {
   EventsHistoryRoute: EventsHistoryRoute,
+  EventsScheduleRoute: EventsScheduleRoute,
   EventsSeriesRoute: EventsSeriesRoute,
   EventsIndexRoute: EventsIndexRoute,
 }
