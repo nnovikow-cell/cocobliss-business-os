@@ -1,20 +1,20 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutGrid, Receipt, Boxes, Calculator, ListChecks } from "lucide-react";
+import { LayoutGrid, Receipt, Boxes, ListChecks, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
 const items: NavItem[] = [
   { to: "/", label: "Hub", icon: LayoutGrid, exact: true },
+  { to: "/settings", label: "Events", icon: CalendarDays },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
-  { to: "/costs", label: "Costs", icon: Calculator },
   { to: "/checklist", label: "Pack", icon: ListChecks },
 ];
 
 export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] md:hidden">
       <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
         {items.map((it) => {
           const active = it.exact ? path === it.to : path.startsWith(it.to);
