@@ -40,29 +40,41 @@ export type Database = {
       }
       attendants: {
         Row: {
+          active: boolean
           created_at: string
           deleted_at: string | null
+          first_name: string | null
           id: string
           is_archived: boolean
+          last_name: string | null
           name: string
+          role: string | null
           sort_order: number
           updated_at: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
           deleted_at?: string | null
+          first_name?: string | null
           id?: string
           is_archived?: boolean
+          last_name?: string | null
           name: string
+          role?: string | null
           sort_order?: number
           updated_at?: string
         }
         Update: {
+          active?: boolean
           created_at?: string
           deleted_at?: string | null
+          first_name?: string | null
           id?: string
           is_archived?: boolean
+          last_name?: string | null
           name?: string
+          role?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -223,6 +235,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           event_id: string | null
+          event_instance_id: string | null
           event_location_snapshot: string | null
           event_name_snapshot: string
           id: string
@@ -237,6 +250,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           event_id?: string | null
+          event_instance_id?: string | null
           event_location_snapshot?: string | null
           event_name_snapshot: string
           id?: string
@@ -251,6 +265,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           event_id?: string | null
+          event_instance_id?: string | null
           event_location_snapshot?: string | null
           event_name_snapshot?: string
           id?: string
@@ -259,7 +274,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["checklist_session_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checklist_sessions_event_instance_id_fkey"
+            columns: ["event_instance_id"]
+            isOneToOne: false
+            referencedRelation: "event_instances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       demographic_options: {
         Row: {
@@ -289,6 +312,130 @@ export type Database = {
           id?: string
           is_archived?: boolean
           label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_instances: {
+        Row: {
+          created_at: string
+          date: string
+          deleted_at: string | null
+          id: string
+          planned_staff_ids: string[]
+          series_id: string
+          status: Database["public"]["Enums"]["event_instance_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          deleted_at?: string | null
+          id?: string
+          planned_staff_ids?: string[]
+          series_id: string
+          status?: Database["public"]["Enums"]["event_instance_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          deleted_at?: string | null
+          id?: string
+          planned_staff_ids?: string[]
+          series_id?: string
+          status?: Database["public"]["Enums"]["event_instance_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_instances_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "event_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_series: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          end_date: string
+          id: string
+          location: string | null
+          name: string
+          recurrence: Database["public"]["Enums"]["event_recurrence"]
+          start_date: string
+          status: Database["public"]["Enums"]["event_series_status"]
+          tag_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          end_date: string
+          id?: string
+          location?: string | null
+          name: string
+          recurrence?: Database["public"]["Enums"]["event_recurrence"]
+          start_date: string
+          status?: Database["public"]["Enums"]["event_series_status"]
+          tag_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          end_date?: string
+          id?: string
+          location?: string | null
+          name?: string
+          recurrence?: Database["public"]["Enums"]["event_recurrence"]
+          start_date?: string
+          status?: Database["public"]["Enums"]["event_series_status"]
+          tag_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_series_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "event_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_tags: {
+        Row: {
+          color: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
           sort_order?: number
           updated_at?: string
         }
@@ -381,6 +528,7 @@ export type Database = {
       inventory_logs: {
         Row: {
           created_at: string
+          event_instance_id: string | null
           id: string
           item_id: string
           kind: Database["public"]["Enums"]["inventory_log_kind"]
@@ -391,6 +539,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          event_instance_id?: string | null
           id?: string
           item_id: string
           kind: Database["public"]["Enums"]["inventory_log_kind"]
@@ -401,6 +550,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          event_instance_id?: string | null
           id?: string
           item_id?: string
           kind?: Database["public"]["Enums"]["inventory_log_kind"]
@@ -410,6 +560,13 @@ export type Database = {
           quantity_after?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_logs_event_instance_id_fkey"
+            columns: ["event_instance_id"]
+            isOneToOne: false
+            referencedRelation: "event_instances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_logs_item_id_fkey"
             columns: ["item_id"]
@@ -746,6 +903,7 @@ export type Database = {
           closed_by: string | null
           created_at: string
           deleted_at: string | null
+          event_instance_id: string | null
           id: string
           linked_checklist_session_id: string | null
           location: string | null
@@ -768,6 +926,7 @@ export type Database = {
           closed_by?: string | null
           created_at?: string
           deleted_at?: string | null
+          event_instance_id?: string | null
           id?: string
           linked_checklist_session_id?: string | null
           location?: string | null
@@ -790,6 +949,7 @@ export type Database = {
           closed_by?: string | null
           created_at?: string
           deleted_at?: string | null
+          event_instance_id?: string | null
           id?: string
           linked_checklist_session_id?: string | null
           location?: string | null
@@ -805,7 +965,15 @@ export type Database = {
           weather_label_snapshot?: string | null
           weather_option_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sales_sessions_event_instance_id_fkey"
+            columns: ["event_instance_id"]
+            isOneToOne: false
+            referencedRelation: "event_instances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tip_options: {
         Row: {
@@ -899,6 +1067,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_event_instances: {
+        Args: { p_series_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -906,11 +1078,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      prune_unlinked_future_instances: {
+        Args: { p_cutoff_date: string; p_series_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "staff"
       checklist_item_size: "S" | "M" | "L"
       checklist_session_status: "active" | "closed"
+      event_instance_status: "confirmed" | "not_attending" | "cancelled"
+      event_recurrence: "single" | "weekly" | "biweekly" | "monthly"
+      event_series_status: "active" | "terminated"
       inventory_category: "consumable" | "disposable"
       inventory_log_kind: "use" | "restock"
       product_type: "shake" | "paleta"
@@ -1046,6 +1225,9 @@ export const Constants = {
       app_role: ["admin", "staff"],
       checklist_item_size: ["S", "M", "L"],
       checklist_session_status: ["active", "closed"],
+      event_instance_status: ["confirmed", "not_attending", "cancelled"],
+      event_recurrence: ["single", "weekly", "biweekly", "monthly"],
+      event_series_status: ["active", "terminated"],
       inventory_category: ["consumable", "disposable"],
       inventory_log_kind: ["use", "restock"],
       product_type: ["shake", "paleta"],
