@@ -12,13 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as CostsRouteImport } from './routes/costs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SalesIndexRouteImport } from './routes/sales.index'
+import { Route as InventoryIndexRouteImport } from './routes/inventory.index'
 import { Route as ChecklistIndexRouteImport } from './routes/checklist.index'
 import { Route as SalesStatsRouteImport } from './routes/sales.stats'
 import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
+import { Route as InventoryItemIdRouteImport } from './routes/inventory.$itemId'
 import { Route as ChecklistSessionIdRouteImport } from './routes/checklist.$sessionId'
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
 import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
@@ -38,11 +39,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InventoryRoute = InventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CostsRoute = CostsRouteImport.update({
   id: '/costs',
   path: '/costs',
@@ -58,6 +54,11 @@ const SalesIndexRoute = SalesIndexRouteImport.update({
   path: '/sales/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryIndexRoute = InventoryIndexRouteImport.update({
+  id: '/inventory/',
+  path: '/inventory/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChecklistIndexRoute = ChecklistIndexRouteImport.update({
   id: '/checklist/',
   path: '/checklist/',
@@ -71,6 +72,11 @@ const SalesStatsRoute = SalesStatsRouteImport.update({
 const SalesSettingsRoute = SalesSettingsRouteImport.update({
   id: '/sales/settings',
   path: '/sales/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryItemIdRoute = InventoryItemIdRouteImport.update({
+  id: '/inventory/$itemId',
+  path: '/inventory/$itemId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChecklistSessionIdRoute = ChecklistSessionIdRouteImport.update({
@@ -92,14 +98,15 @@ const SalesSessionIdReportRoute = SalesSessionIdReportRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/costs': typeof CostsRoute
-  '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
+  '/inventory/$itemId': typeof InventoryItemIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
+  '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
@@ -107,14 +114,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/costs': typeof CostsRoute
-  '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
+  '/inventory/$itemId': typeof InventoryItemIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist': typeof ChecklistIndexRoute
+  '/inventory': typeof InventoryIndexRoute
   '/sales': typeof SalesIndexRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId': typeof SalesSessionIdIndexRoute
@@ -123,14 +131,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/costs': typeof CostsRoute
-  '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
+  '/inventory/$itemId': typeof InventoryItemIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
+  '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
@@ -140,14 +149,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/costs'
-    | '/inventory'
     | '/login'
     | '/meetings'
     | '/settings'
     | '/checklist/$sessionId'
+    | '/inventory/$itemId'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
+    | '/inventory/'
     | '/sales/'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
@@ -155,14 +165,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/costs'
-    | '/inventory'
     | '/login'
     | '/meetings'
     | '/settings'
     | '/checklist/$sessionId'
+    | '/inventory/$itemId'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist'
+    | '/inventory'
     | '/sales'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId'
@@ -170,14 +181,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/costs'
-    | '/inventory'
     | '/login'
     | '/meetings'
     | '/settings'
     | '/checklist/$sessionId'
+    | '/inventory/$itemId'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
+    | '/inventory/'
     | '/sales/'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
@@ -186,14 +198,15 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CostsRoute: typeof CostsRoute
-  InventoryRoute: typeof InventoryRoute
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
   ChecklistSessionIdRoute: typeof ChecklistSessionIdRoute
+  InventoryItemIdRoute: typeof InventoryItemIdRoute
   SalesSettingsRoute: typeof SalesSettingsRoute
   SalesStatsRoute: typeof SalesStatsRoute
   ChecklistIndexRoute: typeof ChecklistIndexRoute
+  InventoryIndexRoute: typeof InventoryIndexRoute
   SalesIndexRoute: typeof SalesIndexRoute
   SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
   SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
@@ -222,13 +235,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/inventory': {
-      id: '/inventory'
-      path: '/inventory'
-      fullPath: '/inventory'
-      preLoaderRoute: typeof InventoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/costs': {
       id: '/costs'
       path: '/costs'
@@ -250,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/': {
+      id: '/inventory/'
+      path: '/inventory'
+      fullPath: '/inventory/'
+      preLoaderRoute: typeof InventoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checklist/': {
       id: '/checklist/'
       path: '/checklist'
@@ -269,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/sales/settings'
       fullPath: '/sales/settings'
       preLoaderRoute: typeof SalesSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory/$itemId': {
+      id: '/inventory/$itemId'
+      path: '/inventory/$itemId'
+      fullPath: '/inventory/$itemId'
+      preLoaderRoute: typeof InventoryItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checklist/$sessionId': {
@@ -298,14 +318,15 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CostsRoute: CostsRoute,
-  InventoryRoute: InventoryRoute,
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
   ChecklistSessionIdRoute: ChecklistSessionIdRoute,
+  InventoryItemIdRoute: InventoryItemIdRoute,
   SalesSettingsRoute: SalesSettingsRoute,
   SalesStatsRoute: SalesStatsRoute,
   ChecklistIndexRoute: ChecklistIndexRoute,
+  InventoryIndexRoute: InventoryIndexRoute,
   SalesIndexRoute: SalesIndexRoute,
   SalesSessionIdReportRoute: SalesSessionIdReportRoute,
   SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,

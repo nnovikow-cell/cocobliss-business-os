@@ -327,6 +327,98 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_items: {
+        Row: {
+          category: Database["public"]["Enums"]["inventory_category"]
+          created_at: string
+          created_by: string | null
+          current_quantity: number
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          last_restocked_at: string | null
+          name: string
+          notes: string | null
+          par_level: number
+          subcategory: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["inventory_category"]
+          created_at?: string
+          created_by?: string | null
+          current_quantity?: number
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          last_restocked_at?: string | null
+          name: string
+          notes?: string | null
+          par_level?: number
+          subcategory?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["inventory_category"]
+          created_at?: string
+          created_by?: string | null
+          current_quantity?: number
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          last_restocked_at?: string | null
+          name?: string
+          notes?: string | null
+          par_level?: number
+          subcategory?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_logs: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          kind: Database["public"]["Enums"]["inventory_log_kind"]
+          logged_by: string | null
+          note: string | null
+          quantity: number
+          quantity_after: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          kind: Database["public"]["Enums"]["inventory_log_kind"]
+          logged_by?: string | null
+          note?: string | null
+          quantity: number
+          quantity_after: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          kind?: Database["public"]["Enums"]["inventory_log_kind"]
+          logged_by?: string | null
+          note?: string | null
+          quantity?: number
+          quantity_after?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_logs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paleta_flavor_upgrades: {
         Row: {
           created_at: string
@@ -819,6 +911,8 @@ export type Database = {
       app_role: "admin" | "staff"
       checklist_item_size: "S" | "M" | "L"
       checklist_session_status: "active" | "closed"
+      inventory_category: "consumable" | "disposable"
+      inventory_log_kind: "use" | "restock"
       product_type: "shake" | "paleta"
       sale_kind: "single" | "group"
       session_status: "open" | "closed"
@@ -952,6 +1046,8 @@ export const Constants = {
       app_role: ["admin", "staff"],
       checklist_item_size: ["S", "M", "L"],
       checklist_session_status: ["active", "closed"],
+      inventory_category: ["consumable", "disposable"],
+      inventory_log_kind: ["use", "restock"],
       product_type: ["shake", "paleta"],
       sale_kind: ["single", "group"],
       session_status: ["open", "closed"],
