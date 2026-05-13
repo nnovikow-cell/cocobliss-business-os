@@ -121,6 +121,14 @@ function InventoryDetail() {
     navigate({ to: "/inventory" });
   };
 
+  const deleteLog = async (log: LogRow) => {
+    if (!item) return;
+    const { error } = await supabase.from("inventory_logs").delete().eq("id", log.id);
+    if (error) return toast.error(error.message);
+    toast.success("History entry deleted");
+    load();
+  };
+
   if (loading) {
     return <AppShell><div className="h-32 animate-pulse rounded-2xl bg-muted/50" /></AppShell>;
   }
@@ -285,6 +293,25 @@ function InventoryDetail() {
                       </p>
                     </div>
                   </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Delete entry">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this history entry?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This removes the {l.kind === "restock" ? "restock" : "usage"} of {formatQty(Number(l.quantity))} {item.unit} from history. The current stock quantity will not change.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteLog(l)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
                 {l.note && <p className="mt-1.5 pl-9 text-xs text-muted-foreground">{l.note}</p>}
               </li>
