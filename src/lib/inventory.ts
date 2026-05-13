@@ -17,31 +17,12 @@ export type InventoryItem = {
 
 export type InventoryStatus = "ok" | "low" | "out";
 
-export function stockStatus(item: Pick<InventoryItem, "current_quantity" | "par_level">): InventoryStatus {
-  const qty = Number(item.current_quantity ?? 0);
-  const par = Number(item.par_level ?? 0);
-  if (qty <= 0) return "out";
-  if (par <= 0) return "ok";
-  if (qty < par) return "out" === "out" && qty <= 0 ? "out" : qty < par ? "low" : "ok";
-  // qty >= par; check 20% margin (within 20% above par => yellow per spec "within 20% of par")
-  if (qty <= par * 1.2) return "low";
-  return "ok";
-}
-
-// Cleaner: re-export proper logic
-export function computeStatus(qty: number, par: number): InventoryStatus {
-  if (qty <= 0) return "out";
-  if (par <= 0) return "ok";
-  if (qty < par) return "low"; // below par => red, but spec says low=yellow, below=red
-  return "ok";
-}
-
 /**
- * Spec:
- *  - green if above par (qty > par * 1.2 effectively "above par with margin")
- *  - yellow if within 20% of par (qty between par and par*1.2, OR slightly below)
- *  - red if below par
- * Interpretation used: red when qty < par*0.8 OR qty<=0; yellow when par*0.8 <= qty <= par*1.2; green when qty > par*1.2.
+ * Stock status:
+ *  - green ("ok"): qty > par * 1.2  (comfortably above par)
+ *  - yellow ("low"): within 20% of par (par*0.8 <= qty <= par*1.2)
+ *  - red ("out"): qty < par*0.8 or qty <= 0
+ *  - if par == 0 and qty > 0 → green
  */
 export function statusOf(qty: number, par: number): InventoryStatus {
   if (qty <= 0) return "out";
