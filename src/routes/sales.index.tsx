@@ -211,18 +211,16 @@ function SalesIndex() {
                   <SelectTrigger><SelectValue placeholder="Pick an upcoming event" /></SelectTrigger>
                   <SelectContent>
                     {events.map((e) => {
-                      const dim = e.status !== "confirmed";
                       const [y, m, d] = e.date.split("-").map(Number);
                       const labelDate = new Date(y, m - 1, d).toLocaleDateString(undefined, {
                         month: "long", day: "numeric", year: "numeric",
                       });
                       return (
-                        <SelectItem key={e.id} value={e.id} className={dim ? "opacity-50" : ""}>
+                        <SelectItem key={e.id} value={e.id}>
                           <span className="font-medium">{e.name}</span>
                           <span className="ml-2 text-xs text-muted-foreground">
                             — {labelDate}
                             {e.location ? ` · ${e.location}` : ""}
-                            {dim ? ` · ${e.status === "cancelled" ? "Cancelled" : "Not attending"}` : ""}
                           </span>
                         </SelectItem>
                       );
