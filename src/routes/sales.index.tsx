@@ -29,7 +29,14 @@ function SalesIndex() {
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [eventId, setEventId] = useState<string>("");
-  const [events, setEvents] = useState<Array<{ id: string; name: string; location: string | null }>>([]);
+  type EventInstanceOpt = {
+    id: string;
+    date: string;
+    status: "confirmed" | "not_attending" | "cancelled";
+    name: string;
+    location: string | null;
+  };
+  const [events, setEvents] = useState<EventInstanceOpt[]>([]);
   const todayLocal = () => {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -75,7 +82,13 @@ function SalesIndex() {
       supabase.from("weather_options").select("id,label").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("attendants").select("id,name").is("deleted_at", null).eq("is_archived", false).eq("active", true).order("sort_order"),
       supabase.from("app_settings").select("shake_size_oz").limit(1).maybeSingle(),
-      supabase.from("events").select("id,name,location").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
+      supabase
+        .from("event_instances")
+        .select("id,date,status,series:event_series(name,location)")
+        .gte("date", todayLocal())
+        .is("deleted_at", null)
+        .order("date", { ascending: true })
+        .limit(200),
       supabase.from("checklist_sessions")
         .select("id,event_name_snapshot")
         .eq("status", "active").is("deleted_at", null)
@@ -85,7 +98,14 @@ function SalesIndex() {
       setWeatherOpts((w.data ?? []) as Array<{ id: string; label: string }>);
       setAttendantOpts((a.data ?? []) as Array<{ id: string; name: string }>);
       setShakeSize(Number(s.data?.shake_size_oz ?? 12));
-      setEvents((e.data ?? []) as Array<{ id: string; name: string; location: string | null }>);
+      const rows = (e.data ?? []) as Array<{
+        id: string; date: string; status: EventInstanceOpt["status"];
+        series: { name: string; location: string | null } | null;
+      }>;
+      setEvents(rows.map((r) => ({
+        id: r.id, date: r.date, status: r.status,
+        name: r.series?.name ?? "—", location: r.series?.location ?? null,
+      })));
       setChecklistSessions((c.data ?? []) as Array<{ id: string; event_name_snapshot: string }>);
     });
   }, [open]);
@@ -95,12 +115,12 @@ function SalesIndex() {
     if (!ev || !user) return;
     const weather = weatherOpts.find((w) => w.id === weatherId) ?? null;
     const selectedAttendants = attendantOpts.filter((a) => attendantIds.includes(a.id));
-    // Use the selected calendar date but keep current time-of-day so sales
-    // logged today still sit chronologically under the session.
+    // Anchor session to the chosen event instance's date (keep current time-of-day).
     let openedAt: string | undefined;
-    if (sessionDate && sessionDate !== todayLocal()) {
+    const anchorDate = ev.date ?? sessionDate;
+    if (anchorDate && anchorDate !== todayLocal()) {
       const now = new Date();
-      const [y, m, d] = sessionDate.split("-").map(Number);
+      const [y, m, d] = anchorDate.split("-").map(Number);
       const dt = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
       openedAt = dt.toISOString();
     }
@@ -119,6 +139,7 @@ function SalesIndex() {
         attendant_ids: attendantIds,
         attendant_names_snapshot: selectedAttendants.map((a) => a.name),
         linked_checklist_session_id: linkedChecklistId || null,
+        event_instance_id: ev.id,
       })
       .select("id").single();
     if (error) return toast.error(error.message);
@@ -182,17 +203,29 @@ function SalesIndex() {
               <Label>Event</Label>
               {events.length === 0 ? (
                 <p className="mt-1 rounded-xl border-2 border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                  No events yet. Add one in <Link to="/sales/settings" className="font-semibold text-primary underline">Settings → Events</Link>.
+                  No upcoming events. Add one in <Link to="/events/series" className="font-semibold text-primary underline">Events → Series</Link>.
                 </p>
               ) : (
                 <Select value={eventId} onValueChange={setEventId}>
-                  <SelectTrigger><SelectValue placeholder="Pick an event" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Pick an upcoming event" /></SelectTrigger>
                   <SelectContent>
-                    {events.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name}{e.location ? ` · ${e.location}` : ""}
-                      </SelectItem>
-                    ))}
+                    {events.map((e) => {
+                      const dim = e.status !== "confirmed";
+                      const [y, m, d] = e.date.split("-").map(Number);
+                      const labelDate = new Date(y, m - 1, d).toLocaleDateString(undefined, {
+                        month: "long", day: "numeric", year: "numeric",
+                      });
+                      return (
+                        <SelectItem key={e.id} value={e.id} className={dim ? "opacity-50" : ""}>
+                          <span className="font-medium">{e.name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            — {labelDate}
+                            {e.location ? ` · ${e.location}` : ""}
+                            {dim ? ` · ${e.status === "cancelled" ? "Cancelled" : "Not attending"}` : ""}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               )}
