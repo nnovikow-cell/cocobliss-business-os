@@ -1,6 +1,26 @@
-export type IngredientUnit = "fl oz" | "ml" | "g" | "kg" | "lb";
-export const INGREDIENT_UNITS: IngredientUnit[] = ["fl oz", "ml", "g", "kg", "lb"];
-export const WEIGHT_UNITS: IngredientUnit[] = ["g", "kg", "lb"];
+export type IngredientUnit =
+  | "fl oz" | "ml" | "L" | "tsp" | "tbsp" | "cup"
+  | "g" | "kg" | "mg" | "oz" | "lb";
+
+export const INGREDIENT_UNITS: IngredientUnit[] = [
+  "fl oz", "ml", "L", "tsp", "tbsp", "cup",
+  "g", "kg", "mg", "oz", "lb",
+];
+export const WEIGHT_UNITS: IngredientUnit[] = ["g", "kg", "mg", "oz", "lb"];
+
+export const UNIT_LABELS: Record<IngredientUnit, string> = {
+  "fl oz": "fl oz (volume)",
+  ml: "ml",
+  L: "L",
+  tsp: "tsp",
+  tbsp: "tbsp",
+  cup: "cup",
+  g: "g",
+  kg: "kg",
+  mg: "mg",
+  oz: "oz (weight)",
+  lb: "lb",
+};
 
 export type DensitySource = "table" | "manual";
 
@@ -47,12 +67,26 @@ export function itemToFlOz(itemSize: number, unit: IngredientUnit, density: numb
       return itemSize;
     case "ml":
       return itemSize * 0.033814;
+    case "L":
+      return itemSize * 33.814;
+    case "tsp":
+      return itemSize * 0.166667;
+    case "tbsp":
+      return itemSize * 0.5;
+    case "cup":
+      return itemSize * 8;
     case "g":
       if (!density || density <= 0) return null;
       return (itemSize / density) * 0.033814;
+    case "mg":
+      if (!density || density <= 0) return null;
+      return (itemSize / density) * 0.000033814;
     case "kg":
       if (!density || density <= 0) return null;
       return (itemSize / density) * 33.814;
+    case "oz":
+      if (!density || density <= 0) return null;
+      return ((itemSize * 28.3495) / density) * 0.033814;
     case "lb":
       if (!density || density <= 0) return null;
       return ((itemSize * 453.592) / density) * 0.033814;
