@@ -22,7 +22,7 @@ function Index() {
       <header className="mb-6 flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">Welcome back</p>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">CocoBLiss OS</h1>
+          <h1 className="text-3xl font-black tracking-tight text-foreground mx-[50px]">CocoBliss OS</h1>
           <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
         </div>
         <div className="flex items-center gap-1">
