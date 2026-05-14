@@ -6,7 +6,6 @@ import { SyrupLibrary } from "@/components/costs/syrup-library";
 import { DisposableLibrary } from "@/components/costs/disposable-library";
 
 export const Route = createFileRoute("/costs/")({ component: CostsPage });
-void 0;
 
 function CostsPage() {
   return (

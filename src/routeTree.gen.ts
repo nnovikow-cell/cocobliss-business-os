@@ -144,9 +144,9 @@ const SalesSessionIdIndexRoute = SalesSessionIdIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CostsProductsIndexRoute = CostsProductsIndexRouteImport.update({
-  id: '/products/',
-  path: '/products/',
-  getParentRoute: () => CostsRoute,
+  id: '/costs/products/',
+  path: '/costs/products/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const SalesSessionIdReportRoute = SalesSessionIdReportRouteImport.update({
   id: '/sales/$sessionId/report',
@@ -175,9 +175,9 @@ const EventsInstanceInstanceIdRoute =
     getParentRoute: () => EventsRoute,
   } as any)
 const CostsProductsIdRoute = CostsProductsIdRouteImport.update({
-  id: '/products/$id',
-  path: '/products/$id',
-  getParentRoute: () => CostsRoute,
+  id: '/costs/products/$id',
+  path: '/costs/products/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -379,10 +379,12 @@ export interface RootRouteChildren {
   CostsIndexRoute: typeof CostsIndexRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
   SalesIndexRoute: typeof SalesIndexRoute
+  CostsProductsIdRoute: typeof CostsProductsIdRoute
   InventoryLogBatchRoute: typeof InventoryLogBatchRoute
   InventoryLogEventRoute: typeof InventoryLogEventRoute
   InventoryLogRestockRoute: typeof InventoryLogRestockRoute
   SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
+  CostsProductsIndexRoute: typeof CostsProductsIndexRoute
   SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
 }
 
@@ -537,10 +539,10 @@ declare module '@tanstack/react-router' {
     }
     '/costs/products/': {
       id: '/costs/products/'
-      path: '/products'
+      path: '/costs/products'
       fullPath: '/costs/products/'
       preLoaderRoute: typeof CostsProductsIndexRouteImport
-      parentRoute: typeof CostsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/sales/$sessionId/report': {
       id: '/sales/$sessionId/report'
@@ -579,10 +581,10 @@ declare module '@tanstack/react-router' {
     }
     '/costs/products/$id': {
       id: '/costs/products/$id'
-      path: '/products/$id'
+      path: '/costs/products/$id'
       fullPath: '/costs/products/$id'
       preLoaderRoute: typeof CostsProductsIdRouteImport
-      parentRoute: typeof CostsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -623,22 +625,14 @@ const rootRouteChildren: RootRouteChildren = {
   CostsIndexRoute: CostsIndexRoute,
   InventoryIndexRoute: InventoryIndexRoute,
   SalesIndexRoute: SalesIndexRoute,
+  CostsProductsIdRoute: CostsProductsIdRoute,
   InventoryLogBatchRoute: InventoryLogBatchRoute,
   InventoryLogEventRoute: InventoryLogEventRoute,
   InventoryLogRestockRoute: InventoryLogRestockRoute,
   SalesSessionIdReportRoute: SalesSessionIdReportRoute,
+  CostsProductsIndexRoute: CostsProductsIndexRoute,
   SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
