@@ -696,11 +696,43 @@ function TaskDialog({
                 <Label className="text-sm">Recurring</Label>
                 {recurring && (
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Repeats every {DAYS_FULL[day]}
+                    {frequency === "daily" && "Repeats every day"}
+                    {frequency === "weekly" && `Repeats every ${DAYS_FULL[day]}`}
+                    {frequency === "biweekly" && `Repeats every other ${DAYS_FULL[day]}`}
+                    {frequency === "monthly" && `Repeats monthly on the ${ordinal(monthlyDom)}`}
                   </p>
                 )}
               </div>
               <Switch checked={recurring} onCheckedChange={setRecurring} />
+            </div>
+          )}
+          {!isEdit && recurring && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Frequency</Label>
+                <Select value={frequency} onValueChange={(v) => setFrequency(v as typeof frequency)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Biweekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {frequency === "monthly" && (
+                <div>
+                  <Label>Day of month</Label>
+                  <Select value={String(monthlyDom)} onValueChange={(v) => setMonthlyDom(Number(v))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((n) => (
+                        <SelectItem key={n} value={String(n)}>{ordinal(n)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
         </div>
