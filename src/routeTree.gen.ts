@@ -30,6 +30,7 @@ import { Route as EventsHistoryRouteImport } from './routes/events.history'
 import { Route as ChecklistSessionIdRouteImport } from './routes/checklist.$sessionId'
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
 import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
+import { Route as InventoryLogBatchRouteImport } from './routes/inventory.log.batch'
 import { Route as EventsInstanceInstanceIdRouteImport } from './routes/events.instance.$instanceId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -137,6 +138,11 @@ const SalesSessionIdReportRoute = SalesSessionIdReportRouteImport.update({
   path: '/sales/$sessionId/report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryLogBatchRoute = InventoryLogBatchRouteImport.update({
+  id: '/inventory/log/batch',
+  path: '/inventory/log/batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsInstanceInstanceIdRoute =
   EventsInstanceInstanceIdRouteImport.update({
     id: '/instance/$instanceId',
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
+  '/inventory/log/batch': typeof InventoryLogBatchRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
 }
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryIndexRoute
   '/sales': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
+  '/inventory/log/batch': typeof InventoryLogBatchRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId': typeof SalesSessionIdIndexRoute
 }
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
+  '/inventory/log/batch': typeof InventoryLogBatchRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
 }
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/inventory/'
     | '/sales/'
     | '/events/instance/$instanceId'
+    | '/inventory/log/batch'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
   fileRoutesByTo: FileRoutesByTo
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/sales'
     | '/events/instance/$instanceId'
+    | '/inventory/log/batch'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId'
   id:
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/inventory/'
     | '/sales/'
     | '/events/instance/$instanceId'
+    | '/inventory/log/batch'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
   fileRoutesById: FileRoutesById
@@ -306,6 +318,7 @@ export interface RootRouteChildren {
   ChecklistIndexRoute: typeof ChecklistIndexRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
   SalesIndexRoute: typeof SalesIndexRoute
+  InventoryLogBatchRoute: typeof InventoryLogBatchRoute
   SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
   SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
 }
@@ -459,6 +472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesSessionIdReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/log/batch': {
+      id: '/inventory/log/batch'
+      path: '/inventory/log/batch'
+      fullPath: '/inventory/log/batch'
+      preLoaderRoute: typeof InventoryLogBatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/instance/$instanceId': {
       id: '/events/instance/$instanceId'
       path: '/instance/$instanceId'
@@ -504,6 +524,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChecklistIndexRoute: ChecklistIndexRoute,
   InventoryIndexRoute: InventoryIndexRoute,
   SalesIndexRoute: SalesIndexRoute,
+  InventoryLogBatchRoute: InventoryLogBatchRoute,
   SalesSessionIdReportRoute: SalesSessionIdReportRoute,
   SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,
 }
