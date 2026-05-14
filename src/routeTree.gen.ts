@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as SimulateRouteImport } from './routes/simulate'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as MeetingsRouteImport } from './routes/meetings'
@@ -39,6 +40,11 @@ import { Route as InventoryLogBatchRouteImport } from './routes/inventory.log.ba
 import { Route as EventsInstanceInstanceIdRouteImport } from './routes/events.instance.$instanceId'
 import { Route as CostsProductsIdRouteImport } from './routes/costs.products.$id'
 
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SimulateRoute = SimulateRouteImport.update({
   id: '/simulate',
   path: '/simulate',
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
+  '/tasks': typeof TasksRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/checklist/settings': typeof ChecklistSettingsRoute
   '/events/history': typeof EventsHistoryRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByTo {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
+  '/tasks': typeof TasksRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/checklist/settings': typeof ChecklistSettingsRoute
   '/events/history': typeof EventsHistoryRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
+  '/tasks': typeof TasksRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/checklist/settings': typeof ChecklistSettingsRoute
   '/events/history': typeof EventsHistoryRoute
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/simulate'
+    | '/tasks'
     | '/checklist/$sessionId'
     | '/checklist/settings'
     | '/events/history'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/simulate'
+    | '/tasks'
     | '/checklist/$sessionId'
     | '/checklist/settings'
     | '/events/history'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/simulate'
+    | '/tasks'
     | '/checklist/$sessionId'
     | '/checklist/settings'
     | '/events/history'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
   SimulateRoute: typeof SimulateRoute
+  TasksRoute: typeof TasksRoute
   ChecklistSessionIdRoute: typeof ChecklistSessionIdRoute
   ChecklistSettingsRoute: typeof ChecklistSettingsRoute
   InventoryItemIdRoute: typeof InventoryItemIdRoute
@@ -403,6 +416,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/simulate': {
       id: '/simulate'
       path: '/simulate'
@@ -635,6 +655,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
   SimulateRoute: SimulateRoute,
+  TasksRoute: TasksRoute,
   ChecklistSessionIdRoute: ChecklistSessionIdRoute,
   ChecklistSettingsRoute: ChecklistSettingsRoute,
   InventoryItemIdRoute: InventoryItemIdRoute,
