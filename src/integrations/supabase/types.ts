@@ -477,6 +477,8 @@ export type Database = {
       inventory_items: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"]
+          category_v2: string | null
+          cost_per_unit: number | null
           created_at: string
           created_by: string | null
           current_quantity: number
@@ -486,13 +488,24 @@ export type Database = {
           last_restocked_at: string | null
           name: string
           notes: string | null
+          package_size: number | null
+          package_size_unit: string | null
+          package_type: string | null
           par_level: number
+          physical_location: string | null
+          price: number | null
+          price_updated_at: string | null
+          purchase_url: string | null
           subcategory: string | null
+          supplier_name: string | null
           unit: string
           updated_at: string
+          workflow_tags: string[]
         }
         Insert: {
           category: Database["public"]["Enums"]["inventory_category"]
+          category_v2?: string | null
+          cost_per_unit?: number | null
           created_at?: string
           created_by?: string | null
           current_quantity?: number
@@ -502,13 +515,24 @@ export type Database = {
           last_restocked_at?: string | null
           name: string
           notes?: string | null
+          package_size?: number | null
+          package_size_unit?: string | null
+          package_type?: string | null
           par_level?: number
+          physical_location?: string | null
+          price?: number | null
+          price_updated_at?: string | null
+          purchase_url?: string | null
           subcategory?: string | null
+          supplier_name?: string | null
           unit?: string
           updated_at?: string
+          workflow_tags?: string[]
         }
         Update: {
           category?: Database["public"]["Enums"]["inventory_category"]
+          category_v2?: string | null
+          cost_per_unit?: number | null
           created_at?: string
           created_by?: string | null
           current_quantity?: number
@@ -518,15 +542,61 @@ export type Database = {
           last_restocked_at?: string | null
           name?: string
           notes?: string | null
+          package_size?: number | null
+          package_size_unit?: string | null
+          package_type?: string | null
           par_level?: number
+          physical_location?: string | null
+          price?: number | null
+          price_updated_at?: string | null
+          purchase_url?: string | null
           subcategory?: string | null
+          supplier_name?: string | null
           unit?: string
           updated_at?: string
+          workflow_tags?: string[]
+        }
+        Relationships: []
+      }
+      inventory_log_batches: {
+        Row: {
+          created_at: string
+          event_instance_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["inventory_log_kind"]
+          logged_by: string | null
+          note: string | null
+          production_date: string | null
+          projected_use_date: string | null
+          supplier_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_instance_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["inventory_log_kind"]
+          logged_by?: string | null
+          note?: string | null
+          production_date?: string | null
+          projected_use_date?: string | null
+          supplier_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_instance_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["inventory_log_kind"]
+          logged_by?: string | null
+          note?: string | null
+          production_date?: string | null
+          projected_use_date?: string | null
+          supplier_name?: string | null
         }
         Relationships: []
       }
       inventory_logs: {
         Row: {
+          batch_id: string | null
           created_at: string
           event_instance_id: string | null
           id: string
@@ -534,10 +604,14 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by: string | null
           note: string | null
+          production_date: string | null
+          projected_use_date: string | null
           quantity: number
           quantity_after: number
+          supplier_name_snapshot: string | null
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string
           event_instance_id?: string | null
           id?: string
@@ -545,10 +619,14 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by?: string | null
           note?: string | null
+          production_date?: string | null
+          projected_use_date?: string | null
           quantity: number
           quantity_after: number
+          supplier_name_snapshot?: string | null
         }
         Update: {
+          batch_id?: string | null
           created_at?: string
           event_instance_id?: string | null
           id?: string
@@ -556,8 +634,11 @@ export type Database = {
           kind?: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by?: string | null
           note?: string | null
+          production_date?: string | null
+          projected_use_date?: string | null
           quantity?: number
           quantity_after?: number
+          supplier_name_snapshot?: string | null
         }
         Relationships: [
           {
@@ -569,6 +650,47 @@ export type Database = {
           },
           {
             foreignKeyName: "inventory_logs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_price_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          cost_per_unit: number | null
+          id: string
+          item_id: string
+          package_size: number | null
+          package_size_unit: string | null
+          price: number | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          cost_per_unit?: number | null
+          id?: string
+          item_id: string
+          package_size?: number | null
+          package_size_unit?: string | null
+          price?: number | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          cost_per_unit?: number | null
+          id?: string
+          item_id?: string
+          package_size?: number | null
+          package_size_unit?: string | null
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_price_history_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
@@ -1091,7 +1213,7 @@ export type Database = {
       event_recurrence: "single" | "weekly" | "biweekly" | "monthly"
       event_series_status: "active" | "terminated"
       inventory_category: "consumable" | "disposable"
-      inventory_log_kind: "use" | "restock"
+      inventory_log_kind: "use" | "restock" | "production_batch" | "event_use"
       product_type: "shake" | "paleta"
       sale_kind: "single" | "group"
       session_status: "open" | "closed"
@@ -1229,7 +1351,7 @@ export const Constants = {
       event_recurrence: ["single", "weekly", "biweekly", "monthly"],
       event_series_status: ["active", "terminated"],
       inventory_category: ["consumable", "disposable"],
-      inventory_log_kind: ["use", "restock"],
+      inventory_log_kind: ["use", "restock", "production_batch", "event_use"],
       product_type: ["shake", "paleta"],
       sale_kind: ["single", "group"],
       session_status: ["open", "closed"],

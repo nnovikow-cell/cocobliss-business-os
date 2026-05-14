@@ -1,133 +1,112 @@
-# CocoBLiss Business OS — Implementation Plan (v1)
+## Inventory Module Upgrade — Plan
 
-## Scope
-
-Build the app shell with nav for all 4 modules, then fully implement Sales Tracker. Other modules render "Coming soon" placeholders.
-
-## Decisions (from your answers)
-
-- **Auth**: Email/password signup screen, no auto-confirm. You create your own accounts.
-- **Paleta**: One configurable base "Paleta" product (editable name + price). Flavor upgrades configurable separately, each with its own price. Everything editable.
-- **Demographics**: Optional per sale.
-- **Group Sale**: Stepper — add customers one at a time, each with their own items + optional demographics.
-- **Payment method**: Required per sale. No defaults seeded — you configure them. **Card adds tax automatically.** Tax % is configurable in Settings. Cash (and any non-card method) does not add tax.
-- **Session reopen**: Only "authorized" users can reopen a closed session. We'll set this up via a `user_roles` table now (role: `admin`) so adding employees later is just adding rows. Both you and Ernesto get `admin` on signup.
-- **Offline**: Online-only for v1, with clear connection error toasts.
-- **Seed data**: Pre-loaded with the example menu (Biscoff Addiction, Berry Bliss, Piña Cocada, Dulce Flow, Cocada + Paleta base + a couple flavor upgrades). No payment methods, no demographics seeded.
-- **Design**: High-contrast premium feel — deep tropical palette with a vivid coconut-cream + sunlit-mango accent, heavy weights, oversized rounded pills, clear shadows, designed to be readable in direct sunlight.
+This is an **incremental upgrade** of the existing module. All current tables, item rows, and existing restock/use logs stay intact. We only extend schema, add new pages/flows, and refactor the home page.
 
 ---
 
-## Tax Logic
+### 1. Database changes (single migration)
 
-Configurable in Settings:
+**`inventory_items` — add columns** (all nullable to preserve existing data):
+- `category_v2` text — `ingredient` / `topping` / `disposable` / `other` (new richer category; existing `category` enum kept for back-compat). Backfill: `consumable → ingredient`, `disposable → disposable`.
+- `workflow_tags` text[] — values from `production_batch` / `log_event` / `restock` / `all`. Default `{all}`. Backfill: ingredients → `{production_batch, restock}`, disposables/toppings → `{log_event, restock}`.
+- `package_type` text (e.g. "bag", "case")
+- `supplier_name` text
+- `purchase_url` text
+- `physical_location` text
+- `price` numeric (current price)
+- `price_updated_at` timestamptz (auto-set via trigger when `price` changes)
+- `package_size` numeric, `package_size_unit` text
+- `cost_per_unit` numeric — **generated column** = `price / nullif(package_size,0)`
 
-- `tax_rate` (e.g. 8.25, stored as numeric percent)
-- Each payment method has a flag `applies_tax` (true for Card, false for Cash by default — fully editable)
+**`inventory_price_history`** (new) — `id, item_id, price, package_size, package_size_unit, cost_per_unit, changed_at, changed_by`. Trigger on `inventory_items` price/package_size change inserts a row.
 
-Formula at sale logging:
+**`inventory_logs` — extend**:
+- `kind` enum: add new values `production_batch` and `event_use` (keep existing `use` / `restock` for back-compat).
+- `batch_id` uuid (nullable) — groups multiple `inventory_logs` rows that were saved together as one batch operation.
+- `production_date` date (nullable)
+- `projected_use_date` date (nullable)
+- `supplier_name_snapshot` text (nullable)
+- `event_instance_id` already exists ✅
+
+**`inventory_log_batches`** (new) — header row per multi-item submission: `id, kind (production_batch | restock | event_use), event_instance_id, production_date, projected_use_date, supplier_name, note, logged_by, created_at`. Each child row in `inventory_logs` carries `batch_id`.
+
+RLS: same `all authenticated` pattern as existing tables.
+
+---
+
+### 2. Routes & file layout
 
 ```
-subtotal      = sum(line_total of all sale_items)
-tax_amount    = method.applies_tax ? subtotal * (tax_rate / 100) : 0
-total         = subtotal + tax_amount
+src/routes/inventory.tsx                  layout w/ <Outlet/> (NEW)
+src/routes/inventory.index.tsx            REWORK → Home command center
+src/routes/inventory.list.tsx             NEW → master library (current list UI, polished)
+src/routes/inventory.$itemId.tsx          KEEP, extend detail+edit form & history
+src/routes/inventory.new.tsx              NEW → full create form (rich fields)
+src/routes/inventory.log.batch.tsx        NEW → 3-step Production Batch flow
+src/routes/inventory.log.restock.tsx      NEW → 3-step Restock flow
+src/routes/inventory.log.event.tsx        NEW → 3-step Event flow
 ```
 
-All three (`subtotal`, `tax_amount`, `total`) and the tax rate snapshot are saved on the sale row so historical reports stay correct if rates change later.
-
-UI: when the user taps a payment method that applies tax, the running total visibly updates with a "+ tax" line. One-tap card → tax applied → done.
+Side-nav entry stays "Inventory" → `/inventory`.
 
 ---
 
-## Screen Inventory
+### 3. Home page (`inventory.index.tsx`)
 
-**Shell**
+- **Top row**: 3 tappable status cards (Reorder Now / Low Stock / Good to Go) with counts. Each links to `/inventory/list?status=out|low|ok`.
+- **Bottom**: 4 action cards → View Inventory, Log Production Batch, Log Restock, Log Event.
+- Mobile single-column, desktop 3-up status row + 2x2 action grid.
 
-- `/login` — email/password
-- `/` — module hub (4 cards: Sales Tracker active, others "Coming soon")
-- Bottom nav (mobile) with 4 module icons
+### 4. Master library (`inventory.list.tsx`)
 
-**Sales Tracker** (`/sales/...`)
+Reuses current list UI, plus:
+- Reads `?status=`, `?category=`, `?workflow=` from URL.
+- Filter chips: category (Ingredient/Topping/Disposable/Other), workflow tag, stock status. Sort: name / stock level / last restocked.
+- Each card: name, category + workflow tag pills, qty + unit, status badge, last restocked date, quick edit pencil → opens detail.
 
-- Sessions list (open session pinned, history below)
-- Active Session — live logging UI (the workhorse)
-- Single Sale composer (inline on Active Session)
-- Group Sale composer (stepper modal)
-- Close Session screen (summary + confirm)
-- Session report (totals by product / payment method / demographic / user; tax breakdown)
-- Settings (tabs):
-  - Products
-  - Paleta Flavor Upgrades
-  - Payment Methods (with `applies_tax` toggle)
-  - Demographic Options
-  - Tax & General (tax rate)
-  - Users (list; reopen-permission visible)
+### 5. Item create/edit form
 
-**Placeholders**
+Rebuilt as full page (`/inventory/new`) and inline edit on detail page. Sections: Identity, Purchasing, Stock, Notes — exactly the fields in the spec. `cost_per_unit` shown read-only (generated). Price changes auto-stamped to history.
 
-- `/inventory`, `/costs`, `/meetings` — "Coming soon" pages
+### 6. Three log flows (shared component)
 
----
+Create `src/components/inventory/log-flow.tsx` — generic 3-step wizard taking a `kind` and a filter for which items to show. Each step:
 
-## Database Schema
+- **Step 1 — Quantities**: items grouped by category, only those whose `workflow_tags` include the flow kind (or `all`). Numeric stepper per item (− / input / +). Search box.
+- **Step 2 — Details** (varies by flow):
+  - Production Batch: event dropdown (event_instances joined w/ event_series, shown as `name · date · location`, excluding cancelled/not-attending), production date, projected use date.
+  - Restock: supplier name, date received.
+  - Event: event dropdown, date of event (auto-fill from instance).
+- **Step 3 — Confirm & Save**: summary list + Save. On save, insert one `inventory_log_batches` row + N `inventory_logs` rows in a single RPC (or sequential insert wrapped client-side), update each item's `current_quantity` (and `last_restocked_at` for restock). Toast confirmation, navigate home.
 
-All tables: `id uuid pk`, `created_at`, `updated_at`, `deleted_at` nullable. RLS on everywhere.
+### 7. Item detail history
 
-**Auth & roles**
+Extend existing log list to show:
+- Log type icon + label (Production Batch / Restock / Event Use / legacy Use)
+- Quantity delta + new total
+- Linked event name + date (when present)
+- Supplier (restock), production/projected dates (batch)
+- Timestamp + user
+Sorted newest first. Existing delete-entry control kept.
 
-- `profiles` — `user_id (fk auth.users on delete cascade)`, `display_name`, `accent_color`
-- `user_roles` — `user_id`, `role` enum(`admin`, `staff`); checked via `has_role()` security-definer fn
-- Trigger: on new auth user → insert profile + assign `admin` role (so you and Ernesto both get admin on signup; later employees can be downgraded)
+### 8. Design
 
-**Config**
+Tailwind responsive, semantic tokens only, card-based, color-coded badges (reuse `statusMeta`). Numeric steppers reused across all 3 flows. No new color literals.
 
-- `products` — `name`, `type` enum(`shake`,`paleta`), `price numeric(10,2)`, `sort_order`, `is_archived`
-- `paleta_flavor_upgrades` — `name`, `upgrade_price numeric(10,2)`, `sort_order`, `is_archived`
-- `payment_methods` — `name`, `applies_tax bool default false`, `sort_order`, `is_archived`
-- `demographic_options` — `category` (e.g. `age_group`, `sex`), `label`, `sort_order`, `is_archived`
-- `app_settings` — single-row table: `tax_rate numeric(5,2) default 0`
-
-**Sales**
-
-- `sales_sessions` — `name`, `location`, `notes`, `opened_by`, `opened_at`, `closed_by` nullable, `closed_at` nullable, `status` enum(`open`,`closed`)
-- `sales` — `session_id`, `logged_by`, `sale_kind` enum(`single`,`group`), `payment_method_id`, `payment_method_name_snapshot`, `applies_tax_snapshot`, `tax_rate_snapshot`, `subtotal`, `tax_amount`, `total`, `note`
-- `sale_items` — `sale_id`, `customer_index int` (0 for single; 0..N for group), `product_id`, `product_name_snapshot`, `product_type_snapshot`, `base_price_snapshot`, `flavor_upgrade_id` nullable, `flavor_name_snapshot`, `upgrade_price_snapshot`, `quantity int default 1`, `line_total`
-- `sale_demographics` — `sale_id`, `customer_index`, `demographic_option_id`
-
-**Realtime**: enable on `sales_sessions`, `sales`, `sale_items`, `sale_demographics`.
-
-**RLS rules**
-
-- `profiles`: user can read all, update own
-- `user_roles`: read all (authenticated), only admins can modify
-- All config tables: any authenticated user can CRUD
-- `sales_sessions`: any authenticated user can insert + read; update allowed when `status='open'` for everyone, reopening (`status` open→closed transitions) restricted to `admin` via policy + db function
-- `sales`, `sale_items`, `sale_demographics`: any authenticated user can CRUD (soft-delete via `deleted_at`)
+### Out of scope (unchanged)
+- Existing inventory rows, current_quantity, par_level, existing logs.
+- Events module, side-nav, auth.
+- Hard delete behavior (still admin-only).
 
 ---
 
-## Build Order
+### Sequencing
 
-1. Migrations (schema, RLS, seed data, role trigger, realtime publication)
-2. Auth (signup/login, redirect-to / on session, no auto-confirm)
-3. App shell + bottom nav + module hub + placeholder pages
-4. Settings tabs (products, flavors, payment methods + tax flag, demographics, tax rate)
-5. Sessions list + open/close session
-6. Active Session live logging UI (shake row, paleta + flavor reveal, single sale flow, payment method tap with tax math, live realtime feed)
-7. Group Sale stepper
-8. Session close + summary report (with tax breakdown)
-9. Reopen-session gated by admin role
-10. Premium high-contrast design pass (tokens in src/styles.css, oversized pills, sunlight-readable)
+1. **Migration** (schema + backfill + price-history trigger) — apply, await approval.
+2. **Routes scaffolding** + home page rework + master list extraction.
+3. **Item form** (new + edit) with new fields + price history.
+4. **Shared log-flow wizard** + 3 flow routes.
+5. **Detail page history** enrichment.
+6. QA on mobile (726px) and desktop.
 
----
-
-## Technical Notes
-
-- Stack: TanStack Start + Lovable Cloud (Supabase) — already wired up
-- All config-driven UI fetches from DB tables; no hardcoded product/option arrays anywhere
-- Price/tax/name snapshots on sale rows so editing config never alters history
-- Realtime via Supabase channels on the active session
-- Numeric: `numeric(10,2)` for money, `numeric(5,2)` for tax %
-- React Query for caching + optimistic updates on the logging UI for sub-100ms tap feedback
-
-Ready to build when you hit Implement.
+Confirm and I'll start with the migration.
