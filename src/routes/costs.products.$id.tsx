@@ -26,7 +26,7 @@ import {
   type DispItem, type DispKit, type SyrupLite,
 } from "@/lib/products";
 
-export const Route = createFileRoute("/costs/products/")({ component: ProductDetailPage });
+export const Route = createFileRoute("/costs/products/$id")({ component: ProductDetailPage });
 
 type FormulaWithIngs = RecipeFormula & { ingredients: { id: string; ingredient_id: string; ratio: number }[] };
 
