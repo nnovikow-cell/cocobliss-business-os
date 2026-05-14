@@ -141,7 +141,12 @@ function TasksPage() {
     const have = new Set((existing ?? []).map((t) => t.recurrence_id as string));
 
     const weekMonday = new Date(iso + "T00:00:00");
-    const toInsert: Array<Record<string, unknown>> = [];
+    type InsertRow = {
+      title: string; category: string; owner: string | null; note: string | null;
+      assigned_week: string; is_recurring: boolean; recurrence_id: string;
+      recurrence_day: number; assigned_day: number;
+    };
+    const toInsert: InsertRow[] = [];
 
     for (const raw of series as Series[]) {
       if (have.has(raw.id)) continue;
