@@ -410,14 +410,19 @@ function CalendarView({ rows, onChanged }: { rows: RowVM[]; onChanged: () => voi
                 {items.slice(0, 3).map((it) => (
                   <InstanceDetailTrigger key={it.id} instanceId={it.id} onChanged={onChanged}>
                     {(open) => {
-                      const c2 = tagColor(it.tag?.color);
-                      const dim = it.status !== "confirmed";
+                      const statusColors: Record<string, { bg: string; text: string }> = {
+                        confirmed: { bg: "hsl(172 66% 40%)", text: "#fff" },
+                        pending:   { bg: "hsl(38 92% 50%)",  text: "#1a1a1a" },
+                        cancelled: { bg: "hsl(0 72% 51%)",   text: "#fff" },
+                        completed: { bg: "hsl(220 9% 46%)",  text: "#fff" },
+                        not_attending: { bg: "hsl(220 9% 46%)", text: "#fff" },
+                      };
+                      const c2 = statusColors[it.status] ?? tagColor(it.tag?.color);
                       return (
                         <button
                           onClick={open}
                           className={cn(
                             "block w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold transition-opacity hover:opacity-100",
-                            dim && "opacity-50",
                           )}
                           style={{ background: c2.bg, color: c2.text }}
                           title={it.series.name}
