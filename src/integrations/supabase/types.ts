@@ -1151,6 +1151,57 @@ export type Database = {
           },
         ]
       }
+      recurrence_series: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          note: string | null
+          owner: string | null
+          recurrence_day: number
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          owner?: string | null
+          recurrence_day: number
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          owner?: string | null
+          recurrence_day?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurrence_series_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurrence_series_owner_fkey"
+            columns: ["owner"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_demographics: {
         Row: {
           created_at: string
@@ -1465,6 +1516,79 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_day: number
+          assigned_week: string
+          category: string
+          completed_at: string | null
+          completed_day: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_recurring: boolean
+          note: string | null
+          owner: string | null
+          recurrence_day: number | null
+          recurrence_id: string | null
+          title: string
+        }
+        Insert: {
+          assigned_day: number
+          assigned_week: string
+          category: string
+          completed_at?: string | null
+          completed_day?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_recurring?: boolean
+          note?: string | null
+          owner?: string | null
+          recurrence_day?: number | null
+          recurrence_id?: string | null
+          title: string
+        }
+        Update: {
+          assigned_day?: number
+          assigned_week?: string
+          category?: string
+          completed_at?: string | null
+          completed_day?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_recurring?: boolean
+          note?: string | null
+          owner?: string | null
+          recurrence_day?: number | null
+          recurrence_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_fkey"
+            columns: ["owner"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_recurrence_id_fkey"
+            columns: ["recurrence_id"]
+            isOneToOne: false
+            referencedRelation: "recurrence_series"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tip_options: {
         Row: {
