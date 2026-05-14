@@ -1,11 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutGrid, Receipt, Boxes, ListChecks, CalendarDays } from "lucide-react";
+import { LayoutGrid, Receipt, Boxes, ListChecks, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
 const items: NavItem[] = [
   { to: "/", label: "Hub", icon: LayoutGrid, exact: true },
-  { to: "/events", label: "Events", icon: CalendarDays },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/checklist", label: "Pack", icon: ListChecks },
