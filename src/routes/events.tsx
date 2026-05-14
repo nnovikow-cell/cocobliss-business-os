@@ -15,17 +15,17 @@ function EventsLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <AppShell>
-      <header className="mb-4 flex items-center gap-2">
-        <Link to="/" className="rounded-full p-2 hover:bg-muted" aria-label="Back to hub">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">Events</h1>
-          <p className="text-sm text-muted-foreground">Schedule, history, and recurring series.</p>
-        </div>
-      </header>
-
-      <nav className="mb-5 flex gap-1 rounded-2xl border-2 border-border bg-card p-1">
+      <div data-sticky-header>
+        <header className="mb-4 flex items-center gap-2">
+          <Link to="/" className="rounded-full p-2 hover:bg-muted" aria-label="Back to hub">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">Events</h1>
+            <p className="text-sm text-muted-foreground">Schedule, history, and recurring series.</p>
+          </div>
+        </header>
+        <nav className="mb-1 flex gap-1 rounded-2xl border-2 border-border bg-card p-1">
         {tabs.map((t) => {
           const active = path === t.to || path.startsWith(t.to + "/");
           return (
@@ -43,9 +43,10 @@ function EventsLayout() {
             </Link>
           );
         })}
-      </nav>
+        </nav>
+      </div>
 
-      <Outlet />
+      <div className="mt-4"><Outlet /></div>
     </AppShell>
   );
 }
