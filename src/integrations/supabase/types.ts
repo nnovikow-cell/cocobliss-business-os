@@ -986,6 +986,171 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_formula_ingredients: {
+        Row: {
+          created_at: string
+          formula_id: string
+          id: string
+          ingredient_id: string
+          ratio: number
+        }
+        Insert: {
+          created_at?: string
+          formula_id: string
+          id?: string
+          ingredient_id: string
+          ratio: number
+        }
+        Update: {
+          created_at?: string
+          formula_id?: string
+          id?: string
+          ingredient_id?: string
+          ratio?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_formula_ingredients_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_formula_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_formulas: {
+        Row: {
+          batch_size: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          batch_size: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          batch_size?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_formulas_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_products: {
+        Row: {
+          active_formula_id: string | null
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active_formula_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active_formula_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recipe_serving_sizes: {
+        Row: {
+          created_at: string
+          disposable_kit_id: string | null
+          id: string
+          product_id: string
+          size_fl_oz: number
+          syrup_fl_oz: number | null
+          syrup_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disposable_kit_id?: string | null
+          id?: string
+          product_id: string
+          size_fl_oz: number
+          syrup_fl_oz?: number | null
+          syrup_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disposable_kit_id?: string | null
+          id?: string
+          product_id?: string
+          size_fl_oz?: number
+          syrup_fl_oz?: number | null
+          syrup_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_serving_sizes_disposable_kit_id_fkey"
+            columns: ["disposable_kit_id"]
+            isOneToOne: false
+            referencedRelation: "disposable_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_serving_sizes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_serving_sizes_syrup_id_fkey"
+            columns: ["syrup_id"]
+            isOneToOne: false
+            referencedRelation: "syrups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_demographics: {
         Row: {
           created_at: string

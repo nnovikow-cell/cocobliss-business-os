@@ -7,6 +7,7 @@ import {
   Calculator,
   ListChecks,
   CalendarDays,
+  FlaskConical,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -19,6 +20,7 @@ const items: NavItem[] = [
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/costs", label: "Costs", icon: Calculator },
+  { to: "/costs/products", label: "Products", icon: FlaskConical },
   { to: "/checklist", label: "Pack", icon: ListChecks },
 ];
 
