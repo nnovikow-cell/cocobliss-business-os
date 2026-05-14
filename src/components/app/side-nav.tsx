@@ -9,6 +9,7 @@ import {
   CalendarDays,
   FlaskConical,
   TrendingUp,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -18,6 +19,7 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 const items: NavItem[] = [
   { to: "/", label: "Hub", icon: LayoutGrid, exact: true },
   { to: "/events", label: "Events", icon: CalendarDays },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/costs", label: "Costs", icon: Calculator },
