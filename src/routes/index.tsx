@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Receipt, Boxes, Calculator, Users, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays } from "lucide-react";
+import { Receipt, Boxes, Calculator, Users, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, Package, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ const modules = [
   { to: "/checklist", title: "Event Checklist", desc: "Pack the van. Track who has what.", icon: ListChecks, active: true },
   { to: "/inventory", title: "Inventory", desc: "Consumables and disposables, par-level tracking.", icon: Boxes, active: true },
   { to: "/costs", title: "Cost Calculator", desc: "Ingredients, recipes, COGS, margins.", icon: Calculator, active: true },
+  { to: "/costs/products", title: "Products", desc: "Build formulas, version recipes, cost per serving.", icon: Package, active: true },
+  { to: "/simulate", title: "Simulate", desc: "What-if profit, margin, and break-even scenarios.", icon: TrendingUp, active: true },
   { to: "/meetings", title: "Meetings & Decisions", desc: "Notes and action items.", icon: Users, active: false },
 ];
 
