@@ -27,6 +27,7 @@ import { Route as InventoryItemIdRouteImport } from './routes/inventory.$itemId'
 import { Route as EventsSeriesRouteImport } from './routes/events.series'
 import { Route as EventsScheduleRouteImport } from './routes/events.schedule'
 import { Route as EventsHistoryRouteImport } from './routes/events.history'
+import { Route as ChecklistSettingsRouteImport } from './routes/checklist.settings'
 import { Route as ChecklistSessionIdRouteImport } from './routes/checklist.$sessionId'
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
 import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
@@ -125,6 +126,11 @@ const EventsHistoryRoute = EventsHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => EventsRoute,
 } as any)
+const ChecklistSettingsRoute = ChecklistSettingsRouteImport.update({
+  id: '/checklist/settings',
+  path: '/checklist/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChecklistSessionIdRoute = ChecklistSessionIdRouteImport.update({
   id: '/checklist/$sessionId',
   path: '/checklist/$sessionId',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
+  '/checklist/settings': typeof ChecklistSettingsRoute
   '/events/history': typeof EventsHistoryRoute
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
+  '/checklist/settings': typeof ChecklistSettingsRoute
   '/events/history': typeof EventsHistoryRoute
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
+  '/checklist/settings': typeof ChecklistSettingsRoute
   '/events/history': typeof EventsHistoryRoute
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/checklist/$sessionId'
+    | '/checklist/settings'
     | '/events/history'
     | '/events/schedule'
     | '/events/series'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/checklist/$sessionId'
+    | '/checklist/settings'
     | '/events/history'
     | '/events/schedule'
     | '/events/series'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/checklist/$sessionId'
+    | '/checklist/settings'
     | '/events/history'
     | '/events/schedule'
     | '/events/series'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
   ChecklistSessionIdRoute: typeof ChecklistSessionIdRoute
+  ChecklistSettingsRoute: typeof ChecklistSettingsRoute
   InventoryItemIdRoute: typeof InventoryItemIdRoute
   InventoryListRoute: typeof InventoryListRoute
   InventoryNewRoute: typeof InventoryNewRoute
@@ -477,6 +490,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsHistoryRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/checklist/settings': {
+      id: '/checklist/settings'
+      path: '/checklist/settings'
+      fullPath: '/checklist/settings'
+      preLoaderRoute: typeof ChecklistSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checklist/$sessionId': {
       id: '/checklist/$sessionId'
       path: '/checklist/$sessionId'
@@ -556,6 +576,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
   ChecklistSessionIdRoute: ChecklistSessionIdRoute,
+  ChecklistSettingsRoute: ChecklistSettingsRoute,
   InventoryItemIdRoute: InventoryItemIdRoute,
   InventoryListRoute: InventoryListRoute,
   InventoryNewRoute: InventoryNewRoute,
@@ -573,3 +594,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
