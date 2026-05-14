@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import {
   type Ingredient, type IngredientUnit, INGREDIENT_UNITS, WEIGHT_UNITS,
-  costPerItem, costPerFlOz, fmtUSD, lookupDensity,
+  UNIT_LABELS, costPerItem, costPerFlOz, fmtUSD, lookupDensity,
 } from "@/lib/ingredients";
 import { Section } from "./section";
 
@@ -260,7 +260,9 @@ function IngredientSheet({
                 <Select value={form.unit} onValueChange={(v) => set("unit", v as IngredientUnit)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {INGREDIENT_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    {INGREDIENT_UNITS.map((u) => (
+                      <SelectItem key={u} value={u}>{UNIT_LABELS[u]}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
