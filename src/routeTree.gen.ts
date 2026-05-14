@@ -31,6 +31,7 @@ import { Route as ChecklistSessionIdRouteImport } from './routes/checklist.$sess
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
 import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
 import { Route as InventoryLogRestockRouteImport } from './routes/inventory.log.restock'
+import { Route as InventoryLogEventRouteImport } from './routes/inventory.log.event'
 import { Route as InventoryLogBatchRouteImport } from './routes/inventory.log.batch'
 import { Route as EventsInstanceInstanceIdRouteImport } from './routes/events.instance.$instanceId'
 
@@ -144,6 +145,11 @@ const InventoryLogRestockRoute = InventoryLogRestockRouteImport.update({
   path: '/inventory/log/restock',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryLogEventRoute = InventoryLogEventRouteImport.update({
+  id: '/inventory/log/event',
+  path: '/inventory/log/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InventoryLogBatchRoute = InventoryLogBatchRouteImport.update({
   id: '/inventory/log/batch',
   path: '/inventory/log/batch',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/sales/': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
   '/inventory/log/batch': typeof InventoryLogBatchRoute
+  '/inventory/log/event': typeof InventoryLogEventRoute
   '/inventory/log/restock': typeof InventoryLogRestockRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/sales': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
   '/inventory/log/batch': typeof InventoryLogBatchRoute
+  '/inventory/log/event': typeof InventoryLogEventRoute
   '/inventory/log/restock': typeof InventoryLogRestockRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId': typeof SalesSessionIdIndexRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/sales/': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
   '/inventory/log/batch': typeof InventoryLogBatchRoute
+  '/inventory/log/event': typeof InventoryLogEventRoute
   '/inventory/log/restock': typeof InventoryLogRestockRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/sales/'
     | '/events/instance/$instanceId'
     | '/inventory/log/batch'
+    | '/inventory/log/event'
     | '/inventory/log/restock'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/events/instance/$instanceId'
     | '/inventory/log/batch'
+    | '/inventory/log/event'
     | '/inventory/log/restock'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/sales/'
     | '/events/instance/$instanceId'
     | '/inventory/log/batch'
+    | '/inventory/log/event'
     | '/inventory/log/restock'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
@@ -331,6 +343,7 @@ export interface RootRouteChildren {
   InventoryIndexRoute: typeof InventoryIndexRoute
   SalesIndexRoute: typeof SalesIndexRoute
   InventoryLogBatchRoute: typeof InventoryLogBatchRoute
+  InventoryLogEventRoute: typeof InventoryLogEventRoute
   InventoryLogRestockRoute: typeof InventoryLogRestockRoute
   SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
   SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
@@ -492,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryLogRestockRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/log/event': {
+      id: '/inventory/log/event'
+      path: '/inventory/log/event'
+      fullPath: '/inventory/log/event'
+      preLoaderRoute: typeof InventoryLogEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inventory/log/batch': {
       id: '/inventory/log/batch'
       path: '/inventory/log/batch'
@@ -545,6 +565,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryIndexRoute: InventoryIndexRoute,
   SalesIndexRoute: SalesIndexRoute,
   InventoryLogBatchRoute: InventoryLogBatchRoute,
+  InventoryLogEventRoute: InventoryLogEventRoute,
   InventoryLogRestockRoute: InventoryLogRestockRoute,
   SalesSessionIdReportRoute: SalesSessionIdReportRoute,
   SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,
