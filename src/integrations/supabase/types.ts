@@ -317,6 +317,108 @@ export type Database = {
         }
         Relationships: []
       }
+      disposable_items: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          package_price: number
+          package_qty: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          package_price: number
+          package_qty: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          package_price?: number
+          package_qty?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      disposable_kit_items: {
+        Row: {
+          created_at: string
+          disposable_item_id: string
+          id: string
+          kit_id: string
+          qty: number
+        }
+        Insert: {
+          created_at?: string
+          disposable_item_id: string
+          id?: string
+          kit_id: string
+          qty?: number
+        }
+        Update: {
+          created_at?: string
+          disposable_item_id?: string
+          id?: string
+          kit_id?: string
+          qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disposable_kit_items_disposable_item_id_fkey"
+            columns: ["disposable_item_id"]
+            isOneToOne: false
+            referencedRelation: "disposable_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposable_kit_items_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "disposable_kits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disposable_kits: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          target_size: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          target_size: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          target_size?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_instances: {
         Row: {
           created_at: string
