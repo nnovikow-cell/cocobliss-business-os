@@ -43,27 +43,27 @@ function Index() {
         <h2 className="mt-1 text-2xl font-bold">Pick a module to get to work.</h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {modules.map((m) => {
           const Icon = m.icon;
           const card = (
             <div
-              className={`group relative h-full rounded-3xl border-2 border-border bg-card p-5 transition-all ${
+              className={`group relative aspect-square h-full rounded-2xl border-2 border-border bg-card p-3 transition-all ${
                 m.active ? "hover:-translate-y-0.5 hover:border-primary hover:shadow-xl" : "opacity-60"
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className="rounded-2xl bg-secondary p-3">
-                  <Icon className="h-6 w-6 text-primary" />
+                <div className="rounded-xl bg-secondary p-2">
+                  <Icon className="h-4 w-4 text-primary" />
                 </div>
                 {!m.active && (
-                  <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                     Soon
                   </span>
                 )}
               </div>
-              <h3 className="mt-4 text-lg font-bold text-foreground">{m.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{m.desc}</p>
+              <h3 className="mt-2 text-sm font-bold leading-tight text-foreground">{m.title}</h3>
+              <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">{m.desc}</p>
             </div>
           );
           return m.active ? (
