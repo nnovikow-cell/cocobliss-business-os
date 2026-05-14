@@ -15,7 +15,15 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/checklist/")({ component: ChecklistIndex });
 
 type Sess = { id: string; event_name_snapshot: string; event_location_snapshot: string | null; status: "active"|"closed"; opened_at: string; closed_at: string | null };
-type Ev = { id: string; name: string; location: string | null };
+type Ev = { id: string; name: string; location: string | null; date: string };
+
+function todayLocal() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function ChecklistIndex() {
   const { user } = useAuth();
@@ -48,8 +56,27 @@ function ChecklistIndex() {
 
   useEffect(() => {
     if (!open) return;
-    supabase.from("events").select("id,name,location").is("deleted_at", null).eq("is_archived", false).order("sort_order")
-      .then(({ data }) => setEvents((data ?? []) as Ev[]));
+    supabase
+      .from("event_instances")
+      .select("id,date,status,series:event_series(name,location)")
+      .gte("date", todayLocal())
+      .eq("status", "confirmed")
+      .is("deleted_at", null)
+      .order("date", { ascending: true })
+      .limit(200)
+      .then(({ data, error }) => {
+        if (error) console.error("[checklist] events query error", error);
+        const rows = (data ?? []) as Array<{
+          id: string; date: string;
+          series: { name: string; location: string | null } | null;
+        }>;
+        console.log("[checklist] event instances loaded:", rows.length);
+        setEvents(rows.map((r) => ({
+          id: r.id, date: r.date,
+          name: r.series?.name ?? "—",
+          location: r.series?.location ?? null,
+        })));
+      });
   }, [open]);
 
   const create = async () => {
@@ -78,7 +105,7 @@ function ChecklistIndex() {
     const profMap = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
 
     const { data: sess, error } = await supabase.from("checklist_sessions").insert({
-      event_id: ev.id, event_name_snapshot: ev.name, event_location_snapshot: ev.location, opened_by: user.id,
+      event_instance_id: ev.id, event_name_snapshot: ev.name, event_location_snapshot: ev.location, opened_by: user.id,
     }).select("id").single();
     if (error || !sess) return toast.error(error?.message ?? "Failed");
 
@@ -146,7 +173,9 @@ function ChecklistIndex() {
                   <SelectTrigger><SelectValue placeholder="Pick an event" /></SelectTrigger>
                   <SelectContent>
                     {events.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.name}{e.location ? ` · ${e.location}` : ""}</SelectItem>
+                      <SelectItem key={e.id} value={e.id}>
+                        {new Date(e.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {e.name}{e.location ? ` · ${e.location}` : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
