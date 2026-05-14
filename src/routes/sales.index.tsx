@@ -86,6 +86,7 @@ function SalesIndex() {
         .from("event_instances")
         .select("id,date,status,series:event_series(name,location)")
         .gte("date", todayLocal())
+        .eq("status", "confirmed")
         .is("deleted_at", null)
         .order("date", { ascending: true })
         .limit(200),
