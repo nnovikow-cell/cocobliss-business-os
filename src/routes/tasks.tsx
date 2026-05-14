@@ -64,6 +64,8 @@ type Series = {
   note: string | null;
   recurrence_day: number;
   is_active: boolean;
+  frequency: "daily" | "weekly" | "biweekly" | "monthly";
+  created_at: string;
 };
 
 type Attendant = { id: string; name: string };
