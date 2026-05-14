@@ -127,36 +127,53 @@ function TasksPage() {
   }
 
   async function generateRecurringForWeek(iso: string) {
-    // Fetch active series
     const { data: series } = await supabase
       .from("recurrence_series")
       .select("*")
       .eq("is_active", true);
     if (!series || series.length === 0) return;
 
-    // Existing tasks for the week with recurrence
     const { data: existing } = await supabase
       .from("tasks")
       .select("recurrence_id")
       .eq("assigned_week", iso)
       .not("recurrence_id", "is", null);
     const have = new Set((existing ?? []).map((t) => t.recurrence_id as string));
-    const toInsert = (series as Series[])
-      .filter((s) => !have.has(s.id))
-      .map((s) => ({
-        title: s.title,
-        assigned_day: s.recurrence_day,
-        assigned_week: iso,
-        category: s.category,
-        owner: s.owner,
-        note: s.note,
-        is_recurring: true,
-        recurrence_id: s.id,
-        recurrence_day: s.recurrence_day,
-      }));
-    if (toInsert.length) {
-      await supabase.from("tasks").insert(toInsert);
+
+    const weekMonday = new Date(iso + "T00:00:00");
+    const toInsert: Array<Record<string, unknown>> = [];
+
+    for (const raw of series as Series[]) {
+      if (have.has(raw.id)) continue;
+      const freq = raw.frequency ?? "weekly";
+      const base = {
+        title: raw.title, category: raw.category, owner: raw.owner, note: raw.note,
+        assigned_week: iso, is_recurring: true, recurrence_id: raw.id,
+        recurrence_day: raw.recurrence_day,
+      };
+
+      if (freq === "daily") {
+        for (let d = 0; d < 7; d++) toInsert.push({ ...base, assigned_day: d });
+      } else if (freq === "weekly") {
+        toInsert.push({ ...base, assigned_day: raw.recurrence_day });
+      } else if (freq === "biweekly") {
+        const anchor = mondayOf(new Date(raw.created_at));
+        const weeks = Math.round((weekMonday.getTime() - anchor.getTime()) / (7 * 86400000));
+        if (weeks >= 0 && weeks % 2 === 0) {
+          toInsert.push({ ...base, assigned_day: raw.recurrence_day });
+        }
+      } else if (freq === "monthly") {
+        const dom = raw.recurrence_day; // 1-31
+        for (let d = 0; d < 7; d++) {
+          const day = addDays(weekMonday, d);
+          if (day.getDate() === dom) {
+            toInsert.push({ ...base, assigned_day: d });
+            break;
+          }
+        }
+      }
     }
+    if (toInsert.length) await supabase.from("tasks").insert(toInsert);
   }
 
   async function loadWeek(iso: string) {
