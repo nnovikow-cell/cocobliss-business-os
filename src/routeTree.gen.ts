@@ -36,6 +36,7 @@ import { Route as InventoryLogRestockRouteImport } from './routes/inventory.log.
 import { Route as InventoryLogEventRouteImport } from './routes/inventory.log.event'
 import { Route as InventoryLogBatchRouteImport } from './routes/inventory.log.batch'
 import { Route as EventsInstanceInstanceIdRouteImport } from './routes/events.instance.$instanceId'
+import { Route as CostsProductsIdRouteImport } from './routes/costs.products.$id'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -173,6 +174,11 @@ const EventsInstanceInstanceIdRoute =
     path: '/instance/$instanceId',
     getParentRoute: () => EventsRoute,
   } as any)
+const CostsProductsIdRoute = CostsProductsIdRouteImport.update({
+  id: '/products/$id',
+  path: '/products/$id',
+  getParentRoute: () => CostsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/events/': typeof EventsIndexRoute
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
+  '/costs/products/$id': typeof CostsProductsIdRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
   '/inventory/log/batch': typeof InventoryLogBatchRoute
   '/inventory/log/event': typeof InventoryLogEventRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByTo {
   '/events': typeof EventsIndexRoute
   '/inventory': typeof InventoryIndexRoute
   '/sales': typeof SalesIndexRoute
+  '/costs/products/$id': typeof CostsProductsIdRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
   '/inventory/log/batch': typeof InventoryLogBatchRoute
   '/inventory/log/event': typeof InventoryLogEventRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/events/': typeof EventsIndexRoute
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
+  '/costs/products/$id': typeof CostsProductsIdRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
   '/inventory/log/batch': typeof InventoryLogBatchRoute
   '/inventory/log/event': typeof InventoryLogEventRoute
@@ -284,6 +293,7 @@ export interface FileRouteTypes {
     | '/events/'
     | '/inventory/'
     | '/sales/'
+    | '/costs/products/$id'
     | '/events/instance/$instanceId'
     | '/inventory/log/batch'
     | '/inventory/log/event'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/inventory'
     | '/sales'
+    | '/costs/products/$id'
     | '/events/instance/$instanceId'
     | '/inventory/log/batch'
     | '/inventory/log/event'
@@ -341,6 +352,7 @@ export interface FileRouteTypes {
     | '/events/'
     | '/inventory/'
     | '/sales/'
+    | '/costs/products/$id'
     | '/events/instance/$instanceId'
     | '/inventory/log/batch'
     | '/inventory/log/event'
@@ -565,14 +577,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsInstanceInstanceIdRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/costs/products/$id': {
+      id: '/costs/products/$id'
+      path: '/products/$id'
+      fullPath: '/costs/products/$id'
+      preLoaderRoute: typeof CostsProductsIdRouteImport
+      parentRoute: typeof CostsRoute
+    }
   }
 }
 
 interface CostsRouteChildren {
+  CostsProductsIdRoute: typeof CostsProductsIdRoute
   CostsProductsIndexRoute: typeof CostsProductsIndexRoute
 }
 
 const CostsRouteChildren: CostsRouteChildren = {
+  CostsProductsIdRoute: CostsProductsIdRoute,
   CostsProductsIndexRoute: CostsProductsIndexRoute,
 }
 

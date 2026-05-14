@@ -105,13 +105,13 @@ function ProductsListPage() {
   };
   useEffect(() => { load(); }, []);
 
-  const create = async (name: string, description: string) => {
+  const create = async (name: string, description: string): Promise<void> => {
     const { data, error } = await supabase
       .from("recipe_products")
       .insert({ name: name.trim(), description: description.trim() || null })
       .select("id")
       .single();
-    if (error || !data) return toast.error(error?.message ?? "Failed");
+    if (error || !data) { toast.error(error?.message ?? "Failed"); return; }
     toast.success("Product created");
     setOpen(false);
     navigate({ to: "/costs/products/$id", params: { id: data.id } });
