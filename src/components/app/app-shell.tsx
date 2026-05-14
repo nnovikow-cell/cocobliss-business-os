@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             collapsed ? "md:pl-16" : "md:pl-56",
           )}
         >
-          <div className="mx-auto max-w-3xl px-4 pt-4">{children}</div>
+          <div data-app-shell className="mx-auto max-w-3xl px-4 pt-4">{children}</div>
         </div>
         <BottomNav />
       </div>
