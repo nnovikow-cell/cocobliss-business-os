@@ -13,11 +13,11 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EventsRouteImport } from './routes/events'
-import { Route as CostsRouteImport } from './routes/costs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SalesIndexRouteImport } from './routes/sales.index'
 import { Route as InventoryIndexRouteImport } from './routes/inventory.index'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
+import { Route as CostsIndexRouteImport } from './routes/costs.index'
 import { Route as ChecklistIndexRouteImport } from './routes/checklist.index'
 import { Route as SalesStatsRouteImport } from './routes/sales.stats'
 import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
@@ -58,11 +58,6 @@ const EventsRoute = EventsRouteImport.update({
   path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CostsRoute = CostsRouteImport.update({
-  id: '/costs',
-  path: '/costs',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -82,6 +77,11 @@ const EventsIndexRoute = EventsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => EventsRoute,
+} as any)
+const CostsIndexRoute = CostsIndexRouteImport.update({
+  id: '/costs/',
+  path: '/costs/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ChecklistIndexRoute = ChecklistIndexRouteImport.update({
   id: '/checklist/',
@@ -144,9 +144,9 @@ const SalesSessionIdIndexRoute = SalesSessionIdIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CostsProductsIndexRoute = CostsProductsIndexRouteImport.update({
-  id: '/products/',
-  path: '/products/',
-  getParentRoute: () => CostsRoute,
+  id: '/costs/products/',
+  path: '/costs/products/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const SalesSessionIdReportRoute = SalesSessionIdReportRouteImport.update({
   id: '/sales/$sessionId/report',
@@ -175,14 +175,13 @@ const EventsInstanceInstanceIdRoute =
     getParentRoute: () => EventsRoute,
   } as any)
 const CostsProductsIdRoute = CostsProductsIdRouteImport.update({
-  id: '/products/$id',
-  path: '/products/$id',
-  getParentRoute: () => CostsRoute,
+  id: '/costs/products/$id',
+  path: '/costs/products/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/costs': typeof CostsRouteWithChildren
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
@@ -198,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
+  '/costs/': typeof CostsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
@@ -212,7 +212,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/costs': typeof CostsRouteWithChildren
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
@@ -227,6 +226,7 @@ export interface FileRoutesByTo {
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist': typeof ChecklistIndexRoute
+  '/costs': typeof CostsIndexRoute
   '/events': typeof EventsIndexRoute
   '/inventory': typeof InventoryIndexRoute
   '/sales': typeof SalesIndexRoute
@@ -242,7 +242,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/costs': typeof CostsRouteWithChildren
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
@@ -258,6 +257,7 @@ export interface FileRoutesById {
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
+  '/costs/': typeof CostsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
@@ -274,7 +274,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/costs'
     | '/events'
     | '/login'
     | '/meetings'
@@ -290,6 +289,7 @@ export interface FileRouteTypes {
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
+    | '/costs/'
     | '/events/'
     | '/inventory/'
     | '/sales/'
@@ -304,7 +304,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/costs'
     | '/login'
     | '/meetings'
     | '/settings'
@@ -319,6 +318,7 @@ export interface FileRouteTypes {
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist'
+    | '/costs'
     | '/events'
     | '/inventory'
     | '/sales'
@@ -333,7 +333,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/costs'
     | '/events'
     | '/login'
     | '/meetings'
@@ -349,6 +348,7 @@ export interface FileRouteTypes {
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
+    | '/costs/'
     | '/events/'
     | '/inventory/'
     | '/sales/'
@@ -364,7 +364,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CostsRoute: typeof CostsRouteWithChildren
   EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
@@ -377,12 +376,15 @@ export interface RootRouteChildren {
   SalesSettingsRoute: typeof SalesSettingsRoute
   SalesStatsRoute: typeof SalesStatsRoute
   ChecklistIndexRoute: typeof ChecklistIndexRoute
+  CostsIndexRoute: typeof CostsIndexRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
   SalesIndexRoute: typeof SalesIndexRoute
+  CostsProductsIdRoute: typeof CostsProductsIdRoute
   InventoryLogBatchRoute: typeof InventoryLogBatchRoute
   InventoryLogEventRoute: typeof InventoryLogEventRoute
   InventoryLogRestockRoute: typeof InventoryLogRestockRoute
   SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
+  CostsProductsIndexRoute: typeof CostsProductsIndexRoute
   SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
 }
 
@@ -416,13 +418,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/costs': {
-      id: '/costs'
-      path: '/costs'
-      fullPath: '/costs'
-      preLoaderRoute: typeof CostsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -450,6 +445,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/events/'
       preLoaderRoute: typeof EventsIndexRouteImport
       parentRoute: typeof EventsRoute
+    }
+    '/costs/': {
+      id: '/costs/'
+      path: '/costs'
+      fullPath: '/costs/'
+      preLoaderRoute: typeof CostsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/checklist/': {
       id: '/checklist/'
@@ -537,10 +539,10 @@ declare module '@tanstack/react-router' {
     }
     '/costs/products/': {
       id: '/costs/products/'
-      path: '/products'
+      path: '/costs/products'
       fullPath: '/costs/products/'
       preLoaderRoute: typeof CostsProductsIndexRouteImport
-      parentRoute: typeof CostsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/sales/$sessionId/report': {
       id: '/sales/$sessionId/report'
@@ -579,25 +581,13 @@ declare module '@tanstack/react-router' {
     }
     '/costs/products/$id': {
       id: '/costs/products/$id'
-      path: '/products/$id'
+      path: '/costs/products/$id'
       fullPath: '/costs/products/$id'
       preLoaderRoute: typeof CostsProductsIdRouteImport
-      parentRoute: typeof CostsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface CostsRouteChildren {
-  CostsProductsIdRoute: typeof CostsProductsIdRoute
-  CostsProductsIndexRoute: typeof CostsProductsIndexRoute
-}
-
-const CostsRouteChildren: CostsRouteChildren = {
-  CostsProductsIdRoute: CostsProductsIdRoute,
-  CostsProductsIndexRoute: CostsProductsIndexRoute,
-}
-
-const CostsRouteWithChildren = CostsRoute._addFileChildren(CostsRouteChildren)
 
 interface EventsRouteChildren {
   EventsHistoryRoute: typeof EventsHistoryRoute
@@ -620,7 +610,6 @@ const EventsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CostsRoute: CostsRouteWithChildren,
   EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
@@ -633,12 +622,15 @@ const rootRouteChildren: RootRouteChildren = {
   SalesSettingsRoute: SalesSettingsRoute,
   SalesStatsRoute: SalesStatsRoute,
   ChecklistIndexRoute: ChecklistIndexRoute,
+  CostsIndexRoute: CostsIndexRoute,
   InventoryIndexRoute: InventoryIndexRoute,
   SalesIndexRoute: SalesIndexRoute,
+  CostsProductsIdRoute: CostsProductsIdRoute,
   InventoryLogBatchRoute: InventoryLogBatchRoute,
   InventoryLogEventRoute: InventoryLogEventRoute,
   InventoryLogRestockRoute: InventoryLogRestockRoute,
   SalesSessionIdReportRoute: SalesSessionIdReportRoute,
+  CostsProductsIndexRoute: CostsProductsIndexRoute,
   SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,
 }
 export const routeTree = rootRouteImport

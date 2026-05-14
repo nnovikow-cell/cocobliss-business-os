@@ -5,7 +5,7 @@ import { IngredientLibrary } from "@/components/costs/ingredient-library";
 import { SyrupLibrary } from "@/components/costs/syrup-library";
 import { DisposableLibrary } from "@/components/costs/disposable-library";
 
-export const Route = createFileRoute("/costs")({ component: CostsPage });
+export const Route = createFileRoute("/costs/")({ component: CostsPage });
 
 function CostsPage() {
   return (
