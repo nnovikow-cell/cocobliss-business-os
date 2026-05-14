@@ -151,3 +151,22 @@
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
+
+/* Sticky page headers across all modules.
+ * AppShell wraps content in [data-app-shell]. The first <header> child (or any
+ * element marked [data-sticky-header]) is pinned to the top of the viewport
+ * while the content scrolls underneath. */
+[data-app-shell] > header:first-of-type,
+[data-app-shell] > [data-sticky-header] {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background-color: var(--background);
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 1rem;
+  margin-top: -1rem;
+  padding-bottom: 0.5rem;
+}
