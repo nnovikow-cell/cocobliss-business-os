@@ -64,6 +64,8 @@ type Series = {
   note: string | null;
   recurrence_day: number;
   is_active: boolean;
+  frequency: "daily" | "weekly" | "biweekly" | "monthly";
+  created_at: string;
 };
 
 type Attendant = { id: string; name: string };
@@ -100,6 +102,11 @@ function fmtRange(monday: Date): string {
 function fmtShort(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+}
 
 function TasksPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
@@ -125,36 +132,58 @@ function TasksPage() {
   }
 
   async function generateRecurringForWeek(iso: string) {
-    // Fetch active series
     const { data: series } = await supabase
       .from("recurrence_series")
       .select("*")
       .eq("is_active", true);
     if (!series || series.length === 0) return;
 
-    // Existing tasks for the week with recurrence
     const { data: existing } = await supabase
       .from("tasks")
       .select("recurrence_id")
       .eq("assigned_week", iso)
       .not("recurrence_id", "is", null);
     const have = new Set((existing ?? []).map((t) => t.recurrence_id as string));
-    const toInsert = (series as Series[])
-      .filter((s) => !have.has(s.id))
-      .map((s) => ({
-        title: s.title,
-        assigned_day: s.recurrence_day,
-        assigned_week: iso,
-        category: s.category,
-        owner: s.owner,
-        note: s.note,
-        is_recurring: true,
-        recurrence_id: s.id,
-        recurrence_day: s.recurrence_day,
-      }));
-    if (toInsert.length) {
-      await supabase.from("tasks").insert(toInsert);
+
+    const weekMonday = new Date(iso + "T00:00:00");
+    type InsertRow = {
+      title: string; category: string; owner: string | null; note: string | null;
+      assigned_week: string; is_recurring: boolean; recurrence_id: string;
+      recurrence_day: number; assigned_day: number;
+    };
+    const toInsert: InsertRow[] = [];
+
+    for (const raw of series as Series[]) {
+      if (have.has(raw.id)) continue;
+      const freq = raw.frequency ?? "weekly";
+      const base = {
+        title: raw.title, category: raw.category, owner: raw.owner, note: raw.note,
+        assigned_week: iso, is_recurring: true, recurrence_id: raw.id,
+        recurrence_day: raw.recurrence_day,
+      };
+
+      if (freq === "daily") {
+        for (let d = 0; d < 7; d++) toInsert.push({ ...base, assigned_day: d });
+      } else if (freq === "weekly") {
+        toInsert.push({ ...base, assigned_day: raw.recurrence_day });
+      } else if (freq === "biweekly") {
+        const anchor = mondayOf(new Date(raw.created_at));
+        const weeks = Math.round((weekMonday.getTime() - anchor.getTime()) / (7 * 86400000));
+        if (weeks >= 0 && weeks % 2 === 0) {
+          toInsert.push({ ...base, assigned_day: raw.recurrence_day });
+        }
+      } else if (freq === "monthly") {
+        const dom = raw.recurrence_day; // 1-31
+        for (let d = 0; d < 7; d++) {
+          const day = addDays(weekMonday, d);
+          if (day.getDate() === dom) {
+            toInsert.push({ ...base, assigned_day: d });
+            break;
+          }
+        }
+      }
     }
+    if (toInsert.length) await supabase.from("tasks").insert(toInsert);
   }
 
   async function loadWeek(iso: string) {
@@ -519,6 +548,8 @@ function TaskDialog({
   const [owner, setOwner] = useState<string>("");
   const [note, setNote] = useState("");
   const [recurring, setRecurring] = useState(false);
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "biweekly" | "monthly">("weekly");
+  const [monthlyDom, setMonthlyDom] = useState<number>(1);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -530,8 +561,11 @@ function TaskDialog({
         setOwner(editing.owner ?? "");
         setNote(editing.note ?? "");
         setRecurring(editing.is_recurring);
+        setFrequency("weekly");
+        setMonthlyDom(1);
       } else {
         setTitle(""); setDay(0); setCategory("Operations"); setOwner(""); setNote(""); setRecurring(false);
+        setFrequency("weekly"); setMonthlyDom(1);
       }
     }
   }, [open, editing]);
@@ -544,11 +578,12 @@ function TaskDialog({
         // Create
         let recurrence_id: string | null = null;
         if (recurring) {
+          const seriesDay = frequency === "monthly" ? monthlyDom : day;
           const { data: s, error: se } = await supabase
             .from("recurrence_series")
             .insert({
               title: title.trim(), category, owner: owner || null, note: note || null,
-              recurrence_day: day, is_active: true,
+              recurrence_day: seriesDay, is_active: true, frequency,
             })
             .select("id").single();
           if (se) throw se;
@@ -563,7 +598,7 @@ function TaskDialog({
           note: note || null,
           is_recurring: recurring,
           recurrence_id,
-          recurrence_day: recurring ? day : null,
+          recurrence_day: recurring ? (frequency === "monthly" ? monthlyDom : day) : null,
         });
         if (error) throw error;
         toast.success("Task created");
@@ -666,11 +701,43 @@ function TaskDialog({
                 <Label className="text-sm">Recurring</Label>
                 {recurring && (
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Repeats every {DAYS_FULL[day]}
+                    {frequency === "daily" && "Repeats every day"}
+                    {frequency === "weekly" && `Repeats every ${DAYS_FULL[day]}`}
+                    {frequency === "biweekly" && `Repeats every other ${DAYS_FULL[day]}`}
+                    {frequency === "monthly" && `Repeats monthly on the ${ordinal(monthlyDom)}`}
                   </p>
                 )}
               </div>
               <Switch checked={recurring} onCheckedChange={setRecurring} />
+            </div>
+          )}
+          {!isEdit && recurring && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Frequency</Label>
+                <Select value={frequency} onValueChange={(v) => setFrequency(v as typeof frequency)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Biweekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {frequency === "monthly" && (
+                <div>
+                  <Label>Day of month</Label>
+                  <Select value={String(monthlyDom)} onValueChange={(v) => setMonthlyDom(Number(v))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((n) => (
+                        <SelectItem key={n} value={String(n)}>{ordinal(n)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
         </div>

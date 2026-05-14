@@ -1156,6 +1156,7 @@ export type Database = {
           category: string
           created_at: string
           created_by: string | null
+          frequency: string
           id: string
           is_active: boolean
           note: string | null
@@ -1167,6 +1168,7 @@ export type Database = {
           category: string
           created_at?: string
           created_by?: string | null
+          frequency?: string
           id?: string
           is_active?: boolean
           note?: string | null
@@ -1178,6 +1180,7 @@ export type Database = {
           category?: string
           created_at?: string
           created_by?: string | null
+          frequency?: string
           id?: string
           is_active?: boolean
           note?: string | null
