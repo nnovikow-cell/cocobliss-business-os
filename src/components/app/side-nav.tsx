@@ -59,7 +59,15 @@ export function SideNav({
       </div>
       <ul className="flex-1 space-y-1 p-2">
         {items.map((it) => {
-          const active = it.exact ? path === it.to : path.startsWith(it.to);
+          const isMatch = it.exact ? path === it.to : path === it.to || path.startsWith(it.to + "/");
+          // Only highlight the most specific matching nav item
+          const moreSpecificMatch = items.some(
+            (other) =>
+              other.to !== it.to &&
+              other.to.startsWith(it.to + "/") &&
+              (path === other.to || path.startsWith(other.to + "/")),
+          );
+          const active = isMatch && !moreSpecificMatch;
           const Icon = it.icon;
           return (
             <li key={it.to}>
