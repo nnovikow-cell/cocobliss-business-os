@@ -11,7 +11,7 @@ const modules = [
   { to: "/sales", title: "Sales Tracker", desc: "Live market sessions, fast logging, real-time revenue.", icon: Receipt, active: true },
   { to: "/checklist", title: "Event Checklist", desc: "Pack the van. Track who has what.", icon: ListChecks, active: true },
   { to: "/inventory", title: "Inventory", desc: "Consumables and disposables, par-level tracking.", icon: Boxes, active: true },
-  { to: "/costs", title: "Cost Calculator", desc: "Recipes, COGS, margins.", icon: Calculator, active: false },
+  { to: "/costs", title: "Cost Calculator", desc: "Ingredients, recipes, COGS, margins.", icon: Calculator, active: true },
   { to: "/meetings", title: "Meetings & Decisions", desc: "Notes and action items.", icon: Users, active: false },
 ];
 

@@ -474,6 +474,63 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredients: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          density: number | null
+          density_source: string | null
+          description: string | null
+          id: string
+          is_archived: boolean
+          item_size: number
+          name: string
+          package_price: number
+          package_qty: number
+          source_address: string | null
+          source_url: string | null
+          supplier_name: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          density?: number | null
+          density_source?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          item_size: number
+          name: string
+          package_price: number
+          package_qty: number
+          source_address?: string | null
+          source_url?: string | null
+          supplier_name?: string | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          density?: number | null
+          density_source?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          item_size?: number
+          name?: string
+          package_price?: number
+          package_qty?: number
+          source_address?: string | null
+          source_url?: string | null
+          supplier_name?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"]
