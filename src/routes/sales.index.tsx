@@ -73,7 +73,7 @@ function SalesIndex() {
     if (!open) return;
     Promise.all([
       supabase.from("weather_options").select("id,label").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
-      supabase.from("attendants").select("id,name").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
+      supabase.from("attendants").select("id,name").is("deleted_at", null).eq("is_archived", false).eq("active", true).order("sort_order"),
       supabase.from("app_settings").select("shake_size_oz").limit(1).maybeSingle(),
       supabase.from("events").select("id,name,location").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("checklist_sessions")
