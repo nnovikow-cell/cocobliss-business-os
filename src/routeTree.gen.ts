@@ -21,6 +21,8 @@ import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as ChecklistIndexRouteImport } from './routes/checklist.index'
 import { Route as SalesStatsRouteImport } from './routes/sales.stats'
 import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
+import { Route as InventoryNewRouteImport } from './routes/inventory.new'
+import { Route as InventoryListRouteImport } from './routes/inventory.list'
 import { Route as InventoryItemIdRouteImport } from './routes/inventory.$itemId'
 import { Route as EventsSeriesRouteImport } from './routes/events.series'
 import { Route as EventsScheduleRouteImport } from './routes/events.schedule'
@@ -28,6 +30,9 @@ import { Route as EventsHistoryRouteImport } from './routes/events.history'
 import { Route as ChecklistSessionIdRouteImport } from './routes/checklist.$sessionId'
 import { Route as SalesSessionIdIndexRouteImport } from './routes/sales.$sessionId.index'
 import { Route as SalesSessionIdReportRouteImport } from './routes/sales.$sessionId.report'
+import { Route as InventoryLogRestockRouteImport } from './routes/inventory.log.restock'
+import { Route as InventoryLogEventRouteImport } from './routes/inventory.log.event'
+import { Route as InventoryLogBatchRouteImport } from './routes/inventory.log.batch'
 import { Route as EventsInstanceInstanceIdRouteImport } from './routes/events.instance.$instanceId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -90,6 +95,16 @@ const SalesSettingsRoute = SalesSettingsRouteImport.update({
   path: '/sales/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryNewRoute = InventoryNewRouteImport.update({
+  id: '/inventory/new',
+  path: '/inventory/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryListRoute = InventoryListRouteImport.update({
+  id: '/inventory/list',
+  path: '/inventory/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InventoryItemIdRoute = InventoryItemIdRouteImport.update({
   id: '/inventory/$itemId',
   path: '/inventory/$itemId',
@@ -125,6 +140,21 @@ const SalesSessionIdReportRoute = SalesSessionIdReportRouteImport.update({
   path: '/sales/$sessionId/report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryLogRestockRoute = InventoryLogRestockRouteImport.update({
+  id: '/inventory/log/restock',
+  path: '/inventory/log/restock',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryLogEventRoute = InventoryLogEventRouteImport.update({
+  id: '/inventory/log/event',
+  path: '/inventory/log/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryLogBatchRoute = InventoryLogBatchRouteImport.update({
+  id: '/inventory/log/batch',
+  path: '/inventory/log/batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsInstanceInstanceIdRoute =
   EventsInstanceInstanceIdRouteImport.update({
     id: '/instance/$instanceId',
@@ -144,6 +174,8 @@ export interface FileRoutesByFullPath {
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
+  '/inventory/list': typeof InventoryListRoute
+  '/inventory/new': typeof InventoryNewRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
@@ -151,6 +183,9 @@ export interface FileRoutesByFullPath {
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
+  '/inventory/log/batch': typeof InventoryLogBatchRoute
+  '/inventory/log/event': typeof InventoryLogEventRoute
+  '/inventory/log/restock': typeof InventoryLogRestockRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
 }
@@ -165,6 +200,8 @@ export interface FileRoutesByTo {
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
+  '/inventory/list': typeof InventoryListRoute
+  '/inventory/new': typeof InventoryNewRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist': typeof ChecklistIndexRoute
@@ -172,6 +209,9 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryIndexRoute
   '/sales': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
+  '/inventory/log/batch': typeof InventoryLogBatchRoute
+  '/inventory/log/event': typeof InventoryLogEventRoute
+  '/inventory/log/restock': typeof InventoryLogRestockRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId': typeof SalesSessionIdIndexRoute
 }
@@ -188,6 +228,8 @@ export interface FileRoutesById {
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
+  '/inventory/list': typeof InventoryListRoute
+  '/inventory/new': typeof InventoryNewRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
   '/checklist/': typeof ChecklistIndexRoute
@@ -195,6 +237,9 @@ export interface FileRoutesById {
   '/inventory/': typeof InventoryIndexRoute
   '/sales/': typeof SalesIndexRoute
   '/events/instance/$instanceId': typeof EventsInstanceInstanceIdRoute
+  '/inventory/log/batch': typeof InventoryLogBatchRoute
+  '/inventory/log/event': typeof InventoryLogEventRoute
+  '/inventory/log/restock': typeof InventoryLogRestockRoute
   '/sales/$sessionId/report': typeof SalesSessionIdReportRoute
   '/sales/$sessionId/': typeof SalesSessionIdIndexRoute
 }
@@ -212,6 +257,8 @@ export interface FileRouteTypes {
     | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
+    | '/inventory/list'
+    | '/inventory/new'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
@@ -219,6 +266,9 @@ export interface FileRouteTypes {
     | '/inventory/'
     | '/sales/'
     | '/events/instance/$instanceId'
+    | '/inventory/log/batch'
+    | '/inventory/log/event'
+    | '/inventory/log/restock'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
   fileRoutesByTo: FileRoutesByTo
@@ -233,6 +283,8 @@ export interface FileRouteTypes {
     | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
+    | '/inventory/list'
+    | '/inventory/new'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist'
@@ -240,6 +292,9 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/sales'
     | '/events/instance/$instanceId'
+    | '/inventory/log/batch'
+    | '/inventory/log/event'
+    | '/inventory/log/restock'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId'
   id:
@@ -255,6 +310,8 @@ export interface FileRouteTypes {
     | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
+    | '/inventory/list'
+    | '/inventory/new'
     | '/sales/settings'
     | '/sales/stats'
     | '/checklist/'
@@ -262,6 +319,9 @@ export interface FileRouteTypes {
     | '/inventory/'
     | '/sales/'
     | '/events/instance/$instanceId'
+    | '/inventory/log/batch'
+    | '/inventory/log/event'
+    | '/inventory/log/restock'
     | '/sales/$sessionId/report'
     | '/sales/$sessionId/'
   fileRoutesById: FileRoutesById
@@ -275,11 +335,16 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   ChecklistSessionIdRoute: typeof ChecklistSessionIdRoute
   InventoryItemIdRoute: typeof InventoryItemIdRoute
+  InventoryListRoute: typeof InventoryListRoute
+  InventoryNewRoute: typeof InventoryNewRoute
   SalesSettingsRoute: typeof SalesSettingsRoute
   SalesStatsRoute: typeof SalesStatsRoute
   ChecklistIndexRoute: typeof ChecklistIndexRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
   SalesIndexRoute: typeof SalesIndexRoute
+  InventoryLogBatchRoute: typeof InventoryLogBatchRoute
+  InventoryLogEventRoute: typeof InventoryLogEventRoute
+  InventoryLogRestockRoute: typeof InventoryLogRestockRoute
   SalesSessionIdReportRoute: typeof SalesSessionIdReportRoute
   SalesSessionIdIndexRoute: typeof SalesSessionIdIndexRoute
 }
@@ -370,6 +435,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/new': {
+      id: '/inventory/new'
+      path: '/inventory/new'
+      fullPath: '/inventory/new'
+      preLoaderRoute: typeof InventoryNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory/list': {
+      id: '/inventory/list'
+      path: '/inventory/list'
+      fullPath: '/inventory/list'
+      preLoaderRoute: typeof InventoryListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inventory/$itemId': {
       id: '/inventory/$itemId'
       path: '/inventory/$itemId'
@@ -419,6 +498,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesSessionIdReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/log/restock': {
+      id: '/inventory/log/restock'
+      path: '/inventory/log/restock'
+      fullPath: '/inventory/log/restock'
+      preLoaderRoute: typeof InventoryLogRestockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory/log/event': {
+      id: '/inventory/log/event'
+      path: '/inventory/log/event'
+      fullPath: '/inventory/log/event'
+      preLoaderRoute: typeof InventoryLogEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory/log/batch': {
+      id: '/inventory/log/batch'
+      path: '/inventory/log/batch'
+      fullPath: '/inventory/log/batch'
+      preLoaderRoute: typeof InventoryLogBatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/instance/$instanceId': {
       id: '/events/instance/$instanceId'
       path: '/instance/$instanceId'
@@ -457,24 +557,19 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   ChecklistSessionIdRoute: ChecklistSessionIdRoute,
   InventoryItemIdRoute: InventoryItemIdRoute,
+  InventoryListRoute: InventoryListRoute,
+  InventoryNewRoute: InventoryNewRoute,
   SalesSettingsRoute: SalesSettingsRoute,
   SalesStatsRoute: SalesStatsRoute,
   ChecklistIndexRoute: ChecklistIndexRoute,
   InventoryIndexRoute: InventoryIndexRoute,
   SalesIndexRoute: SalesIndexRoute,
+  InventoryLogBatchRoute: InventoryLogBatchRoute,
+  InventoryLogEventRoute: InventoryLogEventRoute,
+  InventoryLogRestockRoute: InventoryLogRestockRoute,
   SalesSessionIdReportRoute: SalesSessionIdReportRoute,
   SalesSessionIdIndexRoute: SalesSessionIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

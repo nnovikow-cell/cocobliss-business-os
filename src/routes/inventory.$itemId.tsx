@@ -1,31 +1,46 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Minus, ArrowUp, Trash2, Pencil, Check, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { format, parseISO } from "date-fns";
+import {
+  ArrowLeft, Trash2, Pencil, Check, X, Minus, ArrowUp, Factory, PartyPopper, PackagePlus,
+} from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { categoryLabel, statusMeta, statusOf, type InventoryCategory, type InventoryItem } from "@/lib/inventory";
+import {
+  CATEGORY_V2_LABEL, LOG_KIND_LABEL, WORKFLOW_LABEL, statusMeta, statusOf,
+  type InventoryCategoryV2, type InventoryItem, type LogKind, type WorkflowTag,
+} from "@/lib/inventory";
 import { cn } from "@/lib/utils";
+import { ItemForm, type ItemFormState } from "@/components/inventory/item-form";
 
 export const Route = createFileRoute("/inventory/$itemId")({ component: InventoryDetail });
 
 type LogRow = {
   id: string;
-  kind: "use" | "restock";
+  kind: LogKind;
   quantity: number;
   quantity_after: number;
   note: string | null;
   created_at: string;
   logged_by: string | null;
+  event_instance_id: string | null;
+  production_date: string | null;
+  projected_use_date: string | null;
+  supplier_name_snapshot: string | null;
 };
+
+type EventVM = { id: string; date: string; series: { name: string; location: string | null } | null };
+type PriceRow = { id: string; price: number | null; package_size: number | null; package_size_unit: string | null; cost_per_unit: number | null; changed_at: string };
 
 function InventoryDetail() {
   const { itemId } = Route.useParams();
@@ -33,13 +48,13 @@ function InventoryDetail() {
   const navigate = useNavigate();
   const [item, setItem] = useState<InventoryItem | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
+  const [events, setEvents] = useState<Record<string, EventVM>>({});
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [prices, setPrices] = useState<PriceRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<{ name: string; category: InventoryCategory; subcategory: string; unit: string; par_level: string; notes: string }>(
-    { name: "", category: "consumable", subcategory: "", unit: "unit", par_level: "0", notes: "" },
-  );
+  const [form, setForm] = useState<ItemFormState | null>(null);
 
   const [action, setAction] = useState<"use" | "restock" | null>(null);
   const [actionQty, setActionQty] = useState("");
@@ -47,41 +62,75 @@ function InventoryDetail() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: it }, { data: lg }, { data: ps }] = await Promise.all([
+    const [{ data: it }, { data: lg }, { data: ps }, { data: ph }] = await Promise.all([
       supabase.from("inventory_items").select("*").eq("id", itemId).maybeSingle(),
-      supabase.from("inventory_logs").select("*").eq("item_id", itemId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("inventory_logs").select("*").eq("item_id", itemId).order("created_at", { ascending: false }).limit(200),
       supabase.from("profiles").select("user_id,display_name"),
+      supabase.from("inventory_price_history").select("id,price,package_size,package_size_unit,cost_per_unit,changed_at").eq("item_id", itemId).order("changed_at", { ascending: false }).limit(20),
     ]);
-    setItem(it as InventoryItem | null);
-    setLogs((lg ?? []) as LogRow[]);
+    const itm = it as InventoryItem | null;
+    setItem(itm);
+    const logRows = (lg ?? []) as LogRow[];
+    setLogs(logRows);
     const map: Record<string, string> = {};
     (ps ?? []).forEach((p) => { if (p.user_id) map[p.user_id] = p.display_name ?? ""; });
     setProfiles(map);
-    if (it) {
+    setPrices((ph ?? []) as PriceRow[]);
+
+    const eventIds = Array.from(new Set(logRows.map((l) => l.event_instance_id).filter(Boolean) as string[]));
+    if (eventIds.length) {
+      const { data: evs } = await supabase
+        .from("event_instances")
+        .select("id,date,series:event_series(name,location)")
+        .in("id", eventIds);
+      const em: Record<string, EventVM> = {};
+      (evs ?? []).forEach((e) => { em[e.id] = e as unknown as EventVM; });
+      setEvents(em);
+    } else setEvents({});
+
+    if (itm) {
       setForm({
-        name: it.name,
-        category: it.category as InventoryCategory,
-        subcategory: it.subcategory ?? "",
-        unit: it.unit,
-        par_level: String(it.par_level),
-        notes: it.notes ?? "",
+        name: itm.name,
+        category_v2: (itm.category_v2 as InventoryCategoryV2) ?? "ingredient",
+        workflow_tags: (itm.workflow_tags as WorkflowTag[]) ?? ["all"],
+        unit: itm.unit,
+        package_type: itm.package_type ?? "",
+        supplier_name: itm.supplier_name ?? "",
+        purchase_url: itm.purchase_url ?? "",
+        physical_location: itm.physical_location ?? "",
+        price: itm.price != null ? String(itm.price) : "",
+        package_size: itm.package_size != null ? String(itm.package_size) : "",
+        package_size_unit: itm.package_size_unit ?? "",
+        current_quantity: String(itm.current_quantity),
+        par_level: String(itm.par_level),
+        notes: itm.notes ?? "",
       });
     }
     setLoading(false);
   };
-  useEffect(() => { load(); }, [itemId]);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [itemId]);
 
   const saveEdit = async () => {
-    if (!item) return;
+    if (!item || !form) return;
     if (!form.name.trim()) return toast.error("Name required");
-    const { error } = await supabase.from("inventory_items").update({
+    const update = {
       name: form.name.trim(),
-      category: form.category,
-      subcategory: form.subcategory.trim() || null,
-      unit: form.unit.trim() || "unit",
+      category: form.category_v2 === "disposable" ? "disposable" as const : "consumable" as const,
+      category_v2: form.category_v2,
+      workflow_tags: form.workflow_tags.length ? form.workflow_tags : ["all"],
+      unit: form.unit || "units",
+      package_type: form.package_type.trim() || null,
+      supplier_name: form.supplier_name.trim() || null,
+      purchase_url: form.purchase_url.trim() || null,
+      physical_location: form.physical_location.trim() || null,
+      price: form.price === "" ? null : Number(form.price),
+      package_size: form.package_size === "" ? null : Number(form.package_size),
+      package_size_unit: form.package_size_unit || null,
+      current_quantity: Number(form.current_quantity || 0),
       par_level: Number(form.par_level || 0),
       notes: form.notes.trim() || null,
-    }).eq("id", item.id);
+    };
+    const { error } = await supabase.from("inventory_items").update(update).eq("id", item.id);
     if (error) return toast.error(error.message);
     toast.success("Saved");
     setEditing(false);
@@ -122,49 +171,39 @@ function InventoryDetail() {
   };
 
   const deleteLog = async (log: LogRow) => {
-    if (!item) return;
     const { error } = await supabase.from("inventory_logs").delete().eq("id", log.id);
     if (error) return toast.error(error.message);
     toast.success("History entry deleted");
     load();
   };
 
-  if (loading) {
+  const status = useMemo(() => item ? statusOf(Number(item.current_quantity), Number(item.par_level)) : "ok", [item]);
+
+  if (loading || !item || !form) {
     return <AppShell><div className="h-32 animate-pulse rounded-2xl bg-muted/50" /></AppShell>;
   }
-  if (!item) {
-    return (
-      <AppShell>
-        <p className="text-sm text-muted-foreground">Item not found.</p>
-        <Link to="/inventory" className="mt-2 inline-flex items-center gap-1 text-sm text-primary"><ArrowLeft className="h-4 w-4" /> Back</Link>
-      </AppShell>
-    );
-  }
 
+  const meta = statusMeta[status];
   const qty = Number(item.current_quantity);
   const par = Number(item.par_level);
-  const status = statusOf(qty, par);
-  const meta = statusMeta[status];
   const pct = par > 0 ? Math.min(150, (qty / par) * 100) : qty > 0 ? 100 : 0;
 
   return (
     <AppShell>
       <div className="mb-3 flex items-center justify-between">
-        <Link to="/inventory" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/inventory/list" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Inventory
         </Link>
         {isAdmin && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete this item?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This permanently removes {item.name} and its restock history. This cannot be undone.
+                  This permanently removes {item.name} and its log history. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -181,11 +220,17 @@ function InventoryDetail() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
-              <h1 className="truncate text-2xl font-black">{item.name}</h1>
+              <h1 className="truncate text-2xl font-black md:text-3xl">{item.name}</h1>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="rounded-full bg-secondary px-2 py-0.5 font-medium">{categoryLabel[item.category as InventoryCategory]}</span>
-              {item.subcategory && <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">{item.subcategory}</span>}
+              <span className="rounded-full bg-secondary px-2 py-0.5 font-medium">
+                {CATEGORY_V2_LABEL[(item.category_v2 ?? "other") as InventoryCategoryV2]}
+              </span>
+              {(item.workflow_tags ?? []).filter((t) => t !== "all").map((t) => (
+                <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                  {WORKFLOW_LABEL[t as WorkflowTag]}
+                </span>
+              ))}
               <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>{meta.label}</span>
             </div>
           </div>
@@ -219,46 +264,28 @@ function InventoryDetail() {
           </Button>
         </div>
 
+        {!editing && (
+          <div className="mt-5 grid gap-2 border-t pt-4 text-sm md:grid-cols-2">
+            {item.supplier_name && <Field label="Supplier" value={item.supplier_name} />}
+            {item.physical_location && <Field label="Stored at" value={item.physical_location} />}
+            {item.package_type && <Field label="Package" value={item.package_type} />}
+            {item.price != null && <Field label="Price" value={`$${Number(item.price).toFixed(2)}${item.package_size ? ` / ${item.package_size}${item.package_size_unit ?? ""}` : ""}`} />}
+            {item.cost_per_unit != null && <Field label="Cost / unit" value={`$${Number(item.cost_per_unit).toFixed(4)}`} />}
+            {item.purchase_url && (
+              <Field label="Purchase" value={
+                <a href={item.purchase_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{item.purchase_url}</a>
+              } />
+            )}
+          </div>
+        )}
+
         {item.notes && !editing && (
           <p className="mt-4 whitespace-pre-wrap rounded-xl bg-muted/60 p-3 text-sm text-muted-foreground">{item.notes}</p>
         )}
 
         {editing && (
           <div className="mt-5 grid gap-3 border-t pt-4">
-            <div>
-              <Label>Name</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Category</Label>
-                <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v as InventoryCategory })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="consumable">Consumables</SelectItem>
-                    <SelectItem value="disposable">Disposables</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Subcategory</Label>
-                <Input value={form.subcategory} onChange={(e) => setForm({ ...form, subcategory: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Unit</Label>
-                <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-              </div>
-              <div>
-                <Label>Par level</Label>
-                <Input type="number" inputMode="decimal" value={form.par_level} onChange={(e) => setForm({ ...form, par_level: e.target.value })} />
-              </div>
-            </div>
-            <div>
-              <Label>Notes</Label>
-              <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
+            <ItemForm value={form} onChange={setForm} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
               <Button onClick={saveEdit}><Check className="h-4 w-4" /> Save</Button>
@@ -267,60 +294,97 @@ function InventoryDetail() {
         )}
       </div>
 
-      {/* History */}
+      {prices.length > 0 && !editing && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Price history</h2>
+          <ul className="space-y-1.5 text-sm">
+            {prices.map((p) => (
+              <li key={p.id} className="flex items-center justify-between rounded-xl border bg-card px-3 py-2">
+                <span>${p.price?.toFixed(2) ?? "—"} {p.package_size ? `/ ${p.package_size}${p.package_size_unit ?? ""}` : ""}</span>
+                <span className="text-xs text-muted-foreground">{format(parseISO(p.changed_at), "MMM d, yyyy")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="mt-6">
-        <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Restock & usage history</h2>
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Activity history</h2>
         {logs.length === 0 ? (
           <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">No activity yet.</p>
         ) : (
           <ul className="space-y-2">
-            {logs.map((l) => (
-              <li key={l.id} className="rounded-xl border bg-card p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className={cn("inline-flex h-7 w-7 items-center justify-center rounded-full",
-                      l.kind === "restock" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-amber-500/15 text-amber-600 dark:text-amber-300")}>
-                      {l.kind === "restock" ? <ArrowUp className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold">
-                        {l.kind === "restock" ? "+" : "−"}{formatQty(Number(l.quantity))} {item.unit}
-                        <span className="ml-2 text-xs font-normal text-muted-foreground">→ {formatQty(Number(l.quantity_after))} {item.unit}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(l.created_at).toLocaleString()}
-                        {l.logged_by && profiles[l.logged_by] ? ` · ${profiles[l.logged_by]}` : ""}
-                      </p>
+            {logs.map((l) => {
+              const ev = l.event_instance_id ? events[l.event_instance_id] : null;
+              const isAdd = l.kind === "restock";
+              const Icon = l.kind === "production_batch" ? Factory : l.kind === "event_use" ? PartyPopper : isAdd ? PackagePlus : Minus;
+              return (
+                <li key={l.id} className="rounded-xl border bg-card p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        "inline-flex h-8 w-8 items-center justify-center rounded-full",
+                        isAdd ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+                      )}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">
+                          {isAdd ? "+" : "−"}{formatQty(Number(l.quantity))} {item.unit}
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">→ {formatQty(Number(l.quantity_after))} {item.unit}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          <span className="font-medium">{LOG_KIND_LABEL[l.kind]}</span>
+                          {" · "}{new Date(l.created_at).toLocaleString()}
+                          {l.logged_by && profiles[l.logged_by] ? ` · ${profiles[l.logged_by]}` : ""}
+                        </p>
+                        {ev && (
+                          <p className="text-xs text-muted-foreground">
+                            Event: <span className="font-medium text-foreground">{ev.series?.name ?? "—"}</span>
+                            {" · "}{format(parseISO(ev.date), "MMM d, yyyy")}
+                            {ev.series?.location ? ` · ${ev.series.location}` : ""}
+                          </p>
+                        )}
+                        {l.supplier_name_snapshot && (
+                          <p className="text-xs text-muted-foreground">Supplier: {l.supplier_name_snapshot}</p>
+                        )}
+                        {(l.production_date || l.projected_use_date) && (
+                          <p className="text-xs text-muted-foreground">
+                            {l.production_date && `Made ${l.production_date}`}
+                            {l.production_date && l.projected_use_date && " · "}
+                            {l.projected_use_date && `For ${l.projected_use_date}`}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Delete entry">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this history entry?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Removes the {LOG_KIND_LABEL[l.kind]} of {formatQty(Number(l.quantity))} {item.unit}. Current stock won't change.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteLog(l)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Delete entry">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this history entry?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This removes the {l.kind === "restock" ? "restock" : "usage"} of {formatQty(Number(l.quantity))} {item.unit} from history. The current stock quantity will not change.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteLog(l)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-                {l.note && <p className="mt-1.5 pl-9 text-xs text-muted-foreground">{l.note}</p>}
-              </li>
-            ))}
+                  {l.note && <p className="mt-1.5 pl-11 text-xs text-muted-foreground">{l.note}</p>}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
 
-      {/* Quick action dialog */}
       <Dialog open={!!action} onOpenChange={(o) => { if (!o) setAction(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -346,6 +410,15 @@ function InventoryDetail() {
         </DialogContent>
       </Dialog>
     </AppShell>
+  );
+}
+
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-xl bg-muted/40 px-3 py-2">
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-sm">{value}</p>
+    </div>
   );
 }
 
