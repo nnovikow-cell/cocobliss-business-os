@@ -1154,6 +1154,51 @@ export type Database = {
           },
         ]
       }
+      syrups: {
+        Row: {
+          bottle_price: number
+          bottle_size: number
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          source_address: string | null
+          source_url: string | null
+          supplier_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          bottle_price: number
+          bottle_size: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          source_address?: string | null
+          source_url?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bottle_price?: number
+          bottle_size?: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          source_address?: string | null
+          source_url?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tip_options: {
         Row: {
           amount: number
