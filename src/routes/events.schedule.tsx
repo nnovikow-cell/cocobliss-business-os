@@ -351,8 +351,8 @@ function CalendarView({ rows, onChanged }: { rows: RowVM[]; onChanged: () => voi
   const [cursor, setCursor] = useState<Date>(() => startOfMonth(new Date()));
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
-  const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
-  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   const byDay = useMemo(() => {
@@ -383,7 +383,7 @@ function CalendarView({ rows, onChanged }: { rows: RowVM[]; onChanged: () => voi
         </div>
       </div>
       <div className="grid grid-cols-7 gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
+        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => (
           <div key={d} className="px-2 py-1">{d}</div>
         ))}
       </div>
