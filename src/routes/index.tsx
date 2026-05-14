@@ -40,7 +40,7 @@ function Index() {
         style={{ background: "var(--gradient-hero)" }}
       >
         <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Module Hub</p>
-        <h2 className="mt-1 text-2xl font-bold">Pick a module to get to work.</h2>
+         <h2 className="mt-1 text-2xl font-bold">Hey! Let's fucking make the greatest beverage brand today.</h2>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
