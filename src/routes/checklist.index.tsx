@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, ListChecks, Lock, Unlock, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, ListChecks, Lock, Unlock, ArrowLeft, Trash2, Settings as SettingsIcon } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -121,6 +121,9 @@ function ChecklistIndex() {
             <p className="text-sm text-muted-foreground">Pack the van. Together.</p>
           </div>
         </div>
+        <Link to="/checklist/settings" className="rounded-full p-2 hover:bg-muted" aria-label="Pack settings">
+          <SettingsIcon className="h-5 w-5" />
+        </Link>
       </header>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -136,7 +139,7 @@ function ChecklistIndex() {
               <Label>Event</Label>
               {events.length === 0 ? (
                 <p className="mt-1 rounded-xl border-2 border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                  No events yet. Add one in <Link to="/settings" className="font-semibold text-primary underline">App Settings → Events</Link>.
+                  No events yet. Add one in the <Link to="/events" className="font-semibold text-primary underline">Events module</Link>.
                 </p>
               ) : (
                 <Select value={eventId} onValueChange={setEventId}>
