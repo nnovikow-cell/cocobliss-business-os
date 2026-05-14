@@ -543,6 +543,8 @@ function TaskDialog({
   const [owner, setOwner] = useState<string>("");
   const [note, setNote] = useState("");
   const [recurring, setRecurring] = useState(false);
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "biweekly" | "monthly">("weekly");
+  const [monthlyDom, setMonthlyDom] = useState<number>(1);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -554,8 +556,11 @@ function TaskDialog({
         setOwner(editing.owner ?? "");
         setNote(editing.note ?? "");
         setRecurring(editing.is_recurring);
+        setFrequency("weekly");
+        setMonthlyDom(1);
       } else {
         setTitle(""); setDay(0); setCategory("Operations"); setOwner(""); setNote(""); setRecurring(false);
+        setFrequency("weekly"); setMonthlyDom(1);
       }
     }
   }, [open, editing]);
@@ -568,11 +573,12 @@ function TaskDialog({
         // Create
         let recurrence_id: string | null = null;
         if (recurring) {
+          const seriesDay = frequency === "monthly" ? monthlyDom : day;
           const { data: s, error: se } = await supabase
             .from("recurrence_series")
             .insert({
               title: title.trim(), category, owner: owner || null, note: note || null,
-              recurrence_day: day, is_active: true,
+              recurrence_day: seriesDay, is_active: true, frequency,
             })
             .select("id").single();
           if (se) throw se;
@@ -587,7 +593,7 @@ function TaskDialog({
           note: note || null,
           is_recurring: recurring,
           recurrence_id,
-          recurrence_day: recurring ? day : null,
+          recurrence_day: recurring ? (frequency === "monthly" ? monthlyDom : day) : null,
         });
         if (error) throw error;
         toast.success("Task created");
