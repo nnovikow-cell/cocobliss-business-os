@@ -305,7 +305,7 @@ function TasksPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2">
         <Column
           title="Pending"
           weekStart={weekStart}
@@ -457,10 +457,10 @@ function CardMenu({
       <DropdownMenuTrigger asChild>
         <button
           onClick={(e) => e.stopPropagation()}
-          className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Task actions"
         >
-          <MoreVertical className="h-4 w-4" />
+          <MoreVertical className="h-3 w-3" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -489,21 +489,21 @@ function PendingCard({
       onClick={onComplete}
       onKeyDown={(e) => { if (e.key === "Enter") onComplete(); }}
       className={cn(
-        "group flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50",
+        "group flex cursor-pointer items-start gap-1.5 rounded-lg border border-border p-2 transition-colors hover:bg-muted/50",
         overdue && "bg-destructive/10 border-destructive/30",
       )}
     >
       <span
-        className="mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+        className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
         style={{ backgroundColor: color }}
         aria-label={task.category}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-semibold">{task.title}</p>
-          {task.is_recurring && <Repeat className="h-3 w-3 shrink-0 text-muted-foreground/70" aria-label="Recurring" />}
+          <p className="truncate text-xs font-semibold">{task.title}</p>
+          {task.is_recurring && <Repeat className="h-2.5 w-2.5 shrink-0 text-muted-foreground/70" aria-label="Recurring" />}
         </div>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{owner}</p>
+        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{owner}</p>
       </div>
       <CardMenu onEdit={onEdit} onComplete={onComplete} onDelete={onDelete} />
     </div>
@@ -517,14 +517,14 @@ function CompletedCard({
   onUndo: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
-      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+    <div className="flex items-start gap-1.5 rounded-lg border border-border bg-muted/30 p-2">
+      <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-medium text-muted-foreground line-through">{task.title}</p>
-          {task.is_recurring && <Repeat className="h-3 w-3 shrink-0 text-muted-foreground/70" />}
+          <p className="truncate text-xs font-medium text-muted-foreground line-through">{task.title}</p>
+          {task.is_recurring && <Repeat className="h-2.5 w-2.5 shrink-0 text-muted-foreground/70" />}
         </div>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{owner}</p>
+        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{owner}</p>
       </div>
       <CardMenu onEdit={onEdit} onUndo={onUndo} onDelete={onDelete} />
     </div>
