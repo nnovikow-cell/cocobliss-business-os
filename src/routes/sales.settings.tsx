@@ -32,10 +32,9 @@ function SettingsPage() {
         <TabsList className="mt-2 grid w-full grid-cols-3">
           <TabsTrigger value="tips">Tips</TabsTrigger>
           <TabsTrigger value="weather">Weather</TabsTrigger>
-          <TabsTrigger value="attendants">Staff</TabsTrigger>
+          <TabsTrigger value="demographics">Demos</TabsTrigger>
         </TabsList>
-        <TabsList className="mt-2 grid w-full grid-cols-3">
-          <TabsTrigger value="demographics">Demographics</TabsTrigger>
+        <TabsList className="mt-2 grid w-full grid-cols-2">
           <TabsTrigger value="tax">Tax</TabsTrigger>
           <TabsTrigger value="shake">Shake</TabsTrigger>
         </TabsList>
@@ -45,14 +44,13 @@ function SettingsPage() {
         <TabsContent value="payments" className="mt-4"><PaymentMethodsTab /></TabsContent>
         <TabsContent value="tips" className="mt-4"><TipsTab /></TabsContent>
         <TabsContent value="weather" className="mt-4"><WeatherTab /></TabsContent>
-        <TabsContent value="attendants" className="mt-4"><AttendantsTab /></TabsContent>
         <TabsContent value="demographics" className="mt-4"><DemographicsTab /></TabsContent>
         <TabsContent value="tax" className="mt-4"><TaxTab /></TabsContent>
         <TabsContent value="shake" className="mt-4"><ShakeSizeTab /></TabsContent>
       </Tabs>
 
       <p className="mt-6 rounded-2xl border-2 border-dashed border-border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
-        Events live in <Link to="/settings" className="font-bold text-primary underline">App Settings → Events</Link>.
+        Staff is managed in <Link to="/settings" className="font-bold text-primary underline">Hub Settings → Staff</Link>.
       </p>
     </AppShell>
   );
