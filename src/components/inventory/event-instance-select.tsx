@@ -25,7 +25,6 @@ export function EventInstanceSelect({
 
   useEffect(() => {
     (async () => {
-      const today = format(new Date(), "yyyy-MM-dd");
       // Get a wide window: last 60 days through next 365 days
       const past = new Date(); past.setDate(past.getDate() - 60);
       const { data } = await supabase
@@ -36,7 +35,6 @@ export function EventInstanceSelect({
         .order("date", { ascending: false })
         .limit(200);
       setRows((data ?? []) as unknown as Row[]);
-      void today;
     })();
   }, []);
 
