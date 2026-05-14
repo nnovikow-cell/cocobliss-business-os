@@ -1,5 +1,33 @@
 export type InventoryCategory = "consumable" | "disposable";
 
+export type InventoryCategoryV2 = "ingredient" | "topping" | "disposable" | "other";
+export const CATEGORY_V2_LABEL: Record<InventoryCategoryV2, string> = {
+  ingredient: "Ingredient",
+  topping: "Topping",
+  disposable: "Disposable",
+  other: "Other",
+};
+export const CATEGORY_V2_VALUES: InventoryCategoryV2[] = ["ingredient", "topping", "disposable", "other"];
+
+export type WorkflowTag = "production_batch" | "log_event" | "restock" | "all";
+export const WORKFLOW_LABEL: Record<WorkflowTag, string> = {
+  production_batch: "Production Batch",
+  log_event: "Log Event",
+  restock: "Restock",
+  all: "All",
+};
+export const WORKFLOW_VALUES: WorkflowTag[] = ["production_batch", "log_event", "restock", "all"];
+
+export type LogKind = "use" | "restock" | "production_batch" | "event_use";
+export const LOG_KIND_LABEL: Record<LogKind, string> = {
+  use: "Manual use",
+  restock: "Restock",
+  production_batch: "Production batch",
+  event_use: "Event use",
+};
+
+export const UNIT_OPTIONS = ["oz", "ml", "kg", "g", "units", "bags", "cases", "quarts", "lbs"];
+
 export type InventoryItem = {
   id: string;
   name: string;
@@ -13,6 +41,17 @@ export type InventoryItem = {
   is_archived: boolean;
   created_at: string;
   updated_at: string;
+  category_v2: InventoryCategoryV2 | null;
+  workflow_tags: WorkflowTag[];
+  package_type: string | null;
+  supplier_name: string | null;
+  purchase_url: string | null;
+  physical_location: string | null;
+  price: number | null;
+  price_updated_at: string | null;
+  package_size: number | null;
+  package_size_unit: string | null;
+  cost_per_unit: number | null;
 };
 
 export type InventoryStatus = "ok" | "low" | "out";
