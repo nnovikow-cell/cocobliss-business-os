@@ -1,0 +1,1 @@
+ALTER TABLE public.recurrence_series ADD COLUMN IF NOT EXISTS frequency text NOT NULL DEFAULT 'weekly';
