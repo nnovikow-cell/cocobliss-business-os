@@ -168,7 +168,7 @@ function ScheduleTab() {
           <Filter className="mr-1 h-3.5 w-3.5" />
           Date {sortDir === "asc" ? "↑" : "↓"}
         </Button>
-        <div className="ml-auto hidden md:flex rounded-full bg-muted p-0.5">
+        <div className="ml-auto flex rounded-full bg-muted p-0.5">
           <button
             onClick={() => setView("list")}
             className={cn(
