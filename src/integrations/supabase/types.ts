@@ -642,11 +642,15 @@ export type Database = {
           created_by: string | null
           current_quantity: number
           deleted_at: string | null
+          density: number | null
+          density_source: string | null
           id: string
           is_archived: boolean
           last_restocked_at: string | null
+          library_code: string | null
           name: string
           notes: string | null
+          package_qty: number | null
           package_size: number | null
           package_size_unit: string | null
           package_type: string | null
@@ -669,11 +673,15 @@ export type Database = {
           created_by?: string | null
           current_quantity?: number
           deleted_at?: string | null
+          density?: number | null
+          density_source?: string | null
           id?: string
           is_archived?: boolean
           last_restocked_at?: string | null
+          library_code?: string | null
           name: string
           notes?: string | null
+          package_qty?: number | null
           package_size?: number | null
           package_size_unit?: string | null
           package_type?: string | null
@@ -696,11 +704,15 @@ export type Database = {
           created_by?: string | null
           current_quantity?: number
           deleted_at?: string | null
+          density?: number | null
+          density_source?: string | null
           id?: string
           is_archived?: boolean
           last_restocked_at?: string | null
+          library_code?: string | null
           name?: string
           notes?: string | null
+          package_qty?: number | null
           package_size?: number | null
           package_size_unit?: string | null
           package_type?: string | null
@@ -823,6 +835,7 @@ export type Database = {
           cost_per_unit: number | null
           id: string
           item_id: string
+          note: string | null
           package_size: number | null
           package_size_unit: string | null
           price: number | null
@@ -833,6 +846,7 @@ export type Database = {
           cost_per_unit?: number | null
           id?: string
           item_id: string
+          note?: string | null
           package_size?: number | null
           package_size_unit?: string | null
           price?: number | null
@@ -843,6 +857,7 @@ export type Database = {
           cost_per_unit?: number | null
           id?: string
           item_id?: string
+          note?: string | null
           package_size?: number | null
           package_size_unit?: string | null
           price?: number | null

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
-  ArrowLeft, Trash2, Pencil, Check, X, Minus, ArrowUp, Factory, PartyPopper, PackagePlus,
+  ArrowLeft, Trash2, Pencil, Minus, ArrowUp, Factory, PartyPopper, PackagePlus,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   type InventoryCategoryV2, type InventoryItem, type LogKind, type WorkflowTag,
 } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
-import { ItemForm, type ItemFormState } from "@/components/inventory/item-form";
+import { InventoryItemDrawer } from "@/components/inventory/item-drawer";
 
 export const Route = createFileRoute("/inventory/$itemId")({ component: InventoryDetail });
 
@@ -54,7 +54,6 @@ function InventoryDetail() {
   const [loading, setLoading] = useState(true);
 
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<ItemFormState | null>(null);
 
   const [action, setAction] = useState<"use" | "restock" | null>(null);
   const [actionQty, setActionQty] = useState("");
@@ -88,54 +87,9 @@ function InventoryDetail() {
       setEvents(em);
     } else setEvents({});
 
-    if (itm) {
-      setForm({
-        name: itm.name,
-        category_v2: (itm.category_v2 as InventoryCategoryV2) ?? "ingredient",
-        workflow_tags: (itm.workflow_tags as WorkflowTag[]) ?? ["all"],
-        unit: itm.unit,
-        package_type: itm.package_type ?? "",
-        supplier_name: itm.supplier_name ?? "",
-        purchase_url: itm.purchase_url ?? "",
-        physical_location: itm.physical_location ?? "",
-        price: itm.price != null ? String(itm.price) : "",
-        package_size: itm.package_size != null ? String(itm.package_size) : "",
-        package_size_unit: itm.package_size_unit ?? "",
-        current_quantity: String(itm.current_quantity),
-        par_level: String(itm.par_level),
-        notes: itm.notes ?? "",
-      });
-    }
     setLoading(false);
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [itemId]);
-
-  const saveEdit = async () => {
-    if (!item || !form) return;
-    if (!form.name.trim()) return toast.error("Name required");
-    const update = {
-      name: form.name.trim(),
-      category: form.category_v2 === "disposable" ? "disposable" as const : "consumable" as const,
-      category_v2: form.category_v2,
-      workflow_tags: form.workflow_tags.length ? form.workflow_tags : ["all"],
-      unit: form.unit || "units",
-      package_type: form.package_type.trim() || null,
-      supplier_name: form.supplier_name.trim() || null,
-      purchase_url: form.purchase_url.trim() || null,
-      physical_location: form.physical_location.trim() || null,
-      price: form.price === "" ? null : Number(form.price),
-      package_size: form.package_size === "" ? null : Number(form.package_size),
-      package_size_unit: form.package_size_unit || null,
-      current_quantity: Number(form.current_quantity || 0),
-      par_level: Number(form.par_level || 0),
-      notes: form.notes.trim() || null,
-    };
-    const { error } = await supabase.from("inventory_items").update(update).eq("id", item.id);
-    if (error) return toast.error(error.message);
-    toast.success("Saved");
-    setEditing(false);
-    load();
-  };
 
   const submitAction = async () => {
     if (!item || !action) return;
@@ -179,7 +133,7 @@ function InventoryDetail() {
 
   const status = useMemo(() => item ? statusOf(Number(item.current_quantity), Number(item.par_level)) : "ok", [item]);
 
-  if (loading || !item || !form) {
+  if (loading || !item) {
     return <AppShell><div className="h-32 animate-pulse rounded-2xl bg-muted/50" /></AppShell>;
   }
 
@@ -234,8 +188,8 @@ function InventoryDetail() {
               <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>{meta.label}</span>
             </div>
           </div>
-          <Button variant="outline" size="icon" onClick={() => setEditing((v) => !v)} aria-label="Edit">
-            {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+          <Button variant="outline" size="icon" onClick={() => setEditing(true)} aria-label="Edit">
+            <Pencil className="h-4 w-4" />
           </Button>
         </div>
 
@@ -264,8 +218,7 @@ function InventoryDetail() {
           </Button>
         </div>
 
-        {!editing && (
-          <div className="mt-5 grid gap-2 border-t pt-4 text-sm md:grid-cols-2">
+        <div className="mt-5 grid gap-2 border-t pt-4 text-sm md:grid-cols-2">
             {item.supplier_name && <Field label="Supplier" value={item.supplier_name} />}
             {item.physical_location && <Field label="Stored at" value={item.physical_location} />}
             {item.package_type && <Field label="Package" value={item.package_type} />}
@@ -276,25 +229,21 @@ function InventoryDetail() {
                 <a href={item.purchase_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{item.purchase_url}</a>
               } />
             )}
-          </div>
-        )}
+        </div>
 
-        {item.notes && !editing && (
+        {item.notes && (
           <p className="mt-4 whitespace-pre-wrap rounded-xl bg-muted/60 p-3 text-sm text-muted-foreground">{item.notes}</p>
         )}
 
-        {editing && (
-          <div className="mt-5 grid gap-3 border-t pt-4">
-            <ItemForm value={form} onChange={setForm} />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-              <Button onClick={saveEdit}><Check className="h-4 w-4" /> Save</Button>
-            </div>
-          </div>
-        )}
       </div>
+      <InventoryItemDrawer
+        open={editing}
+        onOpenChange={setEditing}
+        itemId={item.id}
+        onSaved={() => load()}
+      />
 
-      {prices.length > 0 && !editing && (
+      {prices.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Price history</h2>
           <ul className="space-y-1.5 text-sm">

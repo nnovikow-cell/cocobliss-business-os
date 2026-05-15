@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Search, ArrowLeft, Pencil } from "lucide-react";
+import { ChevronRight, Search, ArrowLeft, Pencil, Plus } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/app/app-shell";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -15,11 +16,13 @@ import {
   type InventoryCategoryV2, type InventoryItem, type InventoryStatus, type WorkflowTag,
 } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
+import { InventoryItemDrawer } from "@/components/inventory/item-drawer";
 
 const search = z.object({
   status: z.enum(["all", "ok", "low", "out"]).optional(),
   category: z.string().optional(),
   workflow: z.string().optional(),
+  new: z.string().optional(),
 }).optional();
 
 export const Route = createFileRoute("/inventory/list")({
@@ -36,6 +39,8 @@ function InventoryList() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("name");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
 
   const status = (sp?.status ?? "all") as "all" | InventoryStatus;
   const category = (sp?.category ?? "all") as "all" | InventoryCategoryV2;
@@ -53,7 +58,16 @@ function InventoryList() {
       setItems((data ?? []) as InventoryItem[]);
       setLoading(false);
     })();
-  }, []);
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    if (sp?.new === "1" && !drawerOpen) {
+      setDrawerItemId(null);
+      setDrawerOpen(true);
+      navigate({ search: { ...(sp ?? {}), new: undefined } as never, replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp?.new]);
 
   const enriched = useMemo(() => items.map((i) => ({
     ...i,
@@ -80,11 +94,16 @@ function InventoryList() {
 
   return (
     <AppShell>
-      <header className="mb-4">
-        <Link to="/inventory" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Inventory
-        </Link>
-        <h1 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">Master Library</h1>
+      <header className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <Link to="/inventory" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Inventory
+          </Link>
+          <h1 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">Master Library</h1>
+        </div>
+        <Button size="sm" className="rounded-full" onClick={() => { setDrawerItemId(null); setDrawerOpen(true); }}>
+          <Plus className="h-4 w-4" /> New item
+        </Button>
       </header>
 
       <div className="mb-3 grid gap-2">
@@ -142,6 +161,7 @@ function InventoryList() {
         <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((i) => {
             const meta = statusMeta[i.status];
+            const code = (i as unknown as { library_code: string | null }).library_code;
             return (
               <li key={i.id} className="rounded-2xl border bg-card p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
@@ -149,6 +169,9 @@ function InventoryList() {
                     <div className="flex items-center gap-2">
                       <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
                       <h3 className="truncate text-base font-semibold">{i.name}</h3>
+                      <span className="ml-1 truncate font-mono text-xs text-muted-foreground">
+                        {code || "—"}
+                      </span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
                       <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
@@ -170,9 +193,14 @@ function InventoryList() {
                     </p>
                   </Link>
                   <div className="flex flex-col items-end gap-1">
-                    <Link to="/inventory/$itemId" params={{ itemId: i.id }} className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Edit">
+                    <button
+                      type="button"
+                      onClick={() => { setDrawerItemId(i.id); setDrawerOpen(true); }}
+                      className="rounded-full p-2 text-muted-foreground hover:bg-muted"
+                      aria-label="Edit"
+                    >
                       <Pencil className="h-4 w-4" />
-                    </Link>
+                    </button>
                     <Link to="/inventory/$itemId" params={{ itemId: i.id }} className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Open">
                       <ChevronRight className="h-4 w-4" />
                     </Link>
@@ -183,6 +211,11 @@ function InventoryList() {
           })}
         </ul>
       )}
+      <InventoryItemDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        itemId={drawerItemId}
+      />
     </AppShell>
   );
 }

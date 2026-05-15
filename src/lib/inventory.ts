@@ -1,13 +1,23 @@
 export type InventoryCategory = "consumable" | "disposable";
 
-export type InventoryCategoryV2 = "ingredient" | "topping" | "disposable" | "other";
+export type InventoryCategoryV2 =
+  | "ingredient"
+  | "consumable"
+  | "disposable"
+  | "equipment"
+  | "other"
+  | "topping";
 export const CATEGORY_V2_LABEL: Record<InventoryCategoryV2, string> = {
   ingredient: "Ingredient",
-  topping: "Topping",
+  consumable: "Consumable",
   disposable: "Disposable",
+  equipment: "Equipment",
   other: "Other",
+  topping: "Topping",
 };
-export const CATEGORY_V2_VALUES: InventoryCategoryV2[] = ["ingredient", "topping", "disposable", "other"];
+export const CATEGORY_V2_VALUES: InventoryCategoryV2[] = [
+  "ingredient", "consumable", "disposable", "equipment", "other",
+];
 
 export type WorkflowTag = "production_batch" | "log_event" | "restock" | "all";
 export const WORKFLOW_LABEL: Record<WorkflowTag, string> = {
