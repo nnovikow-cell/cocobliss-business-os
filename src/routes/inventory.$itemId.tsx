@@ -21,7 +21,7 @@ import {
   type InventoryCategoryV2, type InventoryItem, type LogKind, type WorkflowTag,
 } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
-import { ItemForm, type ItemFormState } from "@/components/inventory/item-form";
+import { InventoryItemDrawer } from "@/components/inventory/item-drawer";
 
 export const Route = createFileRoute("/inventory/$itemId")({ component: InventoryDetail });
 
@@ -54,7 +54,6 @@ function InventoryDetail() {
   const [loading, setLoading] = useState(true);
 
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<ItemFormState | null>(null);
 
   const [action, setAction] = useState<"use" | "restock" | null>(null);
   const [actionQty, setActionQty] = useState("");
@@ -88,54 +87,9 @@ function InventoryDetail() {
       setEvents(em);
     } else setEvents({});
 
-    if (itm) {
-      setForm({
-        name: itm.name,
-        category_v2: (itm.category_v2 as InventoryCategoryV2) ?? "ingredient",
-        workflow_tags: (itm.workflow_tags as WorkflowTag[]) ?? ["all"],
-        unit: itm.unit,
-        package_type: itm.package_type ?? "",
-        supplier_name: itm.supplier_name ?? "",
-        purchase_url: itm.purchase_url ?? "",
-        physical_location: itm.physical_location ?? "",
-        price: itm.price != null ? String(itm.price) : "",
-        package_size: itm.package_size != null ? String(itm.package_size) : "",
-        package_size_unit: itm.package_size_unit ?? "",
-        current_quantity: String(itm.current_quantity),
-        par_level: String(itm.par_level),
-        notes: itm.notes ?? "",
-      });
-    }
     setLoading(false);
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [itemId]);
-
-  const saveEdit = async () => {
-    if (!item || !form) return;
-    if (!form.name.trim()) return toast.error("Name required");
-    const update = {
-      name: form.name.trim(),
-      category: form.category_v2 === "disposable" ? "disposable" as const : "consumable" as const,
-      category_v2: form.category_v2,
-      workflow_tags: form.workflow_tags.length ? form.workflow_tags : ["all"],
-      unit: form.unit || "units",
-      package_type: form.package_type.trim() || null,
-      supplier_name: form.supplier_name.trim() || null,
-      purchase_url: form.purchase_url.trim() || null,
-      physical_location: form.physical_location.trim() || null,
-      price: form.price === "" ? null : Number(form.price),
-      package_size: form.package_size === "" ? null : Number(form.package_size),
-      package_size_unit: form.package_size_unit || null,
-      current_quantity: Number(form.current_quantity || 0),
-      par_level: Number(form.par_level || 0),
-      notes: form.notes.trim() || null,
-    };
-    const { error } = await supabase.from("inventory_items").update(update).eq("id", item.id);
-    if (error) return toast.error(error.message);
-    toast.success("Saved");
-    setEditing(false);
-    load();
-  };
 
   const submitAction = async () => {
     if (!item || !action) return;
