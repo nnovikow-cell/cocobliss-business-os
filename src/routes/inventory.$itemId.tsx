@@ -133,7 +133,7 @@ function InventoryDetail() {
 
   const status = useMemo(() => item ? statusOf(Number(item.current_quantity), Number(item.par_level)) : "ok", [item]);
 
-  if (loading || !item || !form) {
+  if (loading || !item) {
     return <AppShell><div className="h-32 animate-pulse rounded-2xl bg-muted/50" /></AppShell>;
   }
 
@@ -188,8 +188,8 @@ function InventoryDetail() {
               <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>{meta.label}</span>
             </div>
           </div>
-          <Button variant="outline" size="icon" onClick={() => setEditing((v) => !v)} aria-label="Edit">
-            {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+          <Button variant="outline" size="icon" onClick={() => setEditing(true)} aria-label="Edit">
+            <Pencil className="h-4 w-4" />
           </Button>
         </div>
 
@@ -218,8 +218,7 @@ function InventoryDetail() {
           </Button>
         </div>
 
-        {!editing && (
-          <div className="mt-5 grid gap-2 border-t pt-4 text-sm md:grid-cols-2">
+        <div className="mt-5 grid gap-2 border-t pt-4 text-sm md:grid-cols-2">
             {item.supplier_name && <Field label="Supplier" value={item.supplier_name} />}
             {item.physical_location && <Field label="Stored at" value={item.physical_location} />}
             {item.package_type && <Field label="Package" value={item.package_type} />}
@@ -230,25 +229,21 @@ function InventoryDetail() {
                 <a href={item.purchase_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{item.purchase_url}</a>
               } />
             )}
-          </div>
-        )}
+        </div>
 
-        {item.notes && !editing && (
+        {item.notes && (
           <p className="mt-4 whitespace-pre-wrap rounded-xl bg-muted/60 p-3 text-sm text-muted-foreground">{item.notes}</p>
         )}
 
-        {editing && (
-          <div className="mt-5 grid gap-3 border-t pt-4">
-            <ItemForm value={form} onChange={setForm} />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-              <Button onClick={saveEdit}><Check className="h-4 w-4" /> Save</Button>
-            </div>
-          </div>
-        )}
       </div>
+      <InventoryItemDrawer
+        open={editing}
+        onOpenChange={setEditing}
+        itemId={item.id}
+        onSaved={() => load()}
+      />
 
-      {prices.length > 0 && !editing && (
+      {prices.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Price history</h2>
           <ul className="space-y-1.5 text-sm">
