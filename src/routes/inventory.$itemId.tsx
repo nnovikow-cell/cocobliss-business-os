@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
-  ArrowLeft, Trash2, Pencil, Check, X, Minus, ArrowUp, Factory, PartyPopper, PackagePlus,
+  ArrowLeft, Trash2, Pencil, Minus, ArrowUp, Factory, PartyPopper, PackagePlus,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
