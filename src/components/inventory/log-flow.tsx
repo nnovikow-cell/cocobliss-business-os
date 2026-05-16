@@ -120,8 +120,10 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
     // Process each selected item
     const sign = kind === "restock" ? 1 : -1;
     for (const it of selected) {
-      const qty = qtyById[it.id]!;
-      const newQty = Math.max(0, Number(it.current_quantity) + sign * qty);
+      const inputQty = qtyById[it.id]!;
+      const pkgSize = it.package_size != null ? Number(it.package_size) : null;
+      const storedQty = pkgSize ? inputQty * pkgSize : inputQty;
+      const newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
       const itemUpdate: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
       if (kind === "restock") itemUpdate.last_restocked_at = new Date().toISOString();
       const { error: e1 } = await supabase.from("inventory_items").update(itemUpdate).eq("id", it.id);
@@ -129,7 +131,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       const { error: e2 } = await supabase.from("inventory_logs").insert({
         item_id: it.id,
         kind,
-        quantity: qty,
+        quantity: storedQty,
         quantity_after: newQty,
         note: note.trim() || null,
         logged_by: user?.id ?? null,
