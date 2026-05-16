@@ -301,8 +301,15 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                 <li key={it.id} className="flex items-center justify-between py-2 text-sm">
                   <span className="font-medium">{it.name}</span>
                   <span>
-                    <span className="font-semibold">{kind === "restock" ? "+" : "−"}{qtyById[it.id]}</span>{" "}
-                    <span className="text-muted-foreground">{it.unit}</span>
+                    <span className="font-semibold">
+                      {kind === "restock" ? "+" : "−"}{qtyById[it.id]}
+                    </span>{" "}
+                    <span className="text-muted-foreground">
+                      × {it.package_type?.trim() || "units"}
+                      {it.package_size != null
+                        ? ` = ${(+(qtyById[it.id]! * Number(it.package_size)).toFixed(4)).toString()} ${it.package_size_unit ?? it.unit}`
+                        : ` ${it.unit}`}
+                    </span>
                   </span>
                 </li>
               ))}
