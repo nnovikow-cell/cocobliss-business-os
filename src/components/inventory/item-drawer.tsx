@@ -103,12 +103,13 @@ type PriceRow = {
 };
 
 export function InventoryItemDrawer({
-  open, onOpenChange, itemId, onSaved,
+  open, onOpenChange, itemId, onSaved, defaultCategory,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   itemId: string | null; // null = create
   onSaved?: (id: string) => void;
+  defaultCategory?: Cat;
 }) {
   const { user } = useAuth();
   const isEdit = !!itemId;
@@ -133,7 +134,7 @@ export function InventoryItemDrawer({
     setPriceMode("view");
     setReason("");
     if (!itemId) {
-      setForm(empty);
+      setForm({ ...empty, category: defaultCategory ?? empty.category });
       setOriginalPrice(null);
       setHistory([]);
       return;
@@ -159,7 +160,7 @@ export function InventoryItemDrawer({
       setProfiles(map);
       setLoading(false);
     })();
-  }, [open, itemId]);
+  }, [open, itemId, defaultCategory]);
 
   // Density auto-fill for ingredients with weight units
   useEffect(() => {
