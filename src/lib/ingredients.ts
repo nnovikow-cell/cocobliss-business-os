@@ -108,3 +108,60 @@ export function costPerFlOz(i: Pick<Ingredient, "package_price" | "package_qty" 
 
 export const fmtUSD = (n: number | null, digits = 2) =>
   n === null || Number.isNaN(n) ? "—" : `$${n.toFixed(digits)}`;
+
+/* ----------------------------------------------------------------------
+ * Inventory ↔ Ingredient adapter
+ *
+ * The standalone `ingredients` table is being retired. Cost Calculator
+ * now reads from `inventory_items` where `category_v2 = 'ingredient'`.
+ * Map raw inventory rows into the `Ingredient` shape the cost math
+ * expects via `inventoryItemToIngredient`.
+ * -------------------------------------------------------------------- */
+
+type RawInventoryItem = {
+  id: string;
+  name: string;
+  notes?: string | null;
+  description?: string | null;
+  package_qty?: number | string | null;
+  price?: number | string | null;
+  package_size?: number | string | null;
+  package_size_unit?: string | null;
+  density?: number | string | null;
+  density_source?: string | null;
+  supplier_name?: string | null;
+  purchase_url?: string | null;
+  physical_location?: string | null;
+  library_code?: string | null;
+};
+
+export function inventoryItemToIngredient(item: RawInventoryItem): Ingredient {
+  const num = (v: unknown) =>
+    v === null || v === undefined || v === "" ? null : Number(v);
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.description ?? item.notes ?? null,
+    package_qty: (num(item.package_qty) ?? 0) as number,
+    package_price: (num(item.price) ?? 0) as number,
+    item_size: (num(item.package_size) ?? 0) as number,
+    unit: (item.package_size_unit as IngredientUnit) ?? "fl oz",
+    density: num(item.density),
+    density_source: (item.density_source as DensitySource | null) ?? null,
+    supplier_name: item.supplier_name ?? null,
+    source_url: item.purchase_url ?? null,
+    source_address: item.physical_location ?? null,
+  };
+}
+
+/** Display label for selectors: "Name — Code (Supplier)" with graceful fallback. */
+export function formatIngredientLabel(
+  it: { name: string; library_code?: string | null; supplier_name?: string | null },
+): string {
+  const code = it.library_code?.trim();
+  const supplier = it.supplier_name?.trim();
+  let base = it.name;
+  if (code) base += ` — ${code}`;
+  if (supplier) base += ` (${supplier})`;
+  return base;
+}

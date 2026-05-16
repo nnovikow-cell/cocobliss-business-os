@@ -18,7 +18,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { fmtUSD } from "@/lib/ingredients";
+import { fmtUSD, inventoryItemToIngredient, formatIngredientLabel } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
 import {
   totalCOGS, formulaCostForServing, syrupCostForServing, kitCostForServing,
@@ -63,7 +63,7 @@ function ProductDetailPage() {
       supabase.from("recipe_formulas").select("*").eq("product_id", id).is("deleted_at", null).order("created_at"),
       supabase.from("recipe_formula_ingredients").select("*"),
       supabase.from("recipe_serving_sizes").select("*").eq("product_id", id).order("size_fl_oz"),
-      supabase.from("ingredients").select("*").is("deleted_at", null).order("name"),
+      supabase.from("inventory_items").select("*").eq("category_v2", "ingredient").is("deleted_at", null).order("name"),
       supabase.from("disposable_kits").select("*").is("deleted_at", null).order("target_size"),
       supabase.from("disposable_kit_items").select("*"),
       supabase.from("disposable_items").select("*").is("deleted_at", null),
@@ -82,7 +82,14 @@ function ProductDetailPage() {
     }));
     setFormulas(fs);
     setSizes(((sRows ?? []) as RecipeServingSize[]).map((s) => ({ ...s, size_fl_oz: Number(s.size_fl_oz) })));
-    setIngredients((ingRows ?? []) as Ingredient[]);
+    setIngredients(
+      (ingRows ?? []).map((it) => {
+        const ing = inventoryItemToIngredient(it as never);
+        return Object.assign(ing, {
+          library_code: (it as { library_code: string | null }).library_code ?? null,
+        });
+      }) as Ingredient[],
+    );
     setDispItems((diRows ?? []) as DispItem[]);
     const dkRaw = (kitRows ?? []) as Omit<DispKit, "items">[];
     const kis = (kiRows ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];
@@ -429,7 +436,7 @@ function FormulaEditor({
                     <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
                     <SelectContent>
                       {ingredients.map((it) => (
-                        <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>
+                        <SelectItem key={it.id} value={it.id}>{formatIngredientLabel(it as never)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

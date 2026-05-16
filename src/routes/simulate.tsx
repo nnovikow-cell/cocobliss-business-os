@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/lib/ingredients";
+import { inventoryItemToIngredient } from "@/lib/ingredients";
 import {
   formulaCostForServing, syrupCostForServing, kitCostForServing,
   type RecipeProduct, type RecipeFormula, type RecipeServingSize,
@@ -71,7 +72,7 @@ function SimulatePage() {
         supabase.from("recipe_formulas").select("*").is("deleted_at", null).order("created_at"),
         supabase.from("recipe_formula_ingredients").select("*"),
         supabase.from("recipe_serving_sizes").select("*").order("size_fl_oz"),
-        supabase.from("ingredients").select("*").is("deleted_at", null),
+        supabase.from("inventory_items").select("*").eq("category_v2", "ingredient").is("deleted_at", null),
         supabase.from("disposable_kits").select("*").is("deleted_at", null),
         supabase.from("disposable_kit_items").select("*"),
         supabase.from("disposable_items").select("*").is("deleted_at", null),
@@ -91,7 +92,7 @@ function SimulatePage() {
       setProducts((pRows ?? []) as RecipeProduct[]);
       setFormulas(fs);
       setSizes((sRows ?? []) as RecipeServingSize[]);
-      setIngredients((ingRows ?? []) as Ingredient[]);
+      setIngredients((ingRows ?? []).map((it) => inventoryItemToIngredient(it as never)) as Ingredient[]);
       setKits(dks);
       setDispItems((diRows ?? []) as DispItem[]);
       setSyrups((syRows ?? []) as SyrupLite[]);

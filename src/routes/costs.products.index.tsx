@@ -11,7 +11,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { fmtUSD } from "@/lib/ingredients";
+import { fmtUSD, inventoryItemToIngredient } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
 import {
   totalCOGS,
@@ -55,7 +55,7 @@ function ProductsListPage() {
       supabase.from("recipe_products").select("*").is("deleted_at", null).order("name"),
       supabase.from("recipe_formulas").select("*").is("deleted_at", null),
       supabase.from("recipe_formula_ingredients").select("*"),
-      supabase.from("ingredients").select("*").is("deleted_at", null),
+      supabase.from("inventory_items").select("*").eq("category_v2", "ingredient").is("deleted_at", null),
       supabase.from("recipe_serving_sizes").select("*"),
       supabase.from("disposable_kits").select("*").is("deleted_at", null),
       supabase.from("disposable_kit_items").select("*"),
@@ -64,7 +64,7 @@ function ProductsListPage() {
     ]);
     if (ep) toast.error(ep.message);
 
-    const ings = (ingredients ?? []) as Ingredient[];
+    const ings = (ingredients ?? []).map((it) => inventoryItemToIngredient(it as never)) as Ingredient[];
     const dis = (dispItems ?? []) as DispItem[];
     const dkRaw = (kits ?? []) as Omit<DispKit, "items">[];
     const dki = (kitItems ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];

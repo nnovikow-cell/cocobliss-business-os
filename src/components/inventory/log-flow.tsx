@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import {
   CATEGORY_V2_LABEL, type InventoryCategoryV2, type InventoryItem, type WorkflowTag,
 } from "@/lib/inventory";
-import { QtyStepper } from "./qty-stepper";
 import { EventInstanceSelect } from "./event-instance-select";
 import { cn } from "@/lib/utils";
 
@@ -121,8 +120,10 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
     // Process each selected item
     const sign = kind === "restock" ? 1 : -1;
     for (const it of selected) {
-      const qty = qtyById[it.id]!;
-      const newQty = Math.max(0, Number(it.current_quantity) + sign * qty);
+      const inputQty = qtyById[it.id]!;
+      const pkgSize = it.package_size != null ? Number(it.package_size) : null;
+      const storedQty = pkgSize ? inputQty * pkgSize : inputQty;
+      const newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
       const itemUpdate: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
       if (kind === "restock") itemUpdate.last_restocked_at = new Date().toISOString();
       const { error: e1 } = await supabase.from("inventory_items").update(itemUpdate).eq("id", it.id);
@@ -130,7 +131,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       const { error: e2 } = await supabase.from("inventory_logs").insert({
         item_id: it.id,
         kind,
-        quantity: qty,
+        quantity: storedQty,
         quantity_after: newQty,
         note: note.trim() || null,
         logged_by: user?.id ?? null,
@@ -180,6 +181,10 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                   <ul className="space-y-2">
                     {list.map((it) => {
                       const q = qtyById[it.id] ?? 0;
+                      const pkgSize = it.package_size != null ? Number(it.package_size) : null;
+                      const pkgUnit = it.package_size_unit ?? it.unit;
+                      const pkgType = it.package_type?.trim() || "units";
+                      const total = pkgSize ? q * pkgSize : q;
                       return (
                         <li key={it.id} className={cn("flex items-center justify-between gap-3 rounded-2xl border bg-card p-3", q > 0 && "ring-2 ring-primary/40")}>
                           <div className="min-w-0">
@@ -187,12 +192,31 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                             <p className="text-xs text-muted-foreground">
                               On hand {Number(it.current_quantity)} {it.unit}
                             </p>
+                            {q > 0 && (
+                              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                {pkgSize
+                                  ? `= ${(+total.toFixed(4)).toString()} ${pkgUnit} total`
+                                  : "Package size not set — enter total amount."}
+                              </p>
+                            )}
                           </div>
-                          <QtyStepper
-                            value={q}
-                            unit={it.unit}
-                            onChange={(n) => setQtyById((m) => ({ ...m, [it.id]: n }))}
-                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              value={q === 0 ? "" : String(q)}
+                              onChange={(e) =>
+                                setQtyById((m) => ({ ...m, [it.id]: Math.max(0, Number(e.target.value || 0)) }))
+                              }
+                              placeholder="0"
+                              className="h-9 w-16 rounded-md border bg-background px-2 text-center text-sm font-semibold"
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              × {pkgType}
+                              {pkgSize ? ` (${pkgSize} ${pkgUnit})` : pkgUnit ? ` (${pkgUnit} each)` : ""}
+                            </span>
+                          </div>
                         </li>
                       );
                     })}
@@ -277,8 +301,15 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                 <li key={it.id} className="flex items-center justify-between py-2 text-sm">
                   <span className="font-medium">{it.name}</span>
                   <span>
-                    <span className="font-semibold">{kind === "restock" ? "+" : "−"}{qtyById[it.id]}</span>{" "}
-                    <span className="text-muted-foreground">{it.unit}</span>
+                    <span className="font-semibold">
+                      {kind === "restock" ? "+" : "−"}{qtyById[it.id]}
+                    </span>{" "}
+                    <span className="text-muted-foreground">
+                      × {it.package_type?.trim() || "units"}
+                      {it.package_size != null
+                        ? ` = ${(+(qtyById[it.id]! * Number(it.package_size)).toFixed(4)).toString()} ${it.package_size_unit ?? it.unit}`
+                        : ` ${it.unit}`}
+                    </span>
                   </span>
                 </li>
               ))}
