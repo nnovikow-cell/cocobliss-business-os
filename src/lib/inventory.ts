@@ -16,7 +16,7 @@ export const CATEGORY_V2_LABEL: Record<InventoryCategoryV2, string> = {
   topping: "Topping",
 };
 export const CATEGORY_V2_VALUES: InventoryCategoryV2[] = [
-  "ingredient", "consumable", "disposable", "equipment", "other",
+  "ingredient", "syrup", "consumable", "disposable", "equipment", "other",
 ];
 
 export type WorkflowTag = "production_batch" | "log_event" | "restock" | "all";
