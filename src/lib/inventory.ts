@@ -2,6 +2,7 @@ export type InventoryCategory = "consumable" | "disposable";
 
 export type InventoryCategoryV2 =
   | "ingredient"
+  | "syrup"
   | "consumable"
   | "disposable"
   | "equipment"
