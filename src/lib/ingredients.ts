@@ -165,3 +165,33 @@ export function formatIngredientLabel(
   if (supplier) base += ` (${supplier})`;
   return base;
 }
+
+/* ----------------------------------------------------------------------
+ * Inventory ↔ Syrup adapter
+ *
+ * Syrups live in `inventory_items` where `category_v2 = 'syrup'`. Cost
+ * math expects the legacy `SyrupLite` shape — use this adapter to map
+ * raw inventory rows.
+ * -------------------------------------------------------------------- */
+
+export type SyrupFromInventory = {
+  id: string;
+  name: string;
+  bottle_size: number;   // maps from package_size
+  bottle_price: number;  // maps from price
+  supplier_name: string | null;
+  source_url: string | null;
+};
+
+export function inventoryItemToSyrup(item: RawInventoryItem): SyrupFromInventory {
+  const num = (v: unknown) =>
+    v === null || v === undefined || v === "" ? 0 : Number(v);
+  return {
+    id: item.id,
+    name: item.name,
+    bottle_size: num(item.package_size),
+    bottle_price: num(item.price),
+    supplier_name: item.supplier_name ?? null,
+    source_url: item.purchase_url ?? null,
+  };
+}
