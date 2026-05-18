@@ -9,6 +9,7 @@ export type InventoryCategoryV2 =
   | "topping";
 export const CATEGORY_V2_LABEL: Record<InventoryCategoryV2, string> = {
   ingredient: "Ingredient",
+  syrup: "Syrup",
   consumable: "Consumable",
   disposable: "Disposable",
   equipment: "Equipment",
