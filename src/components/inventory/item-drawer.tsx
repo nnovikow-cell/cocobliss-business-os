@@ -22,11 +22,12 @@ import {
   type IngredientUnit,
 } from "@/lib/ingredients";
 
-type Cat = "ingredient" | "consumable" | "disposable" | "equipment" | "other";
-const CAT_ORDER: Cat[] = ["ingredient", "consumable", "disposable", "equipment", "other"];
+type Cat = "ingredient" | "syrup" | "consumable" | "disposable" | "equipment" | "other";
+const CAT_ORDER: Cat[] = ["ingredient", "syrup", "consumable", "disposable", "equipment", "other"];
 
 const TAGS_BY_CAT: Record<Cat, WorkflowTag[]> = {
   ingredient: ["production_batch", "restock", "log_event", "all"],
+  syrup: ["production_batch", "restock"],
   consumable: ["production_batch", "restock", "log_event", "all"],
   disposable: ["restock", "log_event", "all"],
   equipment: ["all"],
