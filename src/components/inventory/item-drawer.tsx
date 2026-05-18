@@ -191,6 +191,9 @@ export function InventoryItemDrawer({
     if (form.category === "ingredient") {
       return !!(form.package_qty && form.unit_size && form.unit);
     }
+    if (form.category === "syrup") {
+      return !!(form.unit_size && form.unit);
+    }
     if (form.category === "consumable" || form.category === "disposable") {
       return !!form.package_qty;
     }
@@ -200,12 +203,12 @@ export function InventoryItemDrawer({
   const priceForCalc = isEdit ? originalPrice : (form.price ? Number(form.price) : null);
   const costPerUnit = useMemo(() => {
     const p = priceForCalc;
-    const q = Number(form.package_qty);
+    const q = Number(form.package_qty) || (form.category === "syrup" ? 1 : 0);
     if (!p || !q) return null;
     return p / q;
   }, [priceForCalc, form.package_qty]);
   const costPerFlOz = useMemo(() => {
-    if (form.category !== "ingredient") return null;
+    if (form.category !== "ingredient" && form.category !== "syrup") return null;
     const cpu = costPerUnit;
     if (cpu == null) return null;
     const sz = Number(form.unit_size);
