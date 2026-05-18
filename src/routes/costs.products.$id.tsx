@@ -18,7 +18,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { fmtUSD, inventoryItemToIngredient, formatIngredientLabel } from "@/lib/ingredients";
+import { fmtUSD, inventoryItemToIngredient, inventoryItemToSyrup, formatIngredientLabel } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
 import {
   totalCOGS, formulaCostForServing, syrupCostForServing, kitCostForServing,
@@ -67,7 +67,7 @@ function ProductDetailPage() {
       supabase.from("disposable_kits").select("*").is("deleted_at", null).order("target_size"),
       supabase.from("disposable_kit_items").select("*"),
       supabase.from("disposable_items").select("*").is("deleted_at", null),
-      supabase.from("syrups").select("*").is("deleted_at", null).order("name"),
+      supabase.from("inventory_items").select("*").eq("category_v2", "syrup").is("deleted_at", null).order("name"),
     ]);
     if (pErr) toast.error(pErr.message);
     const p = (pRow ?? null) as RecipeProduct | null;
@@ -94,7 +94,12 @@ function ProductDetailPage() {
     const dkRaw = (kitRows ?? []) as Omit<DispKit, "items">[];
     const kis = (kiRows ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];
     setKits(dkRaw.map((k) => ({ ...k, target_size: Number(k.target_size), items: kis.filter((x) => x.kit_id === k.id) })));
-    setSyrups(((syRows ?? []) as SyrupLite[]).map((s) => ({ ...s, bottle_size: Number(s.bottle_size), bottle_price: Number(s.bottle_price) })));
+    setSyrups(
+      (syRows ?? []).map((it) => {
+        const s = inventoryItemToSyrup(it as never);
+        return { id: s.id, name: s.name, bottle_size: s.bottle_size, bottle_price: s.bottle_price } as SyrupLite;
+      }),
+    );
 
     setSelectedFormulaId((prev) => {
       if (prev && fs.some((f) => f.id === prev)) return prev;

@@ -11,7 +11,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { fmtUSD, inventoryItemToIngredient } from "@/lib/ingredients";
+import { fmtUSD, inventoryItemToIngredient, inventoryItemToSyrup } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
 import {
   totalCOGS,
@@ -60,7 +60,7 @@ function ProductsListPage() {
       supabase.from("disposable_kits").select("*").is("deleted_at", null),
       supabase.from("disposable_kit_items").select("*"),
       supabase.from("disposable_items").select("*").is("deleted_at", null),
-      supabase.from("syrups").select("*").is("deleted_at", null),
+      supabase.from("inventory_items").select("*").eq("category_v2", "syrup").is("deleted_at", null),
     ]);
     if (ep) toast.error(ep.message);
 
@@ -69,7 +69,7 @@ function ProductsListPage() {
     const dkRaw = (kits ?? []) as Omit<DispKit, "items">[];
     const dki = (kitItems ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];
     const dks: DispKit[] = dkRaw.map((k) => ({ ...k, items: dki.filter((x) => x.kit_id === k.id) }));
-    const syrs = (syrups ?? []) as SyrupLite[];
+    const syrs = (syrups ?? []).map((it) => inventoryItemToSyrup(it as never)) as SyrupLite[];
 
     const built: ProductCard[] = ((products ?? []) as RecipeProduct[]).map((p) => {
       const activeF = (formulas ?? []).find((f: any) => f.id === p.active_formula_id) as RecipeFormula | undefined;

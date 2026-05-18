@@ -22,11 +22,12 @@ import {
   type IngredientUnit,
 } from "@/lib/ingredients";
 
-type Cat = "ingredient" | "consumable" | "disposable" | "equipment" | "other";
-const CAT_ORDER: Cat[] = ["ingredient", "consumable", "disposable", "equipment", "other"];
+type Cat = "ingredient" | "syrup" | "consumable" | "disposable" | "equipment" | "other";
+const CAT_ORDER: Cat[] = ["ingredient", "syrup", "consumable", "disposable", "equipment", "other"];
 
 const TAGS_BY_CAT: Record<Cat, WorkflowTag[]> = {
   ingredient: ["production_batch", "restock", "log_event", "all"],
+  syrup: ["production_batch", "restock"],
   consumable: ["production_batch", "restock", "log_event", "all"],
   disposable: ["restock", "log_event", "all"],
   equipment: ["all"],
@@ -190,6 +191,9 @@ export function InventoryItemDrawer({
     if (form.category === "ingredient") {
       return !!(form.package_qty && form.unit_size && form.unit);
     }
+    if (form.category === "syrup") {
+      return !!(form.unit_size && form.unit);
+    }
     if (form.category === "consumable" || form.category === "disposable") {
       return !!form.package_qty;
     }
@@ -199,12 +203,12 @@ export function InventoryItemDrawer({
   const priceForCalc = isEdit ? originalPrice : (form.price ? Number(form.price) : null);
   const costPerUnit = useMemo(() => {
     const p = priceForCalc;
-    const q = Number(form.package_qty);
+    const q = Number(form.package_qty) || (form.category === "syrup" ? 1 : 0);
     if (!p || !q) return null;
     return p / q;
   }, [priceForCalc, form.package_qty]);
   const costPerFlOz = useMemo(() => {
-    if (form.category !== "ingredient") return null;
+    if (form.category !== "ingredient" && form.category !== "syrup") return null;
     const cpu = costPerUnit;
     if (cpu == null) return null;
     const sz = Number(form.unit_size);
@@ -330,7 +334,7 @@ export function InventoryItemDrawer({
             </div>
             <div>
               <Label className="mb-1.5 block">Category</Label>
-              <div className="grid grid-cols-5 gap-1 rounded-xl border bg-muted/40 p-1">
+              <div className="grid grid-cols-3 gap-1 rounded-xl border bg-muted/40 p-1 sm:grid-cols-6">
                 {CAT_ORDER.map((c) => (
                   <button
                     key={c}
@@ -363,24 +367,28 @@ export function InventoryItemDrawer({
               </TabsList>
 
               <TabsContent value="details" className="mt-4 grid gap-4">
-                {(form.category === "ingredient" || form.category === "consumable" || form.category === "disposable") && (
+                {(form.category === "ingredient" || form.category === "syrup" || form.category === "consumable" || form.category === "disposable") && (
                   <>
                     <div>
                       <Label>Package type</Label>
                       <Input
                         value={form.package_type}
                         onChange={(e) => set("package_type", e.target.value)}
-                        placeholder={form.category === "disposable" ? 'e.g. "Sleeve", "Case"' : 'e.g. "Can", "Bag", "Bottle"'}
+                        placeholder={
+                          form.category === "disposable" ? 'e.g. "Sleeve", "Case"'
+                          : form.category === "syrup" ? 'e.g. "Bottle"'
+                          : 'e.g. "Can", "Bag", "Bottle"'
+                        }
                       />
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
-                        <Label>Package qty</Label>
+                        <Label>Package qty{form.category === "syrup" ? " (optional)" : ""}</Label>
                         <Input
                           type="number" inputMode="decimal"
                           value={form.package_qty}
                           onChange={(e) => set("package_qty", e.target.value)}
-                          placeholder="units per case"
+                          placeholder={form.category === "syrup" ? "bottles per case (optional)" : "units per case"}
                         />
                       </div>
                       {form.category !== "disposable" && (
@@ -470,7 +478,7 @@ export function InventoryItemDrawer({
                           {costPerUnit != null ? `$${costPerUnit.toFixed(4)}` : "—"}
                         </span>
                       </div>
-                      {form.category === "ingredient" && (
+                      {(form.category === "ingredient" || form.category === "syrup") && (
                         <div className="mt-1 flex justify-between">
                           <span className="text-muted-foreground">Cost per fl oz:</span>
                           <span className="font-semibold">

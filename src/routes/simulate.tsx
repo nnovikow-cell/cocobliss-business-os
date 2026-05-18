@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/lib/ingredients";
-import { inventoryItemToIngredient } from "@/lib/ingredients";
+import { inventoryItemToIngredient, inventoryItemToSyrup } from "@/lib/ingredients";
 import {
   formulaCostForServing, syrupCostForServing, kitCostForServing,
   type RecipeProduct, type RecipeFormula, type RecipeServingSize,
@@ -76,7 +76,7 @@ function SimulatePage() {
         supabase.from("disposable_kits").select("*").is("deleted_at", null),
         supabase.from("disposable_kit_items").select("*"),
         supabase.from("disposable_items").select("*").is("deleted_at", null),
-        supabase.from("syrups").select("*").is("deleted_at", null),
+        supabase.from("inventory_items").select("*").eq("category_v2", "syrup").is("deleted_at", null),
       ]);
       const allFi = (fiRows ?? []) as { formula_id: string; ingredient_id: string; ratio: number }[];
       const fs: FormulaWithIngs[] = ((fRows ?? []) as RecipeFormula[]).map((f) => ({
@@ -95,7 +95,12 @@ function SimulatePage() {
       setIngredients((ingRows ?? []).map((it) => inventoryItemToIngredient(it as never)) as Ingredient[]);
       setKits(dks);
       setDispItems((diRows ?? []) as DispItem[]);
-      setSyrups((syRows ?? []) as SyrupLite[]);
+      setSyrups(
+        (syRows ?? []).map((it) => {
+          const s = inventoryItemToSyrup(it as never);
+          return { id: s.id, name: s.name, bottle_size: s.bottle_size, bottle_price: s.bottle_price } as SyrupLite;
+        }),
+      );
       setLoading(false);
     })();
   }, []);
