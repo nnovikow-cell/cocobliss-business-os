@@ -12,6 +12,7 @@ import {
   Sparkles,
   Users,
   BookOpen,
+  KeyRound,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const items: NavItem[] = [
   { to: "/simulate", label: "Simulate", icon: TrendingUp },
   { to: "/checklist", label: "Pack", icon: ListChecks },
   { to: "/sops", label: "SOPs", icon: BookOpen },
+  { to: "/repository", label: "Repository", icon: KeyRound },
   { to: "/ai", label: "Coco", icon: Sparkles },
 ];
 
