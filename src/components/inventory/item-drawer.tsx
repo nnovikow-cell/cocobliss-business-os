@@ -519,16 +519,16 @@ export function InventoryItemDrawer({
 
                 {form.category === "equipment" && (
                   <>
+                    <div>
+                      <Label>Unit price ($)</Label>
+                      <Input
+                        type="number" inputMode="decimal"
+                        value={form.price}
+                        onChange={(e) => set("price", e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div>
-                        <Label>Unit price ($)</Label>
-                        <Input
-                          type="number" inputMode="decimal"
-                          value={form.price}
-                          onChange={(e) => set("price", e.target.value)}
-                          placeholder="0.00"
-                        />
-                      </div>
                       <div>
                         <Label>Quantity owned</Label>
                         <Input
@@ -537,14 +537,14 @@ export function InventoryItemDrawer({
                           onChange={(e) => set("current_quantity", e.target.value)}
                         />
                       </div>
-                    </div>
-                    <div>
-                      <Label>Par level</Label>
-                      <Input
-                        type="number" inputMode="decimal"
-                        value={form.par_level}
-                        onChange={(e) => set("par_level", e.target.value)}
-                      />
+                      <div>
+                        <Label>Par level</Label>
+                        <Input
+                          type="number" inputMode="decimal"
+                          value={form.par_level}
+                          onChange={(e) => set("par_level", e.target.value)}
+                        />
+                      </div>
                     </div>
                     <div>
                       <Label className="mb-1.5 block">Workflow tags</Label>
