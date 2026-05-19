@@ -19,6 +19,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fmtUSD, inventoryItemToIngredient, inventoryItemToSyrup, formatIngredientLabel } from "@/lib/ingredients";
+// adapter for kit disposables
+import { inventoryItemToDispItem } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
 import {
   totalCOGS, formulaCostForServing, syrupCostForServing, kitCostForServing,
