@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/lib/ingredients";
-import { inventoryItemToIngredient, inventoryItemToSyrup } from "@/lib/ingredients";
+import { inventoryItemToIngredient, inventoryItemToSyrup, inventoryItemToDispItem } from "@/lib/ingredients";
 import {
   formulaCostForServing, syrupCostForServing, kitCostForServing,
   type RecipeProduct, type RecipeFormula, type RecipeServingSize,
@@ -75,7 +75,7 @@ function SimulatePage() {
         supabase.from("inventory_items").select("*").eq("category_v2", "ingredient").is("deleted_at", null),
         supabase.from("disposable_kits").select("*").is("deleted_at", null),
         supabase.from("disposable_kit_items").select("*"),
-        supabase.from("disposable_items").select("*").is("deleted_at", null),
+        supabase.from("inventory_items").select("*").eq("category_v2", "disposable").is("deleted_at", null),
         supabase.from("inventory_items").select("*").eq("category_v2", "syrup").is("deleted_at", null),
       ]);
       const allFi = (fiRows ?? []) as { formula_id: string; ingredient_id: string; ratio: number }[];
@@ -94,7 +94,7 @@ function SimulatePage() {
       setSizes((sRows ?? []) as RecipeServingSize[]);
       setIngredients((ingRows ?? []).map((it) => inventoryItemToIngredient(it as never)) as Ingredient[]);
       setKits(dks);
-      setDispItems((diRows ?? []) as DispItem[]);
+      setDispItems((diRows ?? []).map((it) => inventoryItemToDispItem(it as never)) as unknown as DispItem[]);
       setSyrups(
         (syRows ?? []).map((it) => {
           const s = inventoryItemToSyrup(it as never);
