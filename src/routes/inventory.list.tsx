@@ -111,14 +111,28 @@ function InventoryList() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Search items…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Select value={category} onValueChange={(v) => update({ category: v === "all" ? undefined : v })}>
-            <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {CATEGORY_V2_VALUES.map((c) => <SelectItem key={c} value={c}>{CATEGORY_V2_LABEL[c]}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {(["all", ...CATEGORY_V2_VALUES] as const).map((c) => {
+            const active = category === c;
+            const label = c === "all" ? "All" : CATEGORY_V2_LABEL[c as InventoryCategoryV2];
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => update({ category: c === "all" ? undefined : c })}
+                className={cn(
+                  "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           <Select value={workflow} onValueChange={(v) => update({ workflow: v === "all" ? undefined : v })}>
             <SelectTrigger><SelectValue placeholder="Workflow" /></SelectTrigger>
             <SelectContent>
