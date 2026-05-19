@@ -11,6 +11,7 @@ import {
   CheckSquare,
   Sparkles,
   Users,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const items: NavItem[] = [
   { to: "/products", label: "Products", icon: FlaskConical },
   { to: "/simulate", label: "Simulate", icon: TrendingUp },
   { to: "/checklist", label: "Pack", icon: ListChecks },
+  { to: "/sops", label: "SOPs", icon: BookOpen },
   { to: "/ai", label: "Coco", icon: Sparkles },
 ];
 
