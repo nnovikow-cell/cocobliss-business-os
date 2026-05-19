@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Pencil, Trash2, X, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,11 +31,6 @@ import {
 export const Route = createFileRoute("/products/$id")({ component: ProductDetailPage });
 
 type FormulaWithIngs = RecipeFormula & { ingredients: { id: string; ingredient_id: string; ratio: number }[] };
-
-type IngredientWithMeta = Ingredient & {
-  library_code?: string | null;
-  package_type?: string | null;
-};
 
 function ProductDetailPage() {
   const { id } = Route.useParams();
@@ -89,15 +84,7 @@ function ProductDetailPage() {
     }));
     setFormulas(fs);
     setSizes(((sRows ?? []) as RecipeServingSize[]).map((s) => ({ ...s, size_fl_oz: Number(s.size_fl_oz) })));
-    setIngredients(
-      (ingRows ?? []).map((it) => {
-        const ing = inventoryItemToIngredient(it as never);
-        return Object.assign(ing, {
-          library_code: (it as { library_code: string | null }).library_code ?? null,
-          package_type: (it as { package_type: string | null }).package_type ?? null,
-        });
-      }) as Ingredient[],
-    );
+    setIngredients((ingRows ?? []).map((it) => inventoryItemToIngredient(it as never)) as Ingredient[]);
     setDispItems((diRows ?? []).map((it) => inventoryItemToDispItem(it as never)) as unknown as DispItem[]);
     const dkRaw = (kitRows ?? []) as Omit<DispKit, "items">[];
     const kis = (kiRows ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];
@@ -320,22 +307,6 @@ function ProductDetailPage() {
                 })}
               </TableBody>
             </Table>
-          </div>
-        </section>
-      )}
-
-      {/* Section 4: Produce (production calculator) */}
-      {selectedFormula && selectedFormula.ingredients.length > 0 && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-bold">Produce</h2>
-          <ProduceSection formula={selectedFormula} ingredients={ingredients} />
-        </section>
-      )}
-      {selectedFormula && selectedFormula.ingredients.length === 0 && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-bold">Produce</h2>
-          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-            Set an active formula first to use the production calculator.
           </div>
         </section>
       )}
