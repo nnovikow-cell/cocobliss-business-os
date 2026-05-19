@@ -284,6 +284,48 @@ export type Database = {
           },
         ]
       }
+      credentials: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          password: string | null
+          service_name: string
+          updated_at: string
+          url: string | null
+          username: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          password?: string | null
+          service_name: string
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          password?: string | null
+          service_name?: string
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       demographic_options: {
         Row: {
           category: string
