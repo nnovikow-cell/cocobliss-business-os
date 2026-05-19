@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as SopsRouteImport } from './routes/sops'
 import { Route as SimulateRouteImport } from './routes/simulate'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as MeetingsRouteImport } from './routes/meetings'
@@ -42,6 +43,11 @@ import { Route as EventsInstanceInstanceIdRouteImport } from './routes/events.in
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SopsRoute = SopsRouteImport.update({
+  id: '/sops',
+  path: '/sops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SimulateRoute = SimulateRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
+  '/sops': typeof SopsRoute
   '/tasks': typeof TasksRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/checklist/settings': typeof ChecklistSettingsRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByTo {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
+  '/sops': typeof SopsRoute
   '/tasks': typeof TasksRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/checklist/settings': typeof ChecklistSettingsRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
+  '/sops': typeof SopsRoute
   '/tasks': typeof TasksRoute
   '/checklist/$sessionId': typeof ChecklistSessionIdRoute
   '/checklist/settings': typeof ChecklistSettingsRoute
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/simulate'
+    | '/sops'
     | '/tasks'
     | '/checklist/$sessionId'
     | '/checklist/settings'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/simulate'
+    | '/sops'
     | '/tasks'
     | '/checklist/$sessionId'
     | '/checklist/settings'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/settings'
     | '/simulate'
+    | '/sops'
     | '/tasks'
     | '/checklist/$sessionId'
     | '/checklist/settings'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
   SimulateRoute: typeof SimulateRoute
+  SopsRoute: typeof SopsRoute
   TasksRoute: typeof TasksRoute
   ChecklistSessionIdRoute: typeof ChecklistSessionIdRoute
   ChecklistSettingsRoute: typeof ChecklistSettingsRoute
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sops': {
+      id: '/sops'
+      path: '/sops'
+      fullPath: '/sops'
+      preLoaderRoute: typeof SopsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/simulate': {
@@ -635,6 +655,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
   SimulateRoute: SimulateRoute,
+  SopsRoute: SopsRoute,
   TasksRoute: TasksRoute,
   ChecklistSessionIdRoute: ChecklistSessionIdRoute,
   ChecklistSettingsRoute: ChecklistSettingsRoute,
@@ -657,3 +678,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
