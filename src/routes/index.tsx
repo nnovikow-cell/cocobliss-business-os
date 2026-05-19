@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen, KeyRound } from "lucide-react";
+import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen, KeyRound, LayoutGrid, List as ListIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,18 @@ const modules = [
 
 function Index() {
   const { user, signOut } = useAuth();
+  const [view, setView] = useState<"cards" | "list">("cards");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cocobliss_hub_view");
+    if (saved === "cards" || saved === "list") setView(saved);
+  }, []);
+
+  const toggleView = () => {
+    const next = view === "cards" ? "list" : "cards";
+    setView(next);
+    localStorage.setItem("cocobliss_hub_view", next);
+  };
   return (
     <AppShell>
       <header className="mb-6 flex items-start justify-between">
@@ -31,6 +44,9 @@ function Index() {
           <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
         </div>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={toggleView} aria-label="Toggle view">
+            {view === "cards" ? <ListIcon className="h-5 w-5" /> : <LayoutGrid className="h-5 w-5" />}
+          </Button>
           <Link to="/settings" className="rounded-full p-2 hover:bg-muted" aria-label="Settings">
             <SettingsIcon className="h-5 w-5" />
           </Link>
@@ -48,6 +64,7 @@ function Index() {
          <h2 className="mt-1 text-2xl font-bold">Hey! Let's fucking make the greatest beverage brand today.</h2>
       </div>
 
+      {view === "cards" ? (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {modules.map((m) => {
           const Icon = m.icon;
@@ -80,6 +97,40 @@ function Index() {
           );
         })}
       </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {modules.map((m) => {
+            const Icon = m.icon;
+            const row = (
+              <div
+                className={`flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all ${
+                  m.active ? "hover:border-primary" : "opacity-60"
+                }`}
+              >
+                <div className="rounded-lg bg-secondary p-2">
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground">{m.title}</h3>
+                    {!m.active && (
+                      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Soon
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] leading-snug text-muted-foreground">{m.desc}</p>
+                </div>
+              </div>
+            );
+            return m.active ? (
+              <Link key={m.to} to={m.to as "/sales"} className="block">{row}</Link>
+            ) : (
+              <div key={m.to}>{row}</div>
+            );
+          })}
+        </div>
+      )}
     </AppShell>
   );
 }
