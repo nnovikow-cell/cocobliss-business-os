@@ -319,6 +319,22 @@ function ProductDetailPage() {
         </section>
       )}
 
+      {/* Section 4: Produce (production calculator) */}
+      {selectedFormula && selectedFormula.ingredients.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-bold">Produce</h2>
+          <ProduceSection formula={selectedFormula} ingredients={ingredients} />
+        </section>
+      )}
+      {selectedFormula && selectedFormula.ingredients.length === 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-bold">Produce</h2>
+          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            Set an active formula first to use the production calculator.
+          </div>
+        </section>
+      )}
+
       <NewVersionSheet
         open={newVersionOpen}
         onOpenChange={setNewVersionOpen}
