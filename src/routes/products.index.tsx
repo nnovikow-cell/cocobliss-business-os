@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, MoreVertical, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { fmtUSD, inventoryItemToIngredient, inventoryItemToSyrup, inventoryItemToDispItem } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
@@ -38,6 +45,8 @@ function ProductsListPage() {
   const [cards, setCards] = useState<ProductCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ProductCard | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   const load = async () => {
@@ -118,6 +127,26 @@ function ProductsListPage() {
     navigate({ to: "/products/$id", params: { id: data.id } });
   };
 
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    const now = new Date().toISOString();
+    const { error: pe } = await supabase
+      .from("recipe_products")
+      .update({ deleted_at: now })
+      .eq("id", pendingDelete.id);
+    if (pe) { toast.error(pe.message); setDeleting(false); return; }
+    const { error: fe } = await supabase
+      .from("recipe_formulas")
+      .update({ deleted_at: now })
+      .eq("product_id", pendingDelete.id);
+    if (fe) { toast.error(fe.message); setDeleting(false); return; }
+    toast.success("Product deleted");
+    setPendingDelete(null);
+    setDeleting(false);
+    await load();
+  };
+
   return (
     <AppShell>
       <header className="mb-4">
@@ -147,29 +176,47 @@ function ProductsListPage() {
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {cards.map((c) => (
-                <Link
-                  key={c.id}
-                  to="/products/$id"
-                  params={{ id: c.id }}
-                  className="group rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
-                >
-                  <div className="text-base font-bold tracking-tight">{c.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {c.activeFormulaName ? `Active: ${c.activeFormulaName}` : "No active formula"}
-                  </div>
-                  <div className="mt-3 flex items-end justify-between">
-                    <div className="text-xs text-muted-foreground">
-                      {c.servingCount} serving{c.servingCount === 1 ? "" : "s"}
+                <div key={c.id} className="group relative rounded-2xl border border-border bg-card transition-colors hover:border-primary/40">
+                  <Link
+                    to="/products/$id"
+                    params={{ id: c.id }}
+                    className="block p-4 pr-12"
+                  >
+                    <div className="text-base font-bold tracking-tight">{c.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {c.activeFormulaName ? `Active: ${c.activeFormulaName}` : "No active formula"}
                     </div>
-                    <div className="text-sm font-semibold">
-                      {c.costMin == null
-                        ? "—"
-                        : c.costMin === c.costMax
-                        ? fmtUSD(c.costMin)
-                        : `${fmtUSD(c.costMin)} – ${fmtUSD(c.costMax)}`}
+                    <div className="mt-3 flex items-end justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        {c.servingCount} serving{c.servingCount === 1 ? "" : "s"}
+                      </div>
+                      <div className="text-sm font-semibold">
+                        {c.costMin == null
+                          ? "—"
+                          : c.costMin === c.costMax
+                          ? fmtUSD(c.costMin)
+                          : `${fmtUSD(c.costMin)} – ${fmtUSD(c.costMax)}`}
+                      </div>
                     </div>
+                  </Link>
+                  <div className="absolute right-2 top-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setPendingDelete(c)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -181,6 +228,27 @@ function ProductsListPage() {
       </Tabs>
 
       <NewProductSheet open={open} onOpenChange={setOpen} onCreate={create} />
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{pendingDelete?.name}" and all of its formulas will be removed. This can be restored from the database if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
