@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen } from "lucide-react";
+import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen, KeyRound } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ const modules = [
   { to: "/inventory", title: "Inventory", desc: "Consumables and disposables, par-level tracking.", icon: Boxes, active: true, primary: true },
   { to: "/checklist", title: "Event Checklist", desc: "Pack the van. Track who has what.", icon: ListChecks, active: true, primary: true },
   { to: "/sops", title: "SOPs", desc: "Standard procedures for production, events, and ops.", icon: BookOpen, active: true, primary: false },
+  { to: "/repository", title: "Repository", desc: "Accounts, passwords, and credentials by category.", icon: KeyRound, active: true, primary: false },
   { to: "/products", title: "Products", desc: "Build formulas, version recipes, cost per serving.", icon: FlaskConical, active: true, primary: false },
   { to: "/simulate", title: "Simulate", desc: "What-if profit, margin, and break-even scenarios.", icon: TrendingUp, active: true, primary: false },
   { to: "/ai", title: "Coco", desc: "Ask questions, get insights across your business.", icon: Sparkles, active: false, primary: false },

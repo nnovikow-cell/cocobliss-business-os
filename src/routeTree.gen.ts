@@ -13,6 +13,7 @@ import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as SopsRouteImport } from './routes/sops'
 import { Route as SimulateRouteImport } from './routes/simulate'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RepositoryRouteImport } from './routes/repository'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EventsRouteImport } from './routes/events'
@@ -58,6 +59,11 @@ const SimulateRoute = SimulateRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RepositoryRoute = RepositoryRouteImport.update({
+  id: '/repository',
+  path: '/repository',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeetingsRoute = MeetingsRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
   '/sops': typeof SopsRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
   '/sops': typeof SopsRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
+  '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/simulate': typeof SimulateRoute
   '/sops': typeof SopsRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/login'
     | '/meetings'
+    | '/repository'
     | '/settings'
     | '/simulate'
     | '/sops'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/meetings'
+    | '/repository'
     | '/settings'
     | '/simulate'
     | '/sops'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/login'
     | '/meetings'
+    | '/repository'
     | '/settings'
     | '/simulate'
     | '/sops'
@@ -391,6 +403,7 @@ export interface RootRouteChildren {
   EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
+  RepositoryRoute: typeof RepositoryRoute
   SettingsRoute: typeof SettingsRoute
   SimulateRoute: typeof SimulateRoute
   SopsRoute: typeof SopsRoute
@@ -442,6 +455,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repository': {
+      id: '/repository'
+      path: '/repository'
+      fullPath: '/repository'
+      preLoaderRoute: typeof RepositoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meetings': {
@@ -653,6 +673,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
+  RepositoryRoute: RepositoryRoute,
   SettingsRoute: SettingsRoute,
   SimulateRoute: SimulateRoute,
   SopsRoute: SopsRoute,
