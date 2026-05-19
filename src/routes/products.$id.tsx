@@ -68,7 +68,7 @@ function ProductDetailPage() {
       supabase.from("inventory_items").select("*").eq("category_v2", "ingredient").is("deleted_at", null).order("name"),
       supabase.from("disposable_kits").select("*").is("deleted_at", null).order("target_size"),
       supabase.from("disposable_kit_items").select("*"),
-      supabase.from("disposable_items").select("*").is("deleted_at", null),
+      supabase.from("inventory_items").select("*").eq("category_v2", "disposable").is("deleted_at", null),
       supabase.from("inventory_items").select("*").eq("category_v2", "syrup").is("deleted_at", null).order("name"),
     ]);
     if (pErr) toast.error(pErr.message);
@@ -122,7 +122,7 @@ function ProductDetailPage() {
       <AppShell>
         <div className="p-10 text-center">
           <p className="text-sm font-semibold">Product not found.</p>
-          <Link to="/costs/products" className="mt-2 inline-block text-sm text-primary">Back to products</Link>
+          <Link to="/products" className="mt-2 inline-block text-sm text-primary">Back to products</Link>
         </div>
       </AppShell>
     );
@@ -138,7 +138,7 @@ function ProductDetailPage() {
   return (
     <AppShell>
       <header className="mb-4">
-        <Link to="/costs/products" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+        <Link to="/products" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3 w-3" />Back to Products
         </Link>
         <h1 className="text-2xl font-black tracking-tight">{product.name}</h1>
