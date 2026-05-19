@@ -19,6 +19,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fmtUSD, inventoryItemToIngredient, inventoryItemToSyrup, formatIngredientLabel } from "@/lib/ingredients";
+// adapter for kit disposables
+import { inventoryItemToDispItem } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
 import {
   totalCOGS, formulaCostForServing, syrupCostForServing, kitCostForServing,
@@ -26,7 +28,7 @@ import {
   type DispItem, type DispKit, type SyrupLite,
 } from "@/lib/products";
 
-export const Route = createFileRoute("/costs/products/$id")({ component: ProductDetailPage });
+export const Route = createFileRoute("/products/$id")({ component: ProductDetailPage });
 
 type FormulaWithIngs = RecipeFormula & { ingredients: { id: string; ingredient_id: string; ratio: number }[] };
 
@@ -66,7 +68,7 @@ function ProductDetailPage() {
       supabase.from("inventory_items").select("*").eq("category_v2", "ingredient").is("deleted_at", null).order("name"),
       supabase.from("disposable_kits").select("*").is("deleted_at", null).order("target_size"),
       supabase.from("disposable_kit_items").select("*"),
-      supabase.from("disposable_items").select("*").is("deleted_at", null),
+      supabase.from("inventory_items").select("*").eq("category_v2", "disposable").is("deleted_at", null),
       supabase.from("inventory_items").select("*").eq("category_v2", "syrup").is("deleted_at", null).order("name"),
     ]);
     if (pErr) toast.error(pErr.message);
@@ -90,7 +92,7 @@ function ProductDetailPage() {
         });
       }) as Ingredient[],
     );
-    setDispItems((diRows ?? []) as DispItem[]);
+    setDispItems((diRows ?? []).map((it) => inventoryItemToDispItem(it as never)) as unknown as DispItem[]);
     const dkRaw = (kitRows ?? []) as Omit<DispKit, "items">[];
     const kis = (kiRows ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];
     setKits(dkRaw.map((k) => ({ ...k, target_size: Number(k.target_size), items: kis.filter((x) => x.kit_id === k.id) })));
@@ -120,7 +122,7 @@ function ProductDetailPage() {
       <AppShell>
         <div className="p-10 text-center">
           <p className="text-sm font-semibold">Product not found.</p>
-          <Link to="/costs/products" className="mt-2 inline-block text-sm text-primary">Back to products</Link>
+          <Link to="/products" className="mt-2 inline-block text-sm text-primary">Back to products</Link>
         </div>
       </AppShell>
     );
@@ -136,7 +138,7 @@ function ProductDetailPage() {
   return (
     <AppShell>
       <header className="mb-4">
-        <Link to="/costs/products" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+        <Link to="/products" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3 w-3" />Back to Products
         </Link>
         <h1 className="text-2xl font-black tracking-tight">{product.name}</h1>
@@ -655,7 +657,7 @@ function ServingSizeSheet({
               <SelectContent>
                 <SelectItem value="__none">None</SelectItem>
                 {syrups.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>{formatIngredientLabel(s as never)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

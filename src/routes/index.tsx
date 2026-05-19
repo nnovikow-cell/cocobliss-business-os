@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Receipt, Boxes, Calculator, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, Package, TrendingUp, CheckSquare, Sparkles } from "lucide-react";
+import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,9 @@ const modules = [
   { to: "/sales", title: "Sales Tracker", desc: "Live market sessions, fast logging, real-time revenue.", icon: Receipt, active: true, primary: true },
   { to: "/inventory", title: "Inventory", desc: "Consumables and disposables, par-level tracking.", icon: Boxes, active: true, primary: true },
   { to: "/checklist", title: "Event Checklist", desc: "Pack the van. Track who has what.", icon: ListChecks, active: true, primary: true },
-  { to: "/costs", title: "Cost Calculator", desc: "Ingredients, recipes, COGS, margins.", icon: Calculator, active: true, primary: false },
-  { to: "/costs/products", title: "Products", desc: "Build formulas, version recipes, cost per serving.", icon: Package, active: true, primary: false },
+  { to: "/products", title: "Products", desc: "Build formulas, version recipes, cost per serving.", icon: FlaskConical, active: true, primary: false },
   { to: "/simulate", title: "Simulate", desc: "What-if profit, margin, and break-even scenarios.", icon: TrendingUp, active: true, primary: false },
-  { to: "/coco-ai", title: "Coco AI", desc: "Ask questions, get insights across your business.", icon: Sparkles, active: false, primary: false },
+  { to: "/ai", title: "Coco", desc: "Ask questions, get insights across your business.", icon: Sparkles, active: false, primary: false },
 ];
 
 function Index() {

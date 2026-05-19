@@ -7,24 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { fmtUSD, inventoryItemToIngredient, inventoryItemToSyrup } from "@/lib/ingredients";
+import { fmtUSD, inventoryItemToIngredient, inventoryItemToSyrup, inventoryItemToDispItem } from "@/lib/ingredients";
 import type { Ingredient } from "@/lib/ingredients";
 import {
   totalCOGS,
   type RecipeProduct,
   type RecipeFormula,
-  type RecipeFormulaIngredient,
   type RecipeServingSize,
   type DispItem,
   type DispKit,
   type SyrupLite,
 } from "@/lib/products";
+import { KitsLibrary } from "@/components/products/kits-library";
 
-export const Route = createFileRoute("/costs/products/")({ component: ProductsListPage });
+export const Route = createFileRoute("/products/")({ component: ProductsListPage });
 
 type ProductCard = RecipeProduct & {
   activeFormulaName: string | null;
@@ -59,13 +60,13 @@ function ProductsListPage() {
       supabase.from("recipe_serving_sizes").select("*"),
       supabase.from("disposable_kits").select("*").is("deleted_at", null),
       supabase.from("disposable_kit_items").select("*"),
-      supabase.from("disposable_items").select("*").is("deleted_at", null),
+      supabase.from("inventory_items").select("*").eq("category_v2", "disposable").is("deleted_at", null),
       supabase.from("inventory_items").select("*").eq("category_v2", "syrup").is("deleted_at", null),
     ]);
     if (ep) toast.error(ep.message);
 
     const ings = (ingredients ?? []).map((it) => inventoryItemToIngredient(it as never)) as Ingredient[];
-    const dis = (dispItems ?? []) as DispItem[];
+    const dis = (dispItems ?? []).map((it) => inventoryItemToDispItem(it as never)) as DispItem[];
     const dkRaw = (kits ?? []) as Omit<DispKit, "items">[];
     const dki = (kitItems ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];
     const dks: DispKit[] = dkRaw.map((k) => ({ ...k, items: dki.filter((x) => x.kit_id === k.id) }));
@@ -114,58 +115,70 @@ function ProductsListPage() {
     if (error || !data) { toast.error(error?.message ?? "Failed"); return; }
     toast.success("Product created");
     setOpen(false);
-    navigate({ to: "/costs/products/$id", params: { id: data.id } });
+    navigate({ to: "/products/$id", params: { id: data.id } });
   };
 
   return (
     <AppShell>
-      <header className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <Link to="/costs" className="text-xs font-semibold text-muted-foreground hover:text-foreground">← Back to Costs</Link>
-          <h1 className="text-2xl font-black tracking-tight">Products</h1>
-          <p className="text-sm text-muted-foreground">Build, version, and cost out formulas.</p>
-        </div>
-        <Button onClick={() => setOpen(true)} size="sm">
-          <Plus className="mr-1 h-4 w-4" />New Product
-        </Button>
+      <header className="mb-4">
+        <h1 className="text-2xl font-black tracking-tight">Products</h1>
+        <p className="text-sm text-muted-foreground">Build, version, and cost out formulas — plus the kits they ship in.</p>
       </header>
 
-      {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">Loading…</div>
-      ) : cards.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center">
-          <p className="text-sm font-semibold">No products yet.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Create your first one.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {cards.map((c) => (
-            <Link
-              key={c.id}
-              to="/costs/products/$id"
-              params={{ id: c.id }}
-              className="group rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
-            >
-              <div className="text-base font-bold tracking-tight">{c.name}</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {c.activeFormulaName ? `Active: ${c.activeFormulaName}` : "No active formula"}
-              </div>
-              <div className="mt-3 flex items-end justify-between">
-                <div className="text-xs text-muted-foreground">
-                  {c.servingCount} serving{c.servingCount === 1 ? "" : "s"}
-                </div>
-                <div className="text-sm font-semibold">
-                  {c.costMin == null
-                    ? "—"
-                    : c.costMin === c.costMax
-                    ? fmtUSD(c.costMin)
-                    : `${fmtUSD(c.costMin)} – ${fmtUSD(c.costMax)}`}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <Tabs defaultValue="products" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-sm">
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="kits">Kits</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products" className="mt-4">
+          <div className="mb-3 flex items-center justify-end">
+            <Button onClick={() => setOpen(true)} size="sm">
+              <Plus className="mr-1 h-4 w-4" />New Product
+            </Button>
+          </div>
+          {loading ? (
+            <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : cards.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-10 text-center">
+              <p className="text-sm font-semibold">No products yet.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Create your first one.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {cards.map((c) => (
+                <Link
+                  key={c.id}
+                  to="/products/$id"
+                  params={{ id: c.id }}
+                  className="group rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+                >
+                  <div className="text-base font-bold tracking-tight">{c.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {c.activeFormulaName ? `Active: ${c.activeFormulaName}` : "No active formula"}
+                  </div>
+                  <div className="mt-3 flex items-end justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      {c.servingCount} serving{c.servingCount === 1 ? "" : "s"}
+                    </div>
+                    <div className="text-sm font-semibold">
+                      {c.costMin == null
+                        ? "—"
+                        : c.costMin === c.costMax
+                        ? fmtUSD(c.costMin)
+                        : `${fmtUSD(c.costMin)} – ${fmtUSD(c.costMax)}`}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="kits" className="mt-4">
+          <KitsLibrary />
+        </TabsContent>
+      </Tabs>
 
       <NewProductSheet open={open} onOpenChange={setOpen} onCreate={create} />
     </AppShell>

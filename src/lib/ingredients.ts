@@ -195,3 +195,29 @@ export function inventoryItemToSyrup(item: RawInventoryItem): SyrupFromInventory
     source_url: item.purchase_url ?? null,
   };
 }
+
+/* ----------------------------------------------------------------------
+ * Inventory ↔ Disposable Item adapter (for Kits)
+ * -------------------------------------------------------------------- */
+
+export type DispItemFromInventory = {
+  id: string;
+  name: string;
+  package_qty: number;
+  package_price: number;
+  library_code: string | null;
+  supplier_name: string | null;
+};
+
+export function inventoryItemToDispItem(item: RawInventoryItem): DispItemFromInventory {
+  const num = (v: unknown) =>
+    v === null || v === undefined || v === "" ? 0 : Number(v);
+  return {
+    id: item.id,
+    name: item.name,
+    package_qty: num(item.package_qty),
+    package_price: num(item.price),
+    library_code: item.library_code ?? null,
+    supplier_name: item.supplier_name ?? null,
+  };
+}

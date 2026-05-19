@@ -4,12 +4,12 @@ import {
   LayoutGrid,
   Receipt,
   Boxes,
-  Calculator,
   ListChecks,
   CalendarDays,
   FlaskConical,
   TrendingUp,
   CheckSquare,
+  Sparkles,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -22,10 +22,10 @@ const items: NavItem[] = [
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
-  { to: "/costs", label: "Costs", icon: Calculator },
-  { to: "/costs/products", label: "Products", icon: FlaskConical },
+  { to: "/products", label: "Products", icon: FlaskConical },
   { to: "/simulate", label: "Simulate", icon: TrendingUp },
   { to: "/checklist", label: "Pack", icon: ListChecks },
+  { to: "/ai", label: "Coco", icon: Sparkles },
 ];
 
 export function SideNav({
