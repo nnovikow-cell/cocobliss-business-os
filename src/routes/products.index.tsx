@@ -31,6 +31,7 @@ import {
   type SyrupLite,
 } from "@/lib/products";
 import { KitsLibrary } from "@/components/products/kits-library";
+import { ProduceCalculator } from "@/components/products/produce-calculator";
 
 export const Route = createFileRoute("/products/")({ component: ProductsListPage });
 
@@ -155,9 +156,10 @@ function ProductsListPage() {
       </header>
 
       <Tabs defaultValue="products" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-sm">
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="kits">Kits</TabsTrigger>
+          <TabsTrigger value="produce">Produce</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products" className="mt-4">
@@ -224,6 +226,10 @@ function ProductsListPage() {
 
         <TabsContent value="kits" className="mt-4">
           <KitsLibrary />
+        </TabsContent>
+
+        <TabsContent value="produce" className="mt-4">
+          <ProduceCalculator />
         </TabsContent>
       </Tabs>
 
