@@ -10,6 +10,7 @@ import {
   TrendingUp,
   CheckSquare,
   Sparkles,
+  Users,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const items: NavItem[] = [
   { to: "/", label: "Hub", icon: LayoutGrid, exact: true },
   { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/meetings", label: "Meetings", icon: Users },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/products", label: "Products", icon: FlaskConical },
