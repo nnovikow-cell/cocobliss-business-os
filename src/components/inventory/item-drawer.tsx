@@ -206,17 +206,19 @@ export function InventoryItemDrawer({
     const q = Number(form.package_qty) || (form.category === "syrup" ? 1 : 0);
     if (!p || !q) return null;
     return p / q;
-  }, [priceForCalc, form.package_qty]);
+  }, [priceForCalc, form.package_qty, form.category]);
   const costPerFlOz = useMemo(() => {
     if (form.category !== "ingredient" && form.category !== "syrup") return null;
-    const cpu = costPerUnit;
-    if (cpu == null) return null;
+    const p = priceForCalc;
+    if (!p) return null;
+    const q = Number(form.package_qty) || (form.category === "syrup" ? 1 : 0);
+    if (!q) return null;
     const sz = Number(form.unit_size);
     if (!sz) return null;
     const flOz = itemToFlOz(sz, form.unit as IngredientUnit, form.density ? Number(form.density) : null);
     if (!flOz) return null;
-    return cpu / flOz;
-  }, [costPerUnit, form.unit_size, form.unit, form.density, form.category]);
+    return p / (q * flOz);
+  }, [priceForCalc, form.package_qty, form.unit_size, form.unit, form.density, form.category]);
 
   const toggleTag = (t: WorkflowTag) => {
     setForm((f) => ({
@@ -393,7 +395,7 @@ export function InventoryItemDrawer({
                       </div>
                       {form.category !== "disposable" && (
                         <div>
-                          <Label>Unit size{form.category === "consumable" ? " (optional)" : ""}</Label>
+                          <Label>Unit size (per item){form.category === "consumable" ? " (optional)" : ""}</Label>
                           <Input
                             type="number" inputMode="decimal"
                             value={form.unit_size}
@@ -403,6 +405,12 @@ export function InventoryItemDrawer({
                         </div>
                       )}
                     </div>
+                    {form.package_qty && form.unit_size && form.category !== "disposable" && (
+                      <p className="-mt-2 text-xs text-muted-foreground">
+                        {form.package_qty} × {form.unit_size} {form.unit} ={" "}
+                        {(Number(form.package_qty) * Number(form.unit_size)).toLocaleString(undefined, { maximumFractionDigits: 4 })} {form.unit} total
+                      </p>
+                    )}
                     {form.category !== "disposable" && (
                       <div>
                         <Label>Unit</Label>
@@ -471,6 +479,25 @@ export function InventoryItemDrawer({
                       onConfirm={confirmPriceUpdate}
                     />
 
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <Label>Quantity owned</Label>
+                        <Input
+                          type="number" inputMode="decimal"
+                          value={form.current_quantity}
+                          onChange={(e) => set("current_quantity", e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Par level</Label>
+                        <Input
+                          type="number" inputMode="decimal"
+                          value={form.par_level}
+                          onChange={(e) => set("par_level", e.target.value)}
+                        />
+                      </div>
+                    </div>
+
                     <div className="rounded-xl border bg-muted/40 p-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Cost per unit:</span>
@@ -510,6 +537,14 @@ export function InventoryItemDrawer({
                           onChange={(e) => set("current_quantity", e.target.value)}
                         />
                       </div>
+                    </div>
+                    <div>
+                      <Label>Par level</Label>
+                      <Input
+                        type="number" inputMode="decimal"
+                        value={form.par_level}
+                        onChange={(e) => set("par_level", e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label className="mb-1.5 block">Workflow tags</Label>
