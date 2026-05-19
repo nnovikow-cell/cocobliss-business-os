@@ -89,6 +89,7 @@ function ProductDetailPage() {
         const ing = inventoryItemToIngredient(it as never);
         return Object.assign(ing, {
           library_code: (it as { library_code: string | null }).library_code ?? null,
+          package_type: (it as { package_type: string | null }).package_type ?? null,
         });
       }) as Ingredient[],
     );
