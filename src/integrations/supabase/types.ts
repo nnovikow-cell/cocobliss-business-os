@@ -377,7 +377,7 @@ export type Database = {
             foreignKeyName: "disposable_kit_items_disposable_item_id_fkey"
             columns: ["disposable_item_id"]
             isOneToOne: false
-            referencedRelation: "disposable_items"
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
           {
