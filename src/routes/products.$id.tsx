@@ -92,7 +92,7 @@ function ProductDetailPage() {
         });
       }) as Ingredient[],
     );
-    setDispItems((diRows ?? []) as DispItem[]);
+    setDispItems((diRows ?? []).map((it) => inventoryItemToDispItem(it as never)) as unknown as DispItem[]);
     const dkRaw = (kitRows ?? []) as Omit<DispKit, "items">[];
     const kis = (kiRows ?? []) as { kit_id: string; disposable_item_id: string; qty: number }[];
     setKits(dkRaw.map((k) => ({ ...k, target_size: Number(k.target_size), items: kis.filter((x) => x.kit_id === k.id) })));
@@ -657,7 +657,7 @@ function ServingSizeSheet({
               <SelectContent>
                 <SelectItem value="__none">None</SelectItem>
                 {syrups.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>{formatIngredientLabel(s as never)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
