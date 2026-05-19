@@ -1035,7 +1035,7 @@ export type Database = {
             foreignKeyName: "recipe_formula_ingredients_ingredient_id_fkey"
             columns: ["ingredient_id"]
             isOneToOne: false
-            referencedRelation: "ingredients"
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1161,7 +1161,7 @@ export type Database = {
             foreignKeyName: "recipe_serving_sizes_syrup_id_fkey"
             columns: ["syrup_id"]
             isOneToOne: false
-            referencedRelation: "syrups"
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
