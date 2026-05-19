@@ -872,6 +872,51 @@ export type Database = {
           },
         ]
       }
+      meetings: {
+        Row: {
+          action_items: Json
+          attendee_ids: string[]
+          attendee_names_snapshot: string[]
+          created_at: string
+          created_by: string | null
+          decisions: Json
+          deleted_at: string | null
+          id: string
+          meeting_date: string
+          next_meeting_topics: string | null
+          topics_discussed: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_items?: Json
+          attendee_ids?: string[]
+          attendee_names_snapshot?: string[]
+          created_at?: string
+          created_by?: string | null
+          decisions?: Json
+          deleted_at?: string | null
+          id?: string
+          meeting_date: string
+          next_meeting_topics?: string | null
+          topics_discussed?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_items?: Json
+          attendee_ids?: string[]
+          attendee_names_snapshot?: string[]
+          created_at?: string
+          created_by?: string | null
+          decisions?: Json
+          deleted_at?: string | null
+          id?: string
+          meeting_date?: string
+          next_meeting_topics?: string | null
+          topics_discussed?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       paleta_flavor_upgrades: {
         Row: {
           created_at: string
