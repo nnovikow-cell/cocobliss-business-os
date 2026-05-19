@@ -32,6 +32,11 @@ export const Route = createFileRoute("/products/$id")({ component: ProductDetail
 
 type FormulaWithIngs = RecipeFormula & { ingredients: { id: string; ingredient_id: string; ratio: number }[] };
 
+type IngredientWithMeta = Ingredient & {
+  library_code?: string | null;
+  package_type?: string | null;
+};
+
 function ProductDetailPage() {
   const { id } = Route.useParams();
   const [product, setProduct] = useState<RecipeProduct | null>(null);
