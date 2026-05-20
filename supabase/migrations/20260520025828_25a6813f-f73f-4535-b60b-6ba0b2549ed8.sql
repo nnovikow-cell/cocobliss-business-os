@@ -1,0 +1,1 @@
+alter table public.inventory_log_batches add column if not exists shipping_cost numeric;
