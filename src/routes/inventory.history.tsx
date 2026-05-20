@@ -82,6 +82,7 @@ function InventoryHistory() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [confirmLog, setConfirmLog] = useState<LogRow | null>(null);
   const [view, setView] = useState<"list" | "graph">("list");
   const [items, setItems] = useState<ItemMeta[]>([]);
@@ -226,6 +227,14 @@ function InventoryHistory() {
     });
   }, [logs, q, kind]);
 
+  const sorted = useMemo(() =>
+    [...filtered].sort((a, b) =>
+      sortOrder === "asc"
+        ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        : new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ),
+  [filtered, sortOrder]);
+
   const doRevert = async (log: LogRow) => {
     // fetch latest item qty
     const { data: item, error: e0 } = await supabase
@@ -298,19 +307,42 @@ function InventoryHistory() {
             );
           })}
         </div>
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {([
+            { value: "desc", label: "Newest first" },
+            { value: "asc", label: "Oldest first" },
+          ] as const).map((s) => {
+            const active = sortOrder === s.value;
+            return (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => setSortOrder(s.value)}
+                className={cn(
+                  "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted/50" />)}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
           No logs yet.
         </div>
       ) : (
         <ul className="space-y-2">
-          {filtered.map((log) => {
+          {sorted.map((log) => {
             const meta = KIND_META[log.kind] ?? KIND_META.use;
             const item = log.inventory_items;
             const unit = item?.unit ?? "";
