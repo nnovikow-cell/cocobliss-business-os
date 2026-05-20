@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, MoreVertical, Pencil, Trash2, FileText, CheckCircle2 } from "lucide-react";
+import { Plus, MoreVertical, Pencil, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -239,8 +239,6 @@ function InvoicesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Avoid unused import warning */}
-      <FileText className="hidden" />
     </AppShell>
   );
 }
