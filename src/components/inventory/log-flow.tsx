@@ -20,7 +20,7 @@ export type LogFlowKind = "production_batch" | "restock" | "event_use";
 
 const TITLES: Record<LogFlowKind, { title: string; verb: string; subtitle: string }> = {
   production_batch: { title: "Log Production Batch", verb: "used", subtitle: "Ingredients consumed in this batch" },
-  restock:          { title: "Log Restock", verb: "received", subtitle: "Items received from a supplier" },
+  restock:          { title: "Log Restock", verb: "received", subtitle: "Log a new purchase order" },
   event_use:        { title: "Log Event", verb: "used", subtitle: "Disposables and toppings used at the event" },
 };
 
@@ -45,7 +45,9 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
   const [productionDate, setProductionDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [projectedUseDate, setProjectedUseDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [supplier, setSupplier] = useState("");
-  const [restockDate, setRestockDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [orderNumber, setOrderNumber] = useState("");
+  const [orderDate, setOrderDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [projectedReceivedDate, setProjectedReceivedDate] = useState("");
   const [eventDate, setEventDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -104,6 +106,10 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       supplier_name: string | null;
       note: string | null;
       logged_by: string | null;
+      status?: string;
+      order_number?: string | null;
+      order_date?: string | null;
+      projected_received_date?: string | null;
     } = {
       kind,
       event_instance_id: kind === "restock" ? null : eventInstanceId,
@@ -113,9 +119,15 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       note: note.trim() || null,
       logged_by: user?.id ?? null,
     };
+    if (kind === "restock") {
+      batchInsert.status = "pending";
+      batchInsert.order_number = orderNumber.trim() || null;
+      batchInsert.order_date = orderDate || null;
+      batchInsert.projected_received_date = projectedReceivedDate || null;
+    }
     const eventDateIso =
       kind === "restock"
-        ? new Date(restockDate).toISOString()
+        ? new Date(orderDate).toISOString()
         : kind === "event_use"
         ? new Date(eventDate).toISOString()
         : new Date(productionDate).toISOString();
@@ -135,11 +147,15 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       const storedQty = askInUnits
         ? inputQty
         : (pkgSize ? inputQty * pkgSize : inputQty);
-      const newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
-      const itemUpdate: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
-      if (kind === "restock") itemUpdate.last_restocked_at = new Date(restockDate).toISOString();
-      const { error: e1 } = await supabase.from("inventory_items").update(itemUpdate).eq("id", it.id);
-      if (e1) { setSaving(false); return toast.error(e1.message); }
+      let newQty: number;
+      if (kind === "restock") {
+        // Pending order — don't update stock yet
+        newQty = Number(it.current_quantity);
+      } else {
+        newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
+        const { error: e1 } = await supabase.from("inventory_items").update({ current_quantity: newQty }).eq("id", it.id);
+        if (e1) { setSaving(false); return toast.error(e1.message); }
+      }
       const { error: e2 } = await supabase.from("inventory_logs").insert({
         item_id: it.id,
         kind,
@@ -157,7 +173,11 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       if (e2) { setSaving(false); return toast.error(e2.message); }
     }
 
-    toast.success(`${meta.title} saved`);
+    toast.success(
+      kind === "restock"
+        ? "Order logged — stock will update when marked received"
+        : `${meta.title} saved`,
+    );
     navigate({ to: "/inventory" });
   };
 
@@ -309,8 +329,16 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                 <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="e.g. Restaurant Depot" />
               </div>
               <div>
-                <Label>Date received</Label>
-                <Input type="date" value={restockDate} onChange={(e) => setRestockDate(e.target.value)} />
+                <Label>Order number</Label>
+                <Input value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} placeholder="e.g. #104496TS" />
+              </div>
+              <div>
+                <Label>Order date</Label>
+                <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Projected delivery</Label>
+                <Input type="date" value={projectedReceivedDate} onChange={(e) => setProjectedReceivedDate(e.target.value)} />
               </div>
             </div>
           )}
