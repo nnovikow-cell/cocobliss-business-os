@@ -484,12 +484,7 @@ export function InventoryItemDrawer({
                         <QuantityOnHandField form={form} set={set} />
                       </div>
                       <div>
-                        <Label>Par level</Label>
-                        <Input
-                          type="number" inputMode="decimal"
-                          value={form.par_level}
-                          onChange={(e) => set("par_level", e.target.value)}
-                        />
+                        <ParLevelField form={form} set={set} />
                       </div>
                     </div>
 
