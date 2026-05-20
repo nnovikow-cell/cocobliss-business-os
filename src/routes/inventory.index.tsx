@@ -12,7 +12,10 @@ import { statusOf, type InventoryItem, type InventoryStatus } from "@/lib/invent
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/inventory/")({ component: InventoryHome });
+export const Route = createFileRoute("/inventory/")({
+  component: InventoryHome,
+  gcTime: 0,
+});
 
 type PendingLog = {
   item_id: string;
@@ -43,35 +46,35 @@ function InventoryHome() {
   const [pendingBatches, setPendingBatches] = useState<PendingBatch[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from("inventory_items").select("*")
-        .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
-      if (error) toast.error(error.message);
-      setItems((data ?? []) as InventoryItem[]);
-      const { data: allItems } = await supabase
-        .from("inventory_items")
-        .select("id, is_active")
-        .is("deleted_at", null)
-        .eq("is_archived", false);
-      const total = allItems?.length ?? 0;
-      const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
-      setInactiveCount(inactive);
-      setActiveCount(total - inactive);
-      const { data: pending } = await supabase
-        .from("inventory_log_batches")
-        .select(`
-          id, supplier_name, order_number, order_date, projected_received_date, created_at,
-          inventory_logs(quantity, item_id, inventory_items(name, unit, package_size, package_type, library_code))
-        `)
-        .eq("kind", "restock")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-      setPendingBatches((pending ?? []) as unknown as PendingBatch[]);
-      setLoading(false);
-    })();
-  }, []);
+  const fetchData = async () => {
+    const { data, error } = await supabase
+      .from("inventory_items").select("*")
+      .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
+    if (error) toast.error(error.message);
+    setItems((data ?? []) as InventoryItem[]);
+    const { data: allItems } = await supabase
+      .from("inventory_items")
+      .select("id, is_active")
+      .is("deleted_at", null)
+      .eq("is_archived", false);
+    const total = allItems?.length ?? 0;
+    const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
+    setInactiveCount(inactive);
+    setActiveCount(total - inactive);
+    const { data: pending } = await supabase
+      .from("inventory_log_batches")
+      .select(`
+        id, supplier_name, order_number, order_date, projected_received_date, created_at,
+        inventory_logs(quantity, item_id, inventory_items(name, unit, package_size, package_type, library_code))
+      `)
+      .eq("kind", "restock")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    setPendingBatches((pending ?? []) as unknown as PendingBatch[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const markReceived = async (batch: PendingBatch) => {
     for (const log of batch.inventory_logs) {
@@ -182,7 +185,7 @@ function InventoryHome() {
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
         <StatusCard
           to="/inventory/list"
-          search={{ status: "out" }}
+          search={{ status: "out", active: "true" }}
           icon={PackageX}
           tone="danger"
           label="Reorder Now"
@@ -191,7 +194,7 @@ function InventoryHome() {
         />
         <StatusCard
           to="/inventory/list"
-          search={{ status: "low" }}
+          search={{ status: "low", active: "true" }}
           icon={AlertTriangle}
           tone="warn"
           label="Low Stock"
@@ -200,7 +203,7 @@ function InventoryHome() {
         />
         <StatusCard
           to="/inventory/list"
-          search={{ status: "ok" }}
+          search={{ status: "ok", active: "true" }}
           icon={CheckCircle2}
           tone="ok"
           label="Good to Go"
