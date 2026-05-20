@@ -80,6 +80,77 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_accounts: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          type: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          type?: string
+        }
+        Relationships: []
+      }
+      balance_entries: {
+        Row: {
+          account_id: string
+          balance: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          logged_at: string
+          notes: string | null
+        }
+        Insert: {
+          account_id: string
+          balance: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          logged_at: string
+          notes?: string | null
+        }
+        Update: {
+          account_id?: string
+          balance?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          logged_at?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "balance_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_categories: {
         Row: {
           color: string
