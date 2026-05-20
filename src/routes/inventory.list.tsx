@@ -30,6 +30,7 @@ const search = z.object({
   category: z.string().optional(),
   workflow: z.string().optional(),
   new: z.string().optional(),
+  active: z.string().optional(),
 }).optional();
 
 export const Route = createFileRoute("/inventory/list")({
@@ -47,7 +48,9 @@ function InventoryList() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("name");
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">(
+    sp?.active === "true" ? "active" : "all",
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
