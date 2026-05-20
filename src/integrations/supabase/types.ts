@@ -885,6 +885,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "inventory_logs_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_log_batches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inventory_logs_event_instance_id_fkey"
             columns: ["event_instance_id"]
             isOneToOne: false
