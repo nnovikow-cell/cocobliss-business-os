@@ -258,6 +258,15 @@ function InventoryList() {
                         </span>
                       ))}
                       <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>{meta.label}</span>
+                      {(i as unknown as { is_active?: boolean }).is_active === false ? (
+                        <span className="rounded-full border border-muted bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          Inactive
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                          Active
+                        </span>
+                      )}
                     </div>
                     <p className="mt-1.5 text-sm">
                       {(() => {
