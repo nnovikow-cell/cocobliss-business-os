@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import {
   AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History,
 } from "lucide-react";
@@ -9,13 +10,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { statusOf, type InventoryItem, type InventoryStatus } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/inventory/")({ component: InventoryHome });
 
+type PendingLog = {
+  item_id: string;
+  quantity: number;
+  inventory_items: {
+    name: string;
+    unit: string | null;
+    package_size: number | null;
+    package_type: string | null;
+    library_code: string | null;
+  } | null;
+};
+type PendingBatch = {
+  id: string;
+  supplier_name: string | null;
+  order_number: string | null;
+  order_date: string | null;
+  projected_received_date: string | null;
+  created_at: string;
+  inventory_logs: PendingLog[];
+};
+
 function InventoryHome() {
+  const { user } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [activeCount, setActiveCount] = useState(0);
   const [inactiveCount, setInactiveCount] = useState(0);
+  const [pendingBatches, setPendingBatches] = useState<PendingBatch[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,9 +59,50 @@ function InventoryHome() {
       const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
       setInactiveCount(inactive);
       setActiveCount(total - inactive);
+      const { data: pending } = await supabase
+        .from("inventory_log_batches")
+        .select(`
+          id, supplier_name, order_number, order_date, projected_received_date, created_at,
+          inventory_logs(quantity, item_id, inventory_items(name, unit, package_size, package_type, library_code))
+        `)
+        .eq("kind", "restock")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      setPendingBatches((pending ?? []) as unknown as PendingBatch[]);
       setLoading(false);
     })();
   }, []);
+
+  const markReceived = async (batch: PendingBatch) => {
+    for (const log of batch.inventory_logs) {
+      const { data: current } = await supabase
+        .from("inventory_items")
+        .select("current_quantity")
+        .eq("id", log.item_id)
+        .single();
+      if (!current) continue;
+      const newQty = Number(current.current_quantity) + Number(log.quantity);
+      await supabase.from("inventory_items").update({
+        current_quantity: newQty,
+        last_restocked_at: new Date().toISOString(),
+      }).eq("id", log.item_id);
+      await supabase.from("inventory_logs").update({
+        quantity_after: newQty,
+      }).eq("item_id", log.item_id).eq("batch_id", batch.id);
+    }
+    await supabase.from("inventory_log_batches").update({
+      status: "received",
+      received_at: new Date().toISOString(),
+      received_by: user?.id ?? null,
+    }).eq("id", batch.id);
+    setPendingBatches((prev) => prev.filter((b) => b.id !== batch.id));
+    // Refresh item counts
+    const { data: refreshed } = await supabase
+      .from("inventory_items").select("*")
+      .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
+    setItems((refreshed ?? []) as InventoryItem[]);
+    toast.success("Order marked received — stock updated");
+  };
 
   const counts = useMemo(() => {
     const out = { ok: 0, low: 0, out: 0 };
@@ -56,6 +122,62 @@ function InventoryHome() {
           <Link to="/inventory/new"><Plus className="h-4 w-4" /> New item</Link>
         </Button>
       </header>
+
+      {pendingBatches.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+            Pending Orders ({pendingBatches.length})
+          </h2>
+          <div className="space-y-3">
+            {pendingBatches.map((batch) => (
+              <div key={batch.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold">
+                      {batch.supplier_name ?? "Unknown supplier"}
+                      {batch.order_number && (
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">
+                          {batch.order_number}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Ordered {format(new Date(batch.order_date ?? batch.created_at), "MMM d, yyyy")}
+                      {batch.projected_received_date && (
+                        <> · Expected {format(new Date(batch.projected_received_date), "MMM d, yyyy")}</>
+                      )}
+                    </p>
+                    <ul className="mt-2 space-y-0.5">
+                      {batch.inventory_logs.map((log) => {
+                        const item = log.inventory_items;
+                        const pkgSize = Number(item?.package_size ?? 0);
+                        const pkgType = item?.package_type?.trim();
+                        const qty = pkgSize > 0 ? Number(log.quantity) / pkgSize : Number(log.quantity);
+                        const unit = pkgSize > 0 && pkgType ? `${pkgType}s` : item?.unit ?? "";
+                        return (
+                          <li key={log.item_id} className="text-xs text-foreground">
+                            +{qty.toFixed(1)} {unit} — {item?.name}
+                            {item?.library_code && (
+                              <span className="ml-1 font-mono text-muted-foreground">{item.library_code}</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0 rounded-full"
+                    onClick={() => markReceived(batch)}
+                  >
+                    Mark Received
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
         <StatusCard
