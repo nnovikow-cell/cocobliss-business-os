@@ -184,7 +184,11 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                       const pkgSize = it.package_size != null ? Number(it.package_size) : null;
                       const pkgUnit = it.package_size_unit ?? it.unit;
                       const pkgType = it.package_type?.trim() || "units";
-                      const total = pkgSize ? q * pkgSize : q;
+                      const cat = it.category_v2;
+                      const askInUnits =
+                        (kind === "event_use" || kind === "production_batch") &&
+                        (cat === "disposable" || cat === "consumable");
+                      const total = askInUnits ? q : (pkgSize ? q * pkgSize : q);
                       return (
                         <li key={it.id} className={cn("flex items-center justify-between gap-3 rounded-2xl border bg-card p-3", q > 0 && "ring-2 ring-primary/40")}>
                           <div className="min-w-0">
@@ -194,7 +198,11 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                             </p>
                             {q > 0 && (
                               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                                {pkgSize
+                                {askInUnits
+                                  ? (pkgSize
+                                      ? `= ${(q / pkgSize).toFixed(1)} ${pkgType}s`
+                                      : "")
+                                  : pkgSize
                                   ? `= ${(+total.toFixed(4)).toString()} ${pkgUnit} total`
                                   : "Package size not set — enter total amount."}
                               </p>
@@ -213,8 +221,14 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                               className="h-9 w-16 rounded-md border bg-background px-2 text-center text-sm font-semibold"
                             />
                             <span className="text-xs text-muted-foreground">
-                              × {pkgType}
-                              {pkgSize ? ` (${pkgSize} ${pkgUnit})` : pkgUnit ? ` (${pkgUnit} each)` : ""}
+                              {askInUnits
+                                ? (it.unit ?? "units")
+                                : (
+                                  <>
+                                    × {pkgType}
+                                    {pkgSize ? ` (${pkgSize} ${pkgUnit} each)` : pkgUnit ? ` (${pkgUnit} each)` : ""}
+                                  </>
+                                )}
                             </span>
                           </div>
                         </li>
