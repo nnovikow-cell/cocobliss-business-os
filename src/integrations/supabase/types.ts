@@ -80,77 +80,6 @@ export type Database = {
         }
         Relationships: []
       }
-      balance_accounts: {
-        Row: {
-          created_at: string
-          deleted_at: string | null
-          id: string
-          is_active: boolean
-          name: string
-          sort_order: number
-          type: string
-        }
-        Insert: {
-          created_at?: string
-          deleted_at?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          sort_order?: number
-          type: string
-        }
-        Update: {
-          created_at?: string
-          deleted_at?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          sort_order?: number
-          type?: string
-        }
-        Relationships: []
-      }
-      balance_entries: {
-        Row: {
-          account_id: string
-          balance: number
-          created_at: string
-          created_by: string | null
-          deleted_at: string | null
-          id: string
-          logged_at: string
-          notes: string | null
-        }
-        Insert: {
-          account_id: string
-          balance: number
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          logged_at: string
-          notes?: string | null
-        }
-        Update: {
-          account_id?: string
-          balance?: number
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          logged_at?: string
-          notes?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "balance_entries_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "balance_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       checklist_categories: {
         Row: {
           color: string
@@ -847,63 +776,36 @@ export type Database = {
       }
       inventory_log_batches: {
         Row: {
-          cancelled_at: string | null
-          cancelled_by: string | null
           created_at: string
           event_instance_id: string | null
           id: string
           kind: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by: string | null
           note: string | null
-          order_date: string | null
-          order_number: string | null
           production_date: string | null
-          projected_received_date: string | null
           projected_use_date: string | null
-          received_at: string | null
-          received_by: string | null
-          shipping_cost: number | null
-          status: string
           supplier_name: string | null
         }
         Insert: {
-          cancelled_at?: string | null
-          cancelled_by?: string | null
           created_at?: string
           event_instance_id?: string | null
           id?: string
           kind: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by?: string | null
           note?: string | null
-          order_date?: string | null
-          order_number?: string | null
           production_date?: string | null
-          projected_received_date?: string | null
           projected_use_date?: string | null
-          received_at?: string | null
-          received_by?: string | null
-          shipping_cost?: number | null
-          status?: string
           supplier_name?: string | null
         }
         Update: {
-          cancelled_at?: string | null
-          cancelled_by?: string | null
           created_at?: string
           event_instance_id?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by?: string | null
           note?: string | null
-          order_date?: string | null
-          order_number?: string | null
           production_date?: string | null
-          projected_received_date?: string | null
           projected_use_date?: string | null
-          received_at?: string | null
-          received_by?: string | null
-          shipping_cost?: number | null
-          status?: string
           supplier_name?: string | null
         }
         Relationships: []
@@ -962,13 +864,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "inventory_logs_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_log_batches"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "inventory_logs_event_instance_id_fkey"
             columns: ["event_instance_id"]
             isOneToOne: false
@@ -1024,53 +919,6 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invoices: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          deleted_at: string | null
-          due_date: string
-          event_instance_id: string | null
-          id: string
-          invoice_number: string
-          notes: string | null
-          paid_at: string | null
-        }
-        Insert: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          due_date: string
-          event_instance_id?: string | null
-          id?: string
-          invoice_number: string
-          notes?: string | null
-          paid_at?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          due_date?: string
-          event_instance_id?: string | null
-          id?: string
-          invoice_number?: string
-          notes?: string | null
-          paid_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invoices_event_instance_id_fkey"
-            columns: ["event_instance_id"]
-            isOneToOne: false
-            referencedRelation: "event_instances"
             referencedColumns: ["id"]
           },
         ]
