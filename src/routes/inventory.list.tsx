@@ -30,6 +30,7 @@ const search = z.object({
   category: z.string().optional(),
   workflow: z.string().optional(),
   new: z.string().optional(),
+  active: z.string().optional(),
 }).optional();
 
 export const Route = createFileRoute("/inventory/list")({
@@ -47,7 +48,9 @@ function InventoryList() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("name");
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">(
+    sp?.active === "true" ? "active" : "all"
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
@@ -239,85 +242,76 @@ function InventoryList() {
           No items match. Try a different filter.
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="divide-y rounded-2xl border bg-card">
           {filtered.map((i) => {
             const meta = statusMeta[i.status];
             const code = (i as unknown as { library_code: string | null }).library_code;
+            const isInactive = (i as unknown as { is_active?: boolean }).is_active === false;
+            const pkg = toPackages(i);
+            const par = toPackages(i, i.par_level);
             return (
-              <li key={i.id} className="rounded-2xl border bg-card p-3 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
+              <li
+                key={i.id}
+                className={cn(
+                  "flex items-center justify-between gap-3 px-4 py-3",
+                  isInactive && "opacity-50",
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => openHistory(i)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-sm font-semibold">{i.name}</span>
+                    {code && (
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">{code}</span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
+                      {CATEGORY_V2_LABEL[(i.category_v2 ?? "other") as InventoryCategoryV2]}
+                    </span>
+                    {(i.workflow_tags ?? []).filter((t) => t !== "all").map((t) => (
+                      <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                        {WORKFLOW_LABEL[t as WorkflowTag]}
+                      </span>
+                    ))}
+                    <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>
+                      {meta.label}
+                    </span>
+                    {isInactive && (
+                      <span className="rounded-full border border-muted bg-muted/50 px-2 py-0.5 font-medium text-muted-foreground">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <div className="text-right">
+                    <p className="text-sm font-semibold">{pkg.display}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {pkg.isPackage && <>{formatQty(Number(i.current_quantity))} {i.unit} · </>}
+                      par {par.display}
+                    </p>
+                  </div>
+                  <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
                   <button
                     type="button"
-                    onClick={() => openHistory(i)}
-                    className="min-w-0 flex-1 text-left"
+                    onClick={() => { setDrawerItemId(i.id); setDrawerOpen(true); }}
+                    className="rounded-full p-1.5 text-muted-foreground hover:bg-muted"
+                    aria-label="Edit"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
-                      <h3 className="truncate text-base font-semibold">{i.name}</h3>
-                      <span className="ml-1 truncate font-mono text-xs text-muted-foreground">
-                        {code || "—"}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-                      <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
-                        {CATEGORY_V2_LABEL[(i.category_v2 ?? "other") as InventoryCategoryV2]}
-                      </span>
-                      {(i as unknown as { is_active?: boolean }).is_active === false && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
-                          Inactive
-                        </span>
-                      )}
-                      {(i.workflow_tags ?? []).filter((t) => t !== "all").map((t) => (
-                        <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                          {WORKFLOW_LABEL[t as WorkflowTag]}
-                        </span>
-                      ))}
-                      <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>{meta.label}</span>
-                      {(i as unknown as { is_active?: boolean }).is_active === false ? (
-                        <span className="rounded-full border border-muted bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          Inactive
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1.5 text-sm">
-                      {(() => {
-                        const pkg = toPackages(i);
-                        const par = toPackages(i, i.par_level);
-                        return (
-                          <>
-                            <span className="font-semibold">{pkg.display}</span>
-                            {pkg.isPackage && (
-                              <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.current_quantity))} {i.unit})</span>
-                            )}
-                            <span className="text-muted-foreground"> / par {par.display}</span>
-                            {par.isPackage && (
-                              <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.par_level))} {i.unit})</span>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {i.last_restocked_at ? `Restocked ${new Date(i.last_restocked_at).toLocaleDateString()}` : "Never restocked"}
-                    </p>
+                    <Pencil className="h-4 w-4" />
                   </button>
-                  <div className="flex flex-col items-end gap-1">
-                    <button
-                      type="button"
-                      onClick={() => { setDrawerItemId(i.id); setDrawerOpen(true); }}
-                      className="rounded-full p-2 text-muted-foreground hover:bg-muted"
-                      aria-label="Edit"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <Link to="/inventory/$itemId" params={{ itemId: i.id }} className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Open">
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </div>
+                  <Link
+                    to="/inventory/$itemId"
+                    params={{ itemId: i.id }}
+                    className="rounded-full p-1.5 text-muted-foreground hover:bg-muted"
+                    aria-label="Open"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
                 </div>
               </li>
             );
