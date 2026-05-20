@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
-  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History,
+  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History, ClipboardList,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -179,6 +179,11 @@ function InventoryHome() {
               </div>
             ))}
           </div>
+          <div className="mt-3 text-right">
+            <Link to="/inventory/orders" className="text-xs font-semibold text-primary hover:underline">
+              View all orders →
+            </Link>
+          </div>
         </section>
       )}
 
@@ -229,6 +234,7 @@ function InventoryHome() {
         <ActionCard to="/inventory/log/batch" icon={Factory} title="Log Production Batch" desc="Ingredients used in a batch." />
         <ActionCard to="/inventory/log/restock" icon={PackagePlus} title="Log Restock" desc="Items received from supplier." />
         <ActionCard to="/inventory/log/event" icon={PartyPopper} title="Log Event" desc="Disposables & toppings used." />
+        <ActionCard to="/inventory/orders" icon={ClipboardList} title="Purchase Orders" desc="View and manage all orders." />
         <ActionCard to="/inventory/history" icon={History} title="History" desc="All logs across items." />
       </section>
     </AppShell>
