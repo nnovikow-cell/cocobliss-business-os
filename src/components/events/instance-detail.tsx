@@ -3,7 +3,7 @@ import { format, parseISO } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import {
   CalendarDays, MapPin, Users, Receipt, ClipboardList, Package,
-  ArrowUpRight,
+  ArrowUpRight, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,10 @@ type ChecklistAgg = {
 type InventoryAgg = {
   totalLogs: number; useCount: number; restockCount: number;
 };
+type InvoiceRow = {
+  id: string; invoice_number: string; amount: number;
+  due_date: string; paid_at: string | null;
+};
 
 export function InstanceDetail({
   instanceId, onChanged, onClose,
@@ -53,6 +57,7 @@ export function InstanceDetail({
   const [sales, setSales] = useState<SalesAgg | null>(null);
   const [checklist, setChecklist] = useState<ChecklistAgg | null>(null);
   const [inventory, setInventory] = useState<InventoryAgg | null>(null);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -141,6 +146,14 @@ export function InstanceDetail({
       totalLogs: invLogs?.length ?? 0,
       useCount, restockCount,
     });
+
+    // Invoices linked to this instance
+    const { data: invRows } = await supabase.from("invoices")
+      .select("id, invoice_number, amount, due_date, paid_at")
+      .eq("event_instance_id", instanceId)
+      .is("deleted_at", null)
+      .order("due_date", { ascending: false });
+    setInvoices(((invRows ?? []) as unknown) as InvoiceRow[]);
 
     setLoading(false);
   };
@@ -318,6 +331,44 @@ export function InstanceDetail({
             <Stat label="Used" value={String(inventory.useCount)} />
             <Stat label="Restocked" value={String(inventory.restockCount)} />
           </div>
+        )}
+      </div>
+
+      {/* Invoices */}
+      <div className="rounded-2xl border-2 border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <FileText className="h-3.5 w-3.5" /> Invoices
+          </div>
+          <Link to="/invoices" onClick={() => onClose?.()} className="text-xs font-semibold text-primary hover:underline">
+            View all →
+          </Link>
+        </div>
+        {invoices.length === 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">No invoices linked yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {invoices.map((i) => {
+              const paid = i.paid_at !== null;
+              return (
+                <li key={i.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="font-mono text-xs font-bold">{i.invoice_number}</span>
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                      paid ? "bg-emerald-100 text-emerald-700" : "bg-amber-200 text-amber-900",
+                    )}>
+                      {paid ? "Paid" : "Unpaid"}
+                    </span>
+                  </span>
+                  <span className="ml-2 inline-flex items-center gap-2 text-xs">
+                    <span className="font-bold tabular-nums">{fmt(Number(i.amount))}</span>
+                    <span className="text-muted-foreground">Due {format(parseISO(i.due_date), "MMM d")}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 

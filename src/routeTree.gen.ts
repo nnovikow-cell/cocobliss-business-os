@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RepositoryRouteImport } from './routes/repository'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SalesIndexRouteImport } from './routes/sales.index'
@@ -75,6 +76,11 @@ const MeetingsRoute = MeetingsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvoicesRoute = InvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -207,6 +213,7 @@ const EventsInstanceInstanceIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/events': typeof EventsRouteWithChildren
+  '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/repository': typeof RepositoryRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/repository': typeof RepositoryRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/events': typeof EventsRouteWithChildren
+  '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/repository': typeof RepositoryRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/events'
+    | '/invoices'
     | '/login'
     | '/meetings'
     | '/repository'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/invoices'
     | '/login'
     | '/meetings'
     | '/repository'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/events'
+    | '/invoices'
     | '/login'
     | '/meetings'
     | '/repository'
@@ -413,6 +425,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EventsRoute: typeof EventsRouteWithChildren
+  InvoicesRoute: typeof InvoicesRoute
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
   RepositoryRoute: typeof RepositoryRoute
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoices': {
+      id: '/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof InvoicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -691,6 +711,7 @@ const EventsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EventsRoute: EventsRouteWithChildren,
+  InvoicesRoute: InvoicesRoute,
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
   RepositoryRoute: RepositoryRoute,
