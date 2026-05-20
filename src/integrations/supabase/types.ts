@@ -789,6 +789,7 @@ export type Database = {
           projected_use_date: string | null
           received_at: string | null
           received_by: string | null
+          shipping_cost: number | null
           status: string
           supplier_name: string | null
         }
@@ -806,6 +807,7 @@ export type Database = {
           projected_use_date?: string | null
           received_at?: string | null
           received_by?: string | null
+          shipping_cost?: number | null
           status?: string
           supplier_name?: string | null
         }
@@ -823,6 +825,7 @@ export type Database = {
           projected_use_date?: string | null
           received_at?: string | null
           received_by?: string | null
+          shipping_cost?: number | null
           status?: string
           supplier_name?: string | null
         }
