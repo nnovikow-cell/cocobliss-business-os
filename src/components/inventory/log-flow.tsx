@@ -317,22 +317,28 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
           <div className="rounded-2xl border bg-card p-4">
             <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Summary</h2>
             <ul className="divide-y">
-              {selected.map((it) => (
-                <li key={it.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="font-medium">{it.name}</span>
-                  <span>
-                    <span className="font-semibold">
-                      {kind === "restock" ? "+" : "−"}{qtyById[it.id]}
-                    </span>{" "}
-                    <span className="text-muted-foreground">
-                      × {it.package_type?.trim() || "units"}
-                      {it.package_size != null
-                        ? ` = ${(+(qtyById[it.id]! * Number(it.package_size)).toFixed(4)).toString()} ${it.package_size_unit ?? it.unit}`
-                        : ` ${it.unit}`}
+              {selected.map((it) => {
+                const inputQty = qtyById[it.id]!;
+                const pkgSize = it.package_size != null ? Number(it.package_size) : null;
+                const cat = it.category_v2;
+                const askInUnits =
+                  (kind === "event_use" || kind === "production_batch") &&
+                  (cat === "disposable" || cat === "consumable");
+                const sign = kind === "restock" ? "+" : "−";
+                return (
+                  <li key={it.id} className="flex items-center justify-between py-2 text-sm">
+                    <span className="font-medium">{it.name}</span>
+                    <span>
+                      <span className="font-semibold">{sign}{inputQty}</span>{" "}
+                      <span className="text-muted-foreground">
+                        {askInUnits
+                          ? `${it.unit}${pkgSize ? ` (= ${(inputQty / pkgSize).toFixed(1)} ${it.package_type?.trim() || "package"}s)` : ""}`
+                          : `× ${it.package_type?.trim() || "units"}${pkgSize != null ? ` = ${(+(inputQty * pkgSize).toFixed(4)).toString()} ${it.package_size_unit ?? it.unit}` : ` ${it.unit}`}`}
+                      </span>
                     </span>
-                  </span>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
           <div className="flex justify-between">
