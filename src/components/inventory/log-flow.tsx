@@ -99,20 +99,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
     setSaving(true);
 
     // Create batch header
-    const batchInsert: {
-      kind: LogFlowKind;
-      event_instance_id: string | null;
-      production_date: string | null;
-      projected_use_date: string | null;
-      supplier_name: string | null;
-      note: string | null;
-      logged_by: string | null;
-      status?: string;
-      order_number?: string | null;
-      order_date?: string | null;
-      projected_received_date?: string | null;
-      shipping_cost?: number | null;
-    } = {
+    const batchInsert = {
       kind,
       event_instance_id: kind === "restock" ? null : eventInstanceId,
       production_date: kind === "production_batch" ? productionDate : null,
@@ -120,14 +107,12 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       supplier_name: kind === "restock" ? supplier.trim() : null,
       note: note.trim() || null,
       logged_by: user?.id ?? null,
+      status: kind === "restock" ? "pending" : "received",
+      order_number: kind === "restock" ? orderNumber.trim() || null : null,
+      order_date: kind === "restock" ? orderDate || null : null,
+      projected_received_date: kind === "restock" ? projectedReceivedDate || null : null,
+      shipping_cost: kind === "restock" ? shippingCost || null : null,
     };
-    if (kind === "restock") {
-      batchInsert.status = "pending";
-      batchInsert.order_number = orderNumber.trim() || null;
-      batchInsert.order_date = orderDate || null;
-      batchInsert.projected_received_date = projectedReceivedDate || null;
-      batchInsert.shipping_cost = shippingCost || null;
-    }
     const eventDateIso =
       kind === "restock"
         ? new Date(orderDate).toISOString()
