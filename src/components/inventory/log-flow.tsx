@@ -113,8 +113,14 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       note: note.trim() || null,
       logged_by: user?.id ?? null,
     };
+    const eventDateIso =
+      kind === "restock"
+        ? new Date(restockDate).toISOString()
+        : kind === "event_use"
+        ? new Date(eventDate).toISOString()
+        : new Date(productionDate).toISOString();
     const { data: batch, error: batchErr } = await supabase
-      .from("inventory_log_batches").insert(batchInsert).select("id").single();
+      .from("inventory_log_batches").insert({ ...batchInsert, created_at: eventDateIso }).select("id").single();
     if (batchErr || !batch) { setSaving(false); return toast.error(batchErr?.message ?? "Save failed"); }
 
     // Process each selected item
@@ -131,7 +137,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
         : (pkgSize ? inputQty * pkgSize : inputQty);
       const newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
       const itemUpdate: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
-      if (kind === "restock") itemUpdate.last_restocked_at = new Date().toISOString();
+      if (kind === "restock") itemUpdate.last_restocked_at = new Date(restockDate).toISOString();
       const { error: e1 } = await supabase.from("inventory_items").update(itemUpdate).eq("id", it.id);
       if (e1) { setSaving(false); return toast.error(e1.message); }
       const { error: e2 } = await supabase.from("inventory_logs").insert({
@@ -146,6 +152,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
         production_date: kind === "production_batch" ? productionDate : null,
         projected_use_date: kind === "production_batch" ? projectedUseDate : null,
         supplier_name_snapshot: kind === "restock" ? supplier.trim() : null,
+        created_at: eventDateIso,
       });
       if (e2) { setSaving(false); return toast.error(e2.message); }
     }
