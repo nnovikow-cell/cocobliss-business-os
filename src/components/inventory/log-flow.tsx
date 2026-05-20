@@ -51,6 +51,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
   const [eventDate, setEventDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [shippingCost, setShippingCost] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -110,6 +111,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       order_number?: string | null;
       order_date?: string | null;
       projected_received_date?: string | null;
+      shipping_cost?: number | null;
     } = {
       kind,
       event_instance_id: kind === "restock" ? null : eventInstanceId,
@@ -124,6 +126,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       batchInsert.order_number = orderNumber.trim() || null;
       batchInsert.order_date = orderDate || null;
       batchInsert.projected_received_date = projectedReceivedDate || null;
+      batchInsert.shipping_cost = shippingCost || null;
     }
     const eventDateIso =
       kind === "restock"
