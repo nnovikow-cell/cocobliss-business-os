@@ -56,7 +56,7 @@ export function SideNav({
         )}
       >
         {!collapsed && (
-          <span className="text-sm font-black tracking-tight">CocoBLiss</span>
+          <span className="text-sm font-black tracking-tight">CocoBliss</span>
         )}
         <button
           type="button"

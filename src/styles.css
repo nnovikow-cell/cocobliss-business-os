@@ -62,7 +62,7 @@
 }
 
 :root {
-  /* CocoBLiss — premium high-contrast tropical palette
+  /* CocoBliss — premium high-contrast tropical palette
      Designed for sunlight readability at outdoor markets. */
   --radius: 1rem;
   --background: oklch(0.985 0.012 90);          /* coconut cream */

@@ -55,7 +55,7 @@ function LoginPage() {
     >
       <div className="w-full max-w-sm rounded-3xl bg-card p-8 shadow-2xl">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-black tracking-tight">CocoBLiss</h1>
+          <h1 className="text-3xl font-black tracking-tight">CocoBliss</h1>
           <p className="mt-1 text-sm text-muted-foreground">Business OS</p>
         </div>
 
