@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen, KeyRound, LayoutGrid, List as ListIcon } from "lucide-react";
+import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen, KeyRound, LayoutGrid, List as ListIcon, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app/app-shell";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,6 +11,7 @@ const modules = [
   { to: "/events", title: "Events", desc: "Schedule, history, and recurring series.", icon: CalendarDays, active: true, primary: true },
   { to: "/tasks", title: "Tasks", desc: "Weekly to-dos by day, owner, and category.", icon: CheckSquare, active: true, primary: true },
   { to: "/meetings", title: "Meetings", desc: "Decisions, action items, and meeting history.", icon: Users, active: true, primary: false },
+  { to: "/invoices", title: "Invoices", desc: "Market invoice log and payment tracking.", icon: FileText, active: true, primary: false },
   { to: "/sales", title: "Sales Tracker", desc: "Live market sessions, fast logging, real-time revenue.", icon: Receipt, active: true, primary: true },
   { to: "/inventory", title: "Inventory", desc: "Consumables and disposables, par-level tracking.", icon: Boxes, active: true, primary: true },
   { to: "/checklist", title: "Event Checklist", desc: "Pack the van. Track who has what.", icon: ListChecks, active: true, primary: true },
