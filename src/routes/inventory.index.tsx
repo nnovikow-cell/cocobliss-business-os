@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
-  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History,
+  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History, ClipboardList,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
