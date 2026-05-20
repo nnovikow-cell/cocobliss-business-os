@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, RotateCcw, Search, BarChart2, List as ListIcon } from "lucide-react";
+import { ArrowLeft, RotateCcw, Search, BarChart2, List as ListIcon, ChevronDown } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import { AppShell } from "@/components/app/app-shell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -64,6 +65,7 @@ type ItemMeta = {
   package_size: number | null;
   package_type: string | null;
   current_quantity: number;
+  library_code: string | null;
 };
 
 type GraphRange = "30d" | "90d" | "all";
@@ -107,7 +109,7 @@ function InventoryHistory() {
     (async () => {
       const { data, error } = await supabase
         .from("inventory_items")
-        .select("id, name, unit, package_size, package_type, current_quantity")
+        .select("id, name, unit, package_size, package_type, current_quantity, library_code")
         .is("deleted_at", null)
         .order("name");
       if (error) return toast.error(error.message);
