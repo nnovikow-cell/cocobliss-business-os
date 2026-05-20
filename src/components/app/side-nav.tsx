@@ -14,6 +14,7 @@ import {
   BookOpen,
   FileText,
   KeyRound,
+  Landmark,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const items: NavItem[] = [
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/meetings", label: "Meetings", icon: Users },
   { to: "/invoices", label: "Invoices", icon: FileText },
+  { to: "/balances", label: "Balances", icon: Landmark },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/products", label: "Products", icon: FlaskConical },
