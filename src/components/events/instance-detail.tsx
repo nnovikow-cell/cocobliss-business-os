@@ -338,6 +338,50 @@ export function InstanceDetail({
         )}
       </div>
 
+      {/* Invoices */}
+      <div className="rounded-2xl border-2 border-border bg-card p-4">
+        <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <FileText className="h-3.5 w-3.5" /> Invoices
+        </div>
+        {invoices.length === 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">No invoices linked yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {invoices.map((inv) => {
+              const paid = inv.paid_at !== null;
+              return (
+                <li key={inv.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+                  <span className="font-mono font-semibold truncate">{inv.invoice_number}</span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-bold tabular-nums">${Number(inv.amount).toFixed(2)}</span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                        paid ? "bg-emerald-100 text-emerald-700" : "bg-amber-200 text-amber-900",
+                      )}
+                    >
+                      {paid ? "Paid" : "Unpaid"}
+                    </span>
+                    <span className="text-muted-foreground">
+                      Due {new Date(inv.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="mt-3">
+          <Link
+            to="/invoices"
+            onClick={() => onClose?.()}
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            View all invoices →
+          </Link>
+        </div>
+      </div>
+
       <div className="flex justify-end pt-2">
         <Button asChild variant="outline" size="sm" className="rounded-full">
           <Link
