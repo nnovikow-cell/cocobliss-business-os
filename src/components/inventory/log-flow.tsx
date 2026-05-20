@@ -55,7 +55,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       setLoading(true);
       const tag = workflowFilter(kind);
       let q = supabase.from("inventory_items").select("*")
-        .is("deleted_at", null).eq("is_archived", false).order("name");
+        .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
       // Restock shows everything; the others filter by workflow tag.
       if (kind !== "restock") {
         q = q.overlaps("workflow_tags", [tag, "all"]);
@@ -206,6 +206,9 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                         <li key={it.id} className={cn("flex items-center justify-between gap-3 rounded-2xl border bg-card p-3", q > 0 && "ring-2 ring-primary/40")}>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">{it.name}</p>
+                            {(it as unknown as { library_code?: string | null }).library_code && (
+                              <p className="text-xs font-mono text-muted-foreground">{(it as unknown as { library_code?: string | null }).library_code}</p>
+                            )}
                             <p className="text-xs text-muted-foreground">
                               {(() => {
                                 const ps = it.package_size != null ? Number(it.package_size) : 0;
