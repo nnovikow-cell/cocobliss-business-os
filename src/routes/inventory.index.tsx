@@ -179,6 +179,11 @@ function InventoryHome() {
               </div>
             ))}
           </div>
+          <div className="mt-3 text-right">
+            <Link to="/inventory/orders" className="text-xs font-semibold text-primary hover:underline">
+              View all orders →
+            </Link>
+          </div>
         </section>
       )}
 
