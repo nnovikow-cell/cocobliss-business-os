@@ -214,8 +214,8 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                         <li key={it.id} className={cn("flex items-center justify-between gap-3 rounded-2xl border bg-card p-3", q > 0 && "ring-2 ring-primary/40")}>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">{it.name}</p>
-                            {it.library_code && (
-                              <p className="text-xs font-mono text-muted-foreground">{it.library_code}</p>
+                            {(it as unknown as { library_code?: string | null }).library_code && (
+                              <p className="text-xs font-mono text-muted-foreground">{(it as unknown as { library_code: string }).library_code}</p>
                             )}
                             <p className="text-xs text-muted-foreground">
                               {(() => {
