@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, RotateCcw, Search, BarChart2, List as ListIcon } from "lucide-react";
+import { ArrowLeft, RotateCcw, Search, BarChart2, List as ListIcon, ChevronDown } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import { AppShell } from "@/components/app/app-shell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -64,6 +65,7 @@ type ItemMeta = {
   package_size: number | null;
   package_type: string | null;
   current_quantity: number;
+  library_code: string | null;
 };
 
 type GraphRange = "30d" | "90d" | "all";
@@ -107,7 +109,7 @@ function InventoryHistory() {
     (async () => {
       const { data, error } = await supabase
         .from("inventory_items")
-        .select("id, name, unit, package_size, package_type, current_quantity")
+        .select("id, name, unit, package_size, package_type, current_quantity, library_code")
         .is("deleted_at", null)
         .order("name");
       if (error) return toast.error(error.message);
@@ -363,29 +365,60 @@ function InventoryHistory() {
         </>
       ) : (
         <div className="space-y-3">
-          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {items.map((it) => {
-              const idx = selectedIds.indexOf(it.id);
-              const active = idx >= 0;
-              const color = active ? SERIES_COLORS[idx % SERIES_COLORS.length] : undefined;
-              return (
-                <button
-                  key={it.id}
-                  type="button"
-                  onClick={() => toggleItem(it.id)}
-                  className={cn(
-                    "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                    active
-                      ? "text-white border-transparent"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground",
-                  )}
-                  style={active ? { backgroundColor: color, borderColor: color } : undefined}
-                >
-                  {it.name}
-                </button>
-              );
-            })}
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span>
+                  {selectedIds.length === 0
+                    ? "Select items"
+                    : `${selectedIds.length} item${selectedIds.length === 1 ? "" : "s"} selected`}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-2">
+              <div className="max-h-72 space-y-1.5 overflow-y-auto">
+                {items.length === 0 ? (
+                  <p className="px-2 py-4 text-center text-xs text-muted-foreground">No items.</p>
+                ) : (
+                  items.map((it) => {
+                    const idx = selectedIds.indexOf(it.id);
+                    const on = idx >= 0;
+                    const color = on ? SERIES_COLORS[idx % SERIES_COLORS.length] : undefined;
+                    return (
+                      <button
+                        key={it.id}
+                        type="button"
+                        onClick={() => toggleItem(it.id)}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 text-left text-sm font-semibold",
+                          on ? "border-primary bg-primary/10" : "border-border bg-card",
+                        )}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate">{it.name}</span>
+                          {it.library_code && (
+                            <span className="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                              {it.library_code}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={cn(
+                            "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-xs",
+                            on ? "border-transparent text-white" : "border-border",
+                          )}
+                          style={on ? { backgroundColor: color, borderColor: color } : undefined}
+                        >
+                          {on && "✓"}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {GRAPH_RANGES.map((r) => {
               const active = range === r.value;
