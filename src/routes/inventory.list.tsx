@@ -381,6 +381,16 @@ function formatQty(n: number) {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, "");
 }
 
+function toPackages(item: InventoryItem) {
+  const pkgSize = Number(item.package_size);
+  const pkgType = item.package_type?.trim() || null;
+  if (!pkgSize || !pkgType) {
+    return { display: `${formatQty(Number(item.current_quantity))} ${item.unit}`, isPackage: false };
+  }
+  const pkgs = Number(item.current_quantity) / pkgSize;
+  return { display: `${formatQty(pkgs)} ${pkgType}${pkgs !== 1 ? "s" : ""}`, isPackage: true };
+}
+
 type LogRow = {
   id: string;
   item_id: string;
