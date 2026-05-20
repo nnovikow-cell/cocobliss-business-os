@@ -255,8 +255,19 @@ function InventoryList() {
                       <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>{meta.label}</span>
                     </div>
                     <p className="mt-1.5 text-sm">
-                      <span className="font-semibold">{formatQty(i.current_quantity)} {i.unit}</span>
-                      <span className="text-muted-foreground"> / par {formatQty(i.par_level)}</span>
+                      {(() => {
+                        const pkg = toPackages(i);
+                        const pkgTypeTrim = i.package_type?.trim();
+                        return (
+                          <>
+                            <span className="font-semibold">{pkg.display}</span>
+                            {pkg.isPackage && (
+                              <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.current_quantity))} {i.unit})</span>
+                            )}
+                            <span className="text-muted-foreground"> / par {formatQty(i.par_level)} {pkgTypeTrim ? pkgTypeTrim + "s" : i.unit}</span>
+                          </>
+                        );
+                      })()}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {i.last_restocked_at ? `Restocked ${new Date(i.last_restocked_at).toLocaleDateString()}` : "Never restocked"}
