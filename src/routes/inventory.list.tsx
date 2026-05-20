@@ -255,8 +255,19 @@ function InventoryList() {
                       <span className={cn("rounded-full border px-2 py-0.5 font-medium", meta.classes)}>{meta.label}</span>
                     </div>
                     <p className="mt-1.5 text-sm">
-                      <span className="font-semibold">{formatQty(i.current_quantity)} {i.unit}</span>
-                      <span className="text-muted-foreground"> / par {formatQty(i.par_level)}</span>
+                      {(() => {
+                        const pkg = toPackages(i);
+                        const pkgTypeTrim = i.package_type?.trim();
+                        return (
+                          <>
+                            <span className="font-semibold">{pkg.display}</span>
+                            {pkg.isPackage && (
+                              <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.current_quantity))} {i.unit})</span>
+                            )}
+                            <span className="text-muted-foreground"> / par {formatQty(i.par_level)} {pkgTypeTrim ? pkgTypeTrim + "s" : i.unit}</span>
+                          </>
+                        );
+                      })()}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {i.last_restocked_at ? `Restocked ${new Date(i.last_restocked_at).toLocaleDateString()}` : "Never restocked"}
@@ -309,6 +320,11 @@ function InventoryList() {
                 const isRestock = log.kind === "restock";
                 const sign = isRestock ? "+" : "−";
                 const unit = historyItem?.unit ?? "";
+                const pkgSize = Number(historyItem?.package_size);
+                const pkgType = historyItem?.package_type?.trim() || null;
+                const hasPkg = !!pkgSize && !!pkgType;
+                const qtyPkgs = hasPkg ? Number(log.quantity) / pkgSize : null;
+                const qtyAfterPkgs = hasPkg ? Number(log.quantity_after) / pkgSize : null;
                 return (
                   <div key={log.id} className="flex items-start justify-between gap-3 rounded-xl border bg-card p-3">
                     <div className="min-w-0 flex-1">
@@ -321,10 +337,21 @@ function InventoryList() {
                         </span>
                       </div>
                       <p className="mt-1.5 text-sm font-semibold">
-                        {sign}{Number(log.quantity)} {unit}
+                        {hasPkg ? (
+                          <>
+                            {sign}{qtyPkgs!.toFixed(2)} {pkgType}{qtyPkgs !== 1 ? "s" : ""}
+                            <span className="ml-1 text-xs font-normal text-muted-foreground">
+                              ({Number(log.quantity)} {unit})
+                            </span>
+                          </>
+                        ) : (
+                          <>{sign}{Number(log.quantity)} {unit}</>
+                        )}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        On hand after: {Number(log.quantity_after)} {unit}
+                        On hand after: {hasPkg
+                          ? `${qtyAfterPkgs!.toFixed(2)} ${pkgType}${qtyAfterPkgs !== 1 ? "s" : ""} (${Number(log.quantity_after)} ${unit})`
+                          : `${Number(log.quantity_after)} ${unit}`}
                       </p>
                       {log.note && (
                         <p className="mt-1 text-xs text-muted-foreground">{log.note}</p>
@@ -368,6 +395,16 @@ function InventoryList() {
 
 function formatQty(n: number) {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function toPackages(item: InventoryItem) {
+  const pkgSize = Number(item.package_size);
+  const pkgType = item.package_type?.trim() || null;
+  if (!pkgSize || !pkgType) {
+    return { display: `${formatQty(Number(item.current_quantity))} ${item.unit}`, isPackage: false };
+  }
+  const pkgs = Number(item.current_quantity) / pkgSize;
+  return { display: `${formatQty(pkgs)} ${pkgType}${pkgs !== 1 ? "s" : ""}`, isPackage: true };
 }
 
 type LogRow = {
