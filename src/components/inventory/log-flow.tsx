@@ -122,7 +122,13 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
     for (const it of selected) {
       const inputQty = qtyById[it.id]!;
       const pkgSize = it.package_size != null ? Number(it.package_size) : null;
-      const storedQty = pkgSize ? inputQty * pkgSize : inputQty;
+      const cat = it.category_v2;
+      const askInUnits =
+        (kind === "event_use" || kind === "production_batch") &&
+        (cat === "disposable" || cat === "consumable");
+      const storedQty = askInUnits
+        ? inputQty
+        : (pkgSize ? inputQty * pkgSize : inputQty);
       const newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
       const itemUpdate: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
       if (kind === "restock") itemUpdate.last_restocked_at = new Date().toISOString();
@@ -184,7 +190,11 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                       const pkgSize = it.package_size != null ? Number(it.package_size) : null;
                       const pkgUnit = it.package_size_unit ?? it.unit;
                       const pkgType = it.package_type?.trim() || "units";
-                      const total = pkgSize ? q * pkgSize : q;
+                      const cat = it.category_v2;
+                      const askInUnits =
+                        (kind === "event_use" || kind === "production_batch") &&
+                        (cat === "disposable" || cat === "consumable");
+                      const total = askInUnits ? q : (pkgSize ? q * pkgSize : q);
                       return (
                         <li key={it.id} className={cn("flex items-center justify-between gap-3 rounded-2xl border bg-card p-3", q > 0 && "ring-2 ring-primary/40")}>
                           <div className="min-w-0">
@@ -194,7 +204,11 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                             </p>
                             {q > 0 && (
                               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                                {pkgSize
+                                {askInUnits
+                                  ? (pkgSize
+                                      ? `= ${(q / pkgSize).toFixed(1)} ${pkgType}s`
+                                      : "")
+                                  : pkgSize
                                   ? `= ${(+total.toFixed(4)).toString()} ${pkgUnit} total`
                                   : "Package size not set — enter total amount."}
                               </p>
@@ -213,8 +227,14 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                               className="h-9 w-16 rounded-md border bg-background px-2 text-center text-sm font-semibold"
                             />
                             <span className="text-xs text-muted-foreground">
-                              × {pkgType}
-                              {pkgSize ? ` (${pkgSize} ${pkgUnit})` : pkgUnit ? ` (${pkgUnit} each)` : ""}
+                              {askInUnits
+                                ? (it.unit ?? "units")
+                                : (
+                                  <>
+                                    × {pkgType}
+                                    {pkgSize ? ` (${pkgSize} ${pkgUnit} each)` : pkgUnit ? ` (${pkgUnit} each)` : ""}
+                                  </>
+                                )}
                             </span>
                           </div>
                         </li>
@@ -297,22 +317,28 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
           <div className="rounded-2xl border bg-card p-4">
             <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Summary</h2>
             <ul className="divide-y">
-              {selected.map((it) => (
-                <li key={it.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="font-medium">{it.name}</span>
-                  <span>
-                    <span className="font-semibold">
-                      {kind === "restock" ? "+" : "−"}{qtyById[it.id]}
-                    </span>{" "}
-                    <span className="text-muted-foreground">
-                      × {it.package_type?.trim() || "units"}
-                      {it.package_size != null
-                        ? ` = ${(+(qtyById[it.id]! * Number(it.package_size)).toFixed(4)).toString()} ${it.package_size_unit ?? it.unit}`
-                        : ` ${it.unit}`}
+              {selected.map((it) => {
+                const inputQty = qtyById[it.id]!;
+                const pkgSize = it.package_size != null ? Number(it.package_size) : null;
+                const cat = it.category_v2;
+                const askInUnits =
+                  (kind === "event_use" || kind === "production_batch") &&
+                  (cat === "disposable" || cat === "consumable");
+                const sign = kind === "restock" ? "+" : "−";
+                return (
+                  <li key={it.id} className="flex items-center justify-between py-2 text-sm">
+                    <span className="font-medium">{it.name}</span>
+                    <span>
+                      <span className="font-semibold">{sign}{inputQty}</span>{" "}
+                      <span className="text-muted-foreground">
+                        {askInUnits
+                          ? `${it.unit}${pkgSize ? ` (= ${(inputQty / pkgSize).toFixed(1)} ${it.package_type?.trim() || "package"}s)` : ""}`
+                          : `× ${it.package_type?.trim() || "units"}${pkgSize != null ? ` = ${(+(inputQty * pkgSize).toFixed(4)).toString()} ${it.package_size_unit ?? it.unit}` : ` ${it.unit}`}`}
+                      </span>
                     </span>
-                  </span>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
           <div className="flex justify-between">

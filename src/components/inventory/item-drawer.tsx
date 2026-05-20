@@ -481,12 +481,7 @@ export function InventoryItemDrawer({
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
-                        <Label>Quantity owned</Label>
-                        <Input
-                          type="number" inputMode="decimal"
-                          value={form.current_quantity}
-                          onChange={(e) => set("current_quantity", e.target.value)}
-                        />
+                        <QuantityOnHandField form={form} set={set} />
                       </div>
                       <div>
                         <Label>Par level</Label>
@@ -768,6 +763,46 @@ function PriceField({
             </Button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function QuantityOnHandField({
+  form, set,
+}: {
+  form: FormState;
+  set: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+}) {
+  const pkgSize = form.unit_size ? Number(form.unit_size) : 0;
+  const pkgType = form.package_type?.trim() || "package";
+  const unit = form.unit || "units";
+  const rawQty = Number(form.current_quantity || 0);
+  const hasPkg = pkgSize > 0;
+  const displayValue = hasPkg
+    ? (rawQty === 0 ? "" : (rawQty / pkgSize).toFixed(2).replace(/\.?0+$/, ""))
+    : (rawQty === 0 ? "" : String(rawQty));
+  return (
+    <div>
+      <Label>Quantity on hand</Label>
+      {hasPkg && (
+        <p className="mb-1 text-[11px] text-muted-foreground">
+          (enter in {pkgType}s — 1 {pkgType} = {pkgSize} {unit})
+        </p>
+      )}
+      <Input
+        type="number" inputMode="decimal"
+        value={displayValue}
+        onChange={(e) => {
+          const v = Number(e.target.value || 0);
+          const stored = hasPkg ? v * pkgSize : v;
+          set("current_quantity", String(stored));
+        }}
+      />
+      {hasPkg && (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          = {(+rawQty.toFixed(4)).toString()} {unit} total
+        </p>
       )}
     </div>
   );

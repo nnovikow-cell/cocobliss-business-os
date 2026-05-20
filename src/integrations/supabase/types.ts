@@ -821,6 +821,8 @@ export type Database = {
           projected_use_date: string | null
           quantity: number
           quantity_after: number
+          reverted_at: string | null
+          reverted_by: string | null
           supplier_name_snapshot: string | null
         }
         Insert: {
@@ -836,6 +838,8 @@ export type Database = {
           projected_use_date?: string | null
           quantity: number
           quantity_after: number
+          reverted_at?: string | null
+          reverted_by?: string | null
           supplier_name_snapshot?: string | null
         }
         Update: {
@@ -851,6 +855,8 @@ export type Database = {
           projected_use_date?: string | null
           quantity?: number
           quantity_after?: number
+          reverted_at?: string | null
+          reverted_by?: string | null
           supplier_name_snapshot?: string | null
         }
         Relationships: [

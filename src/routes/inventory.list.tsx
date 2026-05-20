@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Search, ArrowLeft, Pencil, Plus } from "lucide-react";
+import { ChevronRight, Search, ArrowLeft, Pencil, Plus, RotateCcw } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/app/app-shell";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,15 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { useAuth } from "@/hooks/use-auth";
 import {
   CATEGORY_V2_LABEL, CATEGORY_V2_VALUES, WORKFLOW_LABEL,
   statusMeta, statusOf,
@@ -35,12 +42,17 @@ type Sort = "name" | "stock_asc" | "stock_desc" | "restocked";
 function InventoryList() {
   const sp = Route.useSearch();
   const navigate = Route.useNavigate();
+  const { user } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("name");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
+  const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
+  const [historyLogs, setHistoryLogs] = useState<LogRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [confirmLog, setConfirmLog] = useState<LogRow | null>(null);
 
   const status = (sp?.status ?? "all") as "all" | InventoryStatus;
   const category = (sp?.category ?? "all") as "all" | InventoryCategoryV2;
@@ -91,6 +103,46 @@ function InventoryList() {
     if (sort === "restocked") r = r.sort((a, b) => (b.last_restocked_at ?? "").localeCompare(a.last_restocked_at ?? ""));
     return r;
   }, [enriched, q, status, category, workflow, sort]);
+
+  const openHistory = async (it: InventoryItem) => {
+    setHistoryItem(it);
+    setHistoryLoading(true);
+    const { data, error } = await supabase
+      .from("inventory_logs")
+      .select("*")
+      .eq("item_id", it.id)
+      .is("reverted_at", null)
+      .order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    setHistoryLogs((data ?? []) as LogRow[]);
+    setHistoryLoading(false);
+  };
+
+  const doRevert = async (log: LogRow) => {
+    if (!historyItem) return;
+    const curItem = items.find((i) => i.id === historyItem.id);
+    if (!curItem) return;
+    const qty = Number(log.quantity);
+    const cur = Number(curItem.current_quantity);
+    const newQty =
+      log.kind === "restock" ? cur - qty : cur + qty;
+    const { error: e1 } = await supabase
+      .from("inventory_logs")
+      .update({ reverted_at: new Date().toISOString(), reverted_by: user?.id ?? null })
+      .eq("id", log.id);
+    if (e1) return toast.error(e1.message);
+    const { error: e2 } = await supabase
+      .from("inventory_items")
+      .update({ current_quantity: Math.max(0, newQty) })
+      .eq("id", historyItem.id);
+    if (e2) return toast.error(e2.message);
+    setHistoryLogs((prev) => prev.filter((l) => l.id !== log.id));
+    setItems((prev) => prev.map((i) =>
+      i.id === historyItem.id ? { ...i, current_quantity: Math.max(0, newQty) } : i,
+    ));
+    setConfirmLog(null);
+    toast.success("Log reverted — quantity adjusted");
+  };
 
   return (
     <AppShell>
@@ -179,7 +231,11 @@ function InventoryList() {
             return (
               <li key={i.id} className="rounded-2xl border bg-card p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
-                  <Link to="/inventory/$itemId" params={{ itemId: i.id }} className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => openHistory(i)}
+                    className="min-w-0 flex-1 text-left"
+                  >
                     <div className="flex items-center gap-2">
                       <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
                       <h3 className="truncate text-base font-semibold">{i.name}</h3>
@@ -205,7 +261,7 @@ function InventoryList() {
                     <p className="text-[11px] text-muted-foreground">
                       {i.last_restocked_at ? `Restocked ${new Date(i.last_restocked_at).toLocaleDateString()}` : "Never restocked"}
                     </p>
-                  </Link>
+                  </button>
                   <div className="flex flex-col items-end gap-1">
                     <button
                       type="button"
@@ -230,6 +286,82 @@ function InventoryList() {
         onOpenChange={setDrawerOpen}
         itemId={drawerItemId}
       />
+
+      <Sheet open={!!historyItem} onOpenChange={(v) => !v && setHistoryItem(null)}>
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{historyItem?.name} — History</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            {historyLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-20 animate-pulse rounded-xl bg-muted/50" />
+                ))}
+              </div>
+            ) : historyLogs.length === 0 ? (
+              <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                No log entries yet.
+              </p>
+            ) : (
+              historyLogs.map((log) => {
+                const kindMeta = LOG_KIND_META[log.kind] ?? LOG_KIND_META.use;
+                const isRestock = log.kind === "restock";
+                const sign = isRestock ? "+" : "−";
+                const unit = historyItem?.unit ?? "";
+                return (
+                  <div key={log.id} className="flex items-start justify-between gap-3 rounded-xl border bg-card p-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", kindMeta.classes)}>
+                          {kindMeta.label}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(log.created_at), "MMM d, yyyy · h:mm a")}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-sm font-semibold">
+                        {sign}{Number(log.quantity)} {unit}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        On hand after: {Number(log.quantity_after)} {unit}
+                      </p>
+                      {log.note && (
+                        <p className="mt-1 text-xs text-muted-foreground">{log.note}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setConfirmLog(log)}
+                      aria-label="Revert"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog open={!!confirmLog} onOpenChange={(v) => !v && setConfirmLog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revert this log entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The quantity on hand will be adjusted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmLog && doRevert(confirmLog)}>
+              Revert
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
@@ -237,3 +369,20 @@ function InventoryList() {
 function formatQty(n: number) {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, "");
 }
+
+type LogRow = {
+  id: string;
+  item_id: string;
+  kind: "use" | "restock" | "production_batch" | "event_use";
+  quantity: number;
+  quantity_after: number;
+  note: string | null;
+  created_at: string;
+};
+
+const LOG_KIND_META: Record<LogRow["kind"], { label: string; classes: string }> = {
+  restock: { label: "Restock", classes: "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+  event_use: { label: "Event use", classes: "border-orange-500/30 bg-orange-500/15 text-orange-700 dark:text-orange-300" },
+  production_batch: { label: "Production batch", classes: "border-teal-500/30 bg-teal-500/15 text-teal-700 dark:text-teal-300" },
+  use: { label: "Manual use", classes: "border-muted-foreground/30 bg-muted text-muted-foreground" },
+};
