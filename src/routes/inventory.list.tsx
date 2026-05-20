@@ -247,6 +247,11 @@ function InventoryList() {
                       <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
                         {CATEGORY_V2_LABEL[(i.category_v2 ?? "other") as InventoryCategoryV2]}
                       </span>
+                      {(i as unknown as { is_active?: boolean }).is_active === false && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
+                          Inactive
+                        </span>
+                      )}
                       {(i.workflow_tags ?? []).filter((t) => t !== "all").map((t) => (
                         <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
                           {WORKFLOW_LABEL[t as WorkflowTag]}
