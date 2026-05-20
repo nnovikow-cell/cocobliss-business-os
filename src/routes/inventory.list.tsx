@@ -47,6 +47,7 @@ function InventoryList() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("name");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
@@ -97,12 +98,14 @@ function InventoryList() {
       if (term && !i.name.toLowerCase().includes(term)) return false;
       return true;
     });
+    if (activeFilter === "active") r = r.filter((i) => (i as unknown as { is_active?: boolean }).is_active !== false);
+    if (activeFilter === "inactive") r = r.filter((i) => (i as unknown as { is_active?: boolean }).is_active === false);
     if (sort === "name") r = r.sort((a, b) => a.name.localeCompare(b.name));
     if (sort === "stock_asc") r = r.sort((a, b) => a.current_quantity / (a.par_level || 1) - b.current_quantity / (b.par_level || 1));
     if (sort === "stock_desc") r = r.sort((a, b) => b.current_quantity / (b.par_level || 1) - a.current_quantity / (a.par_level || 1));
     if (sort === "restocked") r = r.sort((a, b) => (b.last_restocked_at ?? "").localeCompare(a.last_restocked_at ?? ""));
     return r;
-  }, [enriched, q, status, category, workflow, sort]);
+  }, [enriched, q, status, category, workflow, sort, activeFilter]);
 
   const openHistory = async (it: InventoryItem) => {
     setHistoryItem(it);
@@ -210,6 +213,18 @@ function InventoryList() {
               <SelectItem value="stock_asc">Stock: lowest first</SelectItem>
               <SelectItem value="stock_desc">Stock: highest first</SelectItem>
               <SelectItem value="restocked">Last restocked</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Select value={activeFilter} onValueChange={(v) => setActiveFilter(v as "all" | "active" | "inactive")}>
+            <SelectTrigger className="h-9 w-36 rounded-full">
+              <SelectValue placeholder="All items" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All items</SelectItem>
+              <SelectItem value="active">Active only</SelectItem>
+              <SelectItem value="inactive">Inactive only</SelectItem>
             </SelectContent>
           </Select>
         </div>
