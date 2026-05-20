@@ -14,6 +14,8 @@ export const Route = createFileRoute("/inventory/")({ component: InventoryHome }
 
 function InventoryHome() {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [activeCount, setActiveCount] = useState(0);
+  const [inactiveCount, setInactiveCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +25,15 @@ function InventoryHome() {
         .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
       if (error) toast.error(error.message);
       setItems((data ?? []) as InventoryItem[]);
+      const { data: allItems } = await supabase
+        .from("inventory_items")
+        .select("id, is_active")
+        .is("deleted_at", null)
+        .eq("is_archived", false);
+      const total = allItems?.length ?? 0;
+      const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
+      setInactiveCount(inactive);
+      setActiveCount(total - inactive);
       setLoading(false);
     })();
   }, []);
@@ -46,7 +57,7 @@ function InventoryHome() {
         </Button>
       </header>
 
-      <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
         <StatusCard
           to="/inventory/list"
           search={{ status: "out" }}
@@ -74,6 +85,18 @@ function InventoryHome() {
           subtitle="Above par"
           value={loading ? "—" : counts.ok}
         />
+        <div className="rounded-3xl border bg-card p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-muted p-2">
+              <ListChecks className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-black tracking-tight">{loading ? "—" : activeCount}</p>
+              <p className="text-sm font-semibold">Active items</p>
+              <p className="text-xs text-muted-foreground">{loading ? "" : `${inactiveCount} inactive`}</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
