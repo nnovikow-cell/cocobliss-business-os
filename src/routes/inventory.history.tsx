@@ -377,7 +377,9 @@ function InventoryHistory() {
                     )}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    On hand after: {Number(log.quantity_after)} {unit}
+                    On hand after: {hasPkg
+                      ? `${fmt(Number(log.quantity_after) / pkgSize)} ${pkgType}${(Number(log.quantity_after) / pkgSize) !== 1 ? "s" : ""} (${Number(log.quantity_after)} ${unit})`
+                      : `${Number(log.quantity_after)} ${unit}`}
                     {log.note ? ` · ${log.note}` : ""}
                   </p>
                 </div>
