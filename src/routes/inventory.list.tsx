@@ -257,14 +257,17 @@ function InventoryList() {
                     <p className="mt-1.5 text-sm">
                       {(() => {
                         const pkg = toPackages(i);
-                        const pkgTypeTrim = i.package_type?.trim();
+                        const par = toPackages(i, i.par_level);
                         return (
                           <>
                             <span className="font-semibold">{pkg.display}</span>
                             {pkg.isPackage && (
                               <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.current_quantity))} {i.unit})</span>
                             )}
-                            <span className="text-muted-foreground"> / par {formatQty(i.par_level)} {pkgTypeTrim ? pkgTypeTrim + "s" : i.unit}</span>
+                            <span className="text-muted-foreground"> / par {par.display}</span>
+                            {par.isPackage && (
+                              <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.par_level))} {i.unit})</span>
+                            )}
                           </>
                         );
                       })()}
