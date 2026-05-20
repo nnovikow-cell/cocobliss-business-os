@@ -37,10 +37,6 @@ type LogRow = {
     package_type: string | null;
     library_code: string | null;
   } | null;
-  inventory_log_batches?: {
-    status: string | null;
-    order_number: string | null;
-  } | null;
 };
 
 const KIND_META: Record<LogKind, { label: string; classes: string }> = {
@@ -100,7 +96,7 @@ function InventoryHistory() {
       setLoading(true);
       const { data, error } = await supabase
         .from("inventory_logs")
-        .select("*, inventory_items(name, unit, package_size, package_type, library_code), inventory_log_batches!inventory_logs_batch_id_fkey(status, order_number)")
+        .select("*, inventory_items(name, unit, package_size, package_type, library_code)")
         .is("reverted_at", null)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -356,8 +352,6 @@ function InventoryHistory() {
             const sign = log.kind === "restock" ? "+" : "−";
             const qty = Number(log.quantity);
             const qtyPkgs = hasPkg ? qty / pkgSize : null;
-            const batchStatus = log.inventory_log_batches?.status ?? null;
-            const isPending = log.kind === "restock" && batchStatus === "pending";
             return (
               <li key={log.id} className="flex items-start justify-between gap-3 rounded-2xl border bg-card p-3">
                 <div className="min-w-0 flex-1">
@@ -366,17 +360,6 @@ function InventoryHistory() {
                     <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", meta.classes)}>
                       {meta.label}
                     </span>
-                    {log.kind === "restock" && (
-                      batchStatus === "pending" ? (
-                        <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                          Pending
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                          Received
-                        </span>
-                      )
-                    )}
                     <span className="ml-auto text-xs text-muted-foreground">
                       {format(new Date(log.created_at), "MMM d, yyyy · h:mm a")}
                     </span>
@@ -400,16 +383,14 @@ function InventoryHistory() {
                     {log.note ? ` · ${log.note}` : ""}
                   </p>
                 </div>
-                {!isPending && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setConfirmLog(log)}
-                    aria-label="Revert"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setConfirmLog(log)}
+                  aria-label="Revert"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
               </li>
             );
           })}

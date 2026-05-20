@@ -20,7 +20,7 @@ export type LogFlowKind = "production_batch" | "restock" | "event_use";
 
 const TITLES: Record<LogFlowKind, { title: string; verb: string; subtitle: string }> = {
   production_batch: { title: "Log Production Batch", verb: "used", subtitle: "Ingredients consumed in this batch" },
-  restock:          { title: "Log Restock", verb: "received", subtitle: "Log a new purchase order" },
+  restock:          { title: "Log Restock", verb: "received", subtitle: "Items received from a supplier" },
   event_use:        { title: "Log Event", verb: "used", subtitle: "Disposables and toppings used at the event" },
 };
 
@@ -45,20 +45,17 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
   const [productionDate, setProductionDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [projectedUseDate, setProjectedUseDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [supplier, setSupplier] = useState("");
-  const [orderNumber, setOrderNumber] = useState("");
-  const [orderDate, setOrderDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [projectedReceivedDate, setProjectedReceivedDate] = useState("");
+  const [restockDate, setRestockDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [eventDate, setEventDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
-  const [shippingCost, setShippingCost] = useState(0);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       const tag = workflowFilter(kind);
       let q = supabase.from("inventory_items").select("*")
-        .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
+        .is("deleted_at", null).eq("is_archived", false).order("name");
       // Restock shows everything; the others filter by workflow tag.
       if (kind !== "restock") {
         q = q.overlaps("workflow_tags", [tag, "all"]);
@@ -99,7 +96,15 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
     setSaving(true);
 
     // Create batch header
-    const batchInsert = {
+    const batchInsert: {
+      kind: LogFlowKind;
+      event_instance_id: string | null;
+      production_date: string | null;
+      projected_use_date: string | null;
+      supplier_name: string | null;
+      note: string | null;
+      logged_by: string | null;
+    } = {
       kind,
       event_instance_id: kind === "restock" ? null : eventInstanceId,
       production_date: kind === "production_batch" ? productionDate : null,
@@ -107,15 +112,10 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       supplier_name: kind === "restock" ? supplier.trim() : null,
       note: note.trim() || null,
       logged_by: user?.id ?? null,
-      status: kind === "restock" ? "pending" : "received",
-      order_number: kind === "restock" ? orderNumber.trim() || null : null,
-      order_date: kind === "restock" ? orderDate || null : null,
-      projected_received_date: kind === "restock" ? projectedReceivedDate || null : null,
-      shipping_cost: kind === "restock" ? shippingCost || null : null,
     };
     const eventDateIso =
       kind === "restock"
-        ? new Date(orderDate).toISOString()
+        ? new Date(restockDate).toISOString()
         : kind === "event_use"
         ? new Date(eventDate).toISOString()
         : new Date(productionDate).toISOString();
@@ -135,15 +135,11 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       const storedQty = askInUnits
         ? inputQty
         : (pkgSize ? inputQty * pkgSize : inputQty);
-      let newQty: number;
-      if (kind === "restock") {
-        // Pending order — don't update stock yet
-        newQty = Number(it.current_quantity);
-      } else {
-        newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
-        const { error: e1 } = await supabase.from("inventory_items").update({ current_quantity: newQty }).eq("id", it.id);
-        if (e1) { setSaving(false); return toast.error(e1.message); }
-      }
+      const newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
+      const itemUpdate: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
+      if (kind === "restock") itemUpdate.last_restocked_at = new Date(restockDate).toISOString();
+      const { error: e1 } = await supabase.from("inventory_items").update(itemUpdate).eq("id", it.id);
+      if (e1) { setSaving(false); return toast.error(e1.message); }
       const { error: e2 } = await supabase.from("inventory_logs").insert({
         item_id: it.id,
         kind,
@@ -161,11 +157,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
       if (e2) { setSaving(false); return toast.error(e2.message); }
     }
 
-    toast.success(
-      kind === "restock"
-        ? "Order logged — stock will update when marked received"
-        : `${meta.title} saved`,
-    );
+    toast.success(`${meta.title} saved`);
     navigate({ to: "/inventory" });
   };
 
@@ -214,9 +206,6 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                         <li key={it.id} className={cn("flex items-center justify-between gap-3 rounded-2xl border bg-card p-3", q > 0 && "ring-2 ring-primary/40")}>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">{it.name}</p>
-                            {(it as unknown as { library_code?: string | null }).library_code && (
-                              <p className="text-xs font-mono text-muted-foreground">{(it as unknown as { library_code: string }).library_code}</p>
-                            )}
                             <p className="text-xs text-muted-foreground">
                               {(() => {
                                 const ps = it.package_size != null ? Number(it.package_size) : 0;
@@ -320,16 +309,8 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                 <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="e.g. Restaurant Depot" />
               </div>
               <div>
-                <Label>Order number</Label>
-                <Input value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} placeholder="e.g. #104496TS" />
-              </div>
-              <div>
-                <Label>Order date</Label>
-                <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
-              </div>
-              <div>
-                <Label>Projected delivery</Label>
-                <Input type="date" value={projectedReceivedDate} onChange={(e) => setProjectedReceivedDate(e.target.value)} />
+                <Label>Date received</Label>
+                <Input type="date" value={restockDate} onChange={(e) => setRestockDate(e.target.value)} />
               </div>
             </div>
           )}
@@ -344,7 +325,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
             <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           <div className="flex justify-between">
-            <Button variant="ghost" onClick={() => { setShippingCost(0); setStep(1); }}><ArrowLeft className="h-4 w-4" /> Back</Button>
+            <Button variant="ghost" onClick={() => setStep(1)}><ArrowLeft className="h-4 w-4" /> Back</Button>
             <Button disabled={!canSave} onClick={() => setStep(3)}>
               Review <ArrowRight className="h-4 w-4" />
             </Button>
@@ -367,14 +348,7 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                 const sign = kind === "restock" ? "+" : "−";
                 return (
                   <li key={it.id} className="flex items-center justify-between py-2 text-sm">
-                    <span className="font-medium">
-                      {it.name}
-                      {kind === "restock" && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {qtyById[it.id]} × ${Number(it.price ?? 0).toFixed(2)} = ${(qtyById[it.id]! * Number(it.price ?? 0)).toFixed(2)}
-                        </span>
-                      )}
-                    </span>
+                    <span className="font-medium">{it.name}</span>
                     <span>
                       <span className="font-semibold">{sign}{inputQty}</span>{" "}
                       <span className="text-muted-foreground">
@@ -388,43 +362,6 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
               })}
             </ul>
           </div>
-          {kind === "restock" && (() => {
-            const itemsTotal = selected.reduce((sum, it) => {
-              const cases = qtyById[it.id] ?? 0;
-              const casePrice = Number(it.price ?? 0);
-              return sum + cases * casePrice;
-            }, 0);
-            const grandTotal = itemsTotal + shippingCost;
-            return (
-              <div className="rounded-2xl border bg-card p-4 space-y-3">
-                <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-muted-foreground">Order Cost</h2>
-                <div className="flex justify-between text-sm">
-                  <span>Items subtotal</span>
-                  <span className="font-semibold">${itemsTotal.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-sm shrink-0">Shipping (optional)</Label>
-                  <div className="relative w-32">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      value={shippingCost === 0 ? "" : String(shippingCost)}
-                      onChange={(e) => setShippingCost(Math.max(0, Number(e.target.value || 0)))}
-                      placeholder="0.00"
-                      className="pl-6 text-right"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-between text-sm font-bold border-t pt-2">
-                  <span>Total paid</span>
-                  <span>${grandTotal.toFixed(2)}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Informational only — does not update item prices.</p>
-              </div>
-            );
-          })()}
           <div className="flex justify-between">
             <Button variant="ghost" onClick={() => setStep(2)}><ArrowLeft className="h-4 w-4" /> Back</Button>
             <Button onClick={save} disabled={saving}>

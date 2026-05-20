@@ -64,7 +64,6 @@ export type InventoryItem = {
   package_size: number | null;
   package_size_unit: string | null;
   cost_per_unit: number | null;
-  package_qty: number | null;
 };
 
 export type InventoryStatus = "ok" | "low" | "out";

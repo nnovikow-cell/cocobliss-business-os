@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
 import {
-  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History, ClipboardList,
+  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -10,102 +9,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { statusOf, type InventoryItem, type InventoryStatus } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/inventory/")({
-  component: InventoryHome,
-  gcTime: 0,
-});
-
-type PendingLog = {
-  item_id: string;
-  quantity: number;
-  inventory_items: {
-    name: string;
-    unit: string | null;
-    package_size: number | null;
-    package_type: string | null;
-    library_code: string | null;
-  } | null;
-};
-type PendingBatch = {
-  id: string;
-  supplier_name: string | null;
-  order_number: string | null;
-  order_date: string | null;
-  projected_received_date: string | null;
-  created_at: string;
-  inventory_logs: PendingLog[];
-};
+export const Route = createFileRoute("/inventory/")({ component: InventoryHome });
 
 function InventoryHome() {
-  const { user } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [activeCount, setActiveCount] = useState(0);
   const [inactiveCount, setInactiveCount] = useState(0);
-  const [pendingBatches, setPendingBatches] = useState<PendingBatch[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    const { data, error } = await supabase
-      .from("inventory_items").select("*")
-      .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
-    if (error) toast.error(error.message);
-    setItems((data ?? []) as InventoryItem[]);
-    const { data: allItems } = await supabase
-      .from("inventory_items")
-      .select("id, is_active")
-      .is("deleted_at", null)
-      .eq("is_archived", false);
-    const total = allItems?.length ?? 0;
-    const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
-    setInactiveCount(inactive);
-    setActiveCount(total - inactive);
-    const { data: pending } = await supabase
-      .from("inventory_log_batches")
-      .select(`
-        id, supplier_name, order_number, order_date, projected_received_date, created_at,
-        inventory_logs(quantity, item_id, inventory_items(name, unit, package_size, package_type, library_code))
-      `)
-      .eq("kind", "restock")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
-    setPendingBatches((pending ?? []) as unknown as PendingBatch[]);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchData(); }, []);
-
-  const markReceived = async (batch: PendingBatch) => {
-    for (const log of batch.inventory_logs) {
-      const { data: current } = await supabase
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("inventory_items").select("*")
+        .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
+      if (error) toast.error(error.message);
+      setItems((data ?? []) as InventoryItem[]);
+      const { data: allItems } = await supabase
         .from("inventory_items")
-        .select("current_quantity")
-        .eq("id", log.item_id)
-        .single();
-      if (!current) continue;
-      const newQty = Number(current.current_quantity) + Number(log.quantity);
-      await supabase.from("inventory_items").update({
-        current_quantity: newQty,
-        last_restocked_at: new Date().toISOString(),
-      }).eq("id", log.item_id);
-      await supabase.from("inventory_logs").update({
-        quantity_after: newQty,
-      }).eq("item_id", log.item_id).eq("batch_id", batch.id);
-    }
-    await supabase.from("inventory_log_batches").update({
-      status: "received",
-      received_at: new Date().toISOString(),
-      received_by: user?.id ?? null,
-    }).eq("id", batch.id);
-    setPendingBatches((prev) => prev.filter((b) => b.id !== batch.id));
-    // Refresh item counts
-    const { data: refreshed } = await supabase
-      .from("inventory_items").select("*")
-      .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
-    setItems((refreshed ?? []) as InventoryItem[]);
-    toast.success("Order marked received — stock updated");
-  };
+        .select("id, is_active")
+        .is("deleted_at", null)
+        .eq("is_archived", false);
+      const total = allItems?.length ?? 0;
+      const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
+      setInactiveCount(inactive);
+      setActiveCount(total - inactive);
+      setLoading(false);
+    })();
+  }, []);
 
   const counts = useMemo(() => {
     const out = { ok: 0, low: 0, out: 0 };
@@ -126,71 +57,10 @@ function InventoryHome() {
         </Button>
       </header>
 
-      {pendingBatches.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-            Pending Orders ({pendingBatches.length})
-          </h2>
-          <div className="space-y-3">
-            {pendingBatches.map((batch) => (
-              <div key={batch.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold">
-                      {batch.supplier_name ?? "Unknown supplier"}
-                      {batch.order_number && (
-                        <span className="ml-2 font-mono text-xs text-muted-foreground">
-                          {batch.order_number}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Ordered {format(new Date(batch.order_date ?? batch.created_at), "MMM d, yyyy")}
-                      {batch.projected_received_date && (
-                        <> · Expected {format(new Date(batch.projected_received_date), "MMM d, yyyy")}</>
-                      )}
-                    </p>
-                    <ul className="mt-2 space-y-0.5">
-                      {batch.inventory_logs.map((log) => {
-                        const item = log.inventory_items;
-                        const pkgSize = Number(item?.package_size ?? 0);
-                        const pkgType = item?.package_type?.trim();
-                        const qty = pkgSize > 0 ? Number(log.quantity) / pkgSize : Number(log.quantity);
-                        const unit = pkgSize > 0 && pkgType ? `${pkgType}s` : item?.unit ?? "";
-                        return (
-                          <li key={log.item_id} className="text-xs text-foreground">
-                            +{qty.toFixed(1)} {unit} — {item?.name}
-                            {item?.library_code && (
-                              <span className="ml-1 font-mono text-muted-foreground">{item.library_code}</span>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="shrink-0 rounded-full"
-                    onClick={() => markReceived(batch)}
-                  >
-                    Mark Received
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 text-right">
-            <Link to="/inventory/orders" className="text-xs font-semibold text-primary hover:underline">
-              View all orders →
-            </Link>
-          </div>
-        </section>
-      )}
-
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
         <StatusCard
           to="/inventory/list"
-          search={{ status: "out", active: "true" }}
+          search={{ status: "out" }}
           icon={PackageX}
           tone="danger"
           label="Reorder Now"
@@ -199,7 +69,7 @@ function InventoryHome() {
         />
         <StatusCard
           to="/inventory/list"
-          search={{ status: "low", active: "true" }}
+          search={{ status: "low" }}
           icon={AlertTriangle}
           tone="warn"
           label="Low Stock"
@@ -208,7 +78,7 @@ function InventoryHome() {
         />
         <StatusCard
           to="/inventory/list"
-          search={{ status: "ok", active: "true" }}
+          search={{ status: "ok" }}
           icon={CheckCircle2}
           tone="ok"
           label="Good to Go"
@@ -234,7 +104,6 @@ function InventoryHome() {
         <ActionCard to="/inventory/log/batch" icon={Factory} title="Log Production Batch" desc="Ingredients used in a batch." />
         <ActionCard to="/inventory/log/restock" icon={PackagePlus} title="Log Restock" desc="Items received from supplier." />
         <ActionCard to="/inventory/log/event" icon={PartyPopper} title="Log Event" desc="Disposables & toppings used." />
-        <ActionCard to="/inventory/orders" icon={ClipboardList} title="Purchase Orders" desc="View and manage all orders." />
         <ActionCard to="/inventory/history" icon={History} title="History" desc="All logs across items." />
       </section>
     </AppShell>

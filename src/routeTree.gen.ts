@@ -16,9 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RepositoryRouteImport } from './routes/repository'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as EventsRouteImport } from './routes/events'
-import { Route as BalancesRouteImport } from './routes/balances'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SalesIndexRouteImport } from './routes/sales.index'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
@@ -28,7 +26,6 @@ import { Route as ChecklistIndexRouteImport } from './routes/checklist.index'
 import { Route as SalesStatsRouteImport } from './routes/sales.stats'
 import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
-import { Route as InventoryOrdersRouteImport } from './routes/inventory.orders'
 import { Route as InventoryNewRouteImport } from './routes/inventory.new'
 import { Route as InventoryListRouteImport } from './routes/inventory.list'
 import { Route as InventoryHistoryRouteImport } from './routes/inventory.history'
@@ -80,19 +77,9 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InvoicesRoute = InvoicesRouteImport.update({
-  id: '/invoices',
-  path: '/invoices',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EventsRoute = EventsRouteImport.update({
   id: '/events',
   path: '/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BalancesRoute = BalancesRouteImport.update({
-  id: '/balances',
-  path: '/balances',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -138,11 +125,6 @@ const SalesSettingsRoute = SalesSettingsRouteImport.update({
 const ProductsIdRoute = ProductsIdRouteImport.update({
   id: '/products/$id',
   path: '/products/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InventoryOrdersRoute = InventoryOrdersRouteImport.update({
-  id: '/inventory/orders',
-  path: '/inventory/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryNewRoute = InventoryNewRouteImport.update({
@@ -224,9 +206,7 @@ const EventsInstanceInstanceIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/balances': typeof BalancesRoute
   '/events': typeof EventsRouteWithChildren
-  '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/repository': typeof RepositoryRoute
@@ -243,7 +223,6 @@ export interface FileRoutesByFullPath {
   '/inventory/history': typeof InventoryHistoryRoute
   '/inventory/list': typeof InventoryListRoute
   '/inventory/new': typeof InventoryNewRoute
-  '/inventory/orders': typeof InventoryOrdersRoute
   '/products/$id': typeof ProductsIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
@@ -261,8 +240,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/balances': typeof BalancesRoute
-  '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/repository': typeof RepositoryRoute
@@ -279,7 +256,6 @@ export interface FileRoutesByTo {
   '/inventory/history': typeof InventoryHistoryRoute
   '/inventory/list': typeof InventoryListRoute
   '/inventory/new': typeof InventoryNewRoute
-  '/inventory/orders': typeof InventoryOrdersRoute
   '/products/$id': typeof ProductsIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
@@ -298,9 +274,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/balances': typeof BalancesRoute
   '/events': typeof EventsRouteWithChildren
-  '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/meetings': typeof MeetingsRoute
   '/repository': typeof RepositoryRoute
@@ -317,7 +291,6 @@ export interface FileRoutesById {
   '/inventory/history': typeof InventoryHistoryRoute
   '/inventory/list': typeof InventoryListRoute
   '/inventory/new': typeof InventoryNewRoute
-  '/inventory/orders': typeof InventoryOrdersRoute
   '/products/$id': typeof ProductsIdRoute
   '/sales/settings': typeof SalesSettingsRoute
   '/sales/stats': typeof SalesStatsRoute
@@ -337,9 +310,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/balances'
     | '/events'
-    | '/invoices'
     | '/login'
     | '/meetings'
     | '/repository'
@@ -356,7 +327,6 @@ export interface FileRouteTypes {
     | '/inventory/history'
     | '/inventory/list'
     | '/inventory/new'
-    | '/inventory/orders'
     | '/products/$id'
     | '/sales/settings'
     | '/sales/stats'
@@ -374,8 +344,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/balances'
-    | '/invoices'
     | '/login'
     | '/meetings'
     | '/repository'
@@ -392,7 +360,6 @@ export interface FileRouteTypes {
     | '/inventory/history'
     | '/inventory/list'
     | '/inventory/new'
-    | '/inventory/orders'
     | '/products/$id'
     | '/sales/settings'
     | '/sales/stats'
@@ -410,9 +377,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/balances'
     | '/events'
-    | '/invoices'
     | '/login'
     | '/meetings'
     | '/repository'
@@ -429,7 +394,6 @@ export interface FileRouteTypes {
     | '/inventory/history'
     | '/inventory/list'
     | '/inventory/new'
-    | '/inventory/orders'
     | '/products/$id'
     | '/sales/settings'
     | '/sales/stats'
@@ -448,9 +412,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BalancesRoute: typeof BalancesRoute
   EventsRoute: typeof EventsRouteWithChildren
-  InvoicesRoute: typeof InvoicesRoute
   LoginRoute: typeof LoginRoute
   MeetingsRoute: typeof MeetingsRoute
   RepositoryRoute: typeof RepositoryRoute
@@ -464,7 +426,6 @@ export interface RootRouteChildren {
   InventoryHistoryRoute: typeof InventoryHistoryRoute
   InventoryListRoute: typeof InventoryListRoute
   InventoryNewRoute: typeof InventoryNewRoute
-  InventoryOrdersRoute: typeof InventoryOrdersRoute
   ProductsIdRoute: typeof ProductsIdRoute
   SalesSettingsRoute: typeof SalesSettingsRoute
   SalesStatsRoute: typeof SalesStatsRoute
@@ -530,25 +491,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/invoices': {
-      id: '/invoices'
-      path: '/invoices'
-      fullPath: '/invoices'
-      preLoaderRoute: typeof InvoicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/events': {
       id: '/events'
       path: '/events'
       fullPath: '/events'
       preLoaderRoute: typeof EventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/balances': {
-      id: '/balances'
-      path: '/balances'
-      fullPath: '/balances'
-      preLoaderRoute: typeof BalancesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -612,13 +559,6 @@ declare module '@tanstack/react-router' {
       path: '/products/$id'
       fullPath: '/products/$id'
       preLoaderRoute: typeof ProductsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inventory/orders': {
-      id: '/inventory/orders'
-      path: '/inventory/orders'
-      fullPath: '/inventory/orders'
-      preLoaderRoute: typeof InventoryOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory/new': {
@@ -750,9 +690,7 @@ const EventsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BalancesRoute: BalancesRoute,
   EventsRoute: EventsRouteWithChildren,
-  InvoicesRoute: InvoicesRoute,
   LoginRoute: LoginRoute,
   MeetingsRoute: MeetingsRoute,
   RepositoryRoute: RepositoryRoute,
@@ -766,7 +704,6 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryHistoryRoute: InventoryHistoryRoute,
   InventoryListRoute: InventoryListRoute,
   InventoryNewRoute: InventoryNewRoute,
-  InventoryOrdersRoute: InventoryOrdersRoute,
   ProductsIdRoute: ProductsIdRoute,
   SalesSettingsRoute: SalesSettingsRoute,
   SalesStatsRoute: SalesStatsRoute,
