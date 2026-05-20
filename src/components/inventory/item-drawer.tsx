@@ -364,6 +364,18 @@ export function InventoryItemDrawer({
         </div>
 
         <div className="px-5 py-4">
+          <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border bg-muted/30 p-3">
+            <div className="min-w-0">
+              <Label className="text-sm font-semibold">Active</Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Inactive items are tracked but excluded from status alerts
+              </p>
+            </div>
+            <Switch
+              checked={form.is_active}
+              onCheckedChange={(v) => set("is_active", v)}
+            />
+          </div>
           {loading ? (
             <div className="h-32 animate-pulse rounded-xl bg-muted/50" />
           ) : (
