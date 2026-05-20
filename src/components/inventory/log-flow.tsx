@@ -393,6 +393,41 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
               })}
             </ul>
           </div>
+          {kind === "restock" && (() => {
+            const itemsTotal = selected.reduce((sum, it) => {
+              return sum + (qtyById[it.id] ?? 0) * Number(it.price ?? 0);
+            }, 0);
+            const grandTotal = itemsTotal + shippingCost;
+            return (
+              <div className="rounded-2xl border bg-card p-4 space-y-3">
+                <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-muted-foreground">Order Cost</h2>
+                <div className="flex justify-between text-sm">
+                  <span>Items subtotal</span>
+                  <span className="font-semibold">${itemsTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-sm shrink-0">Shipping (optional)</Label>
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={shippingCost === 0 ? "" : String(shippingCost)}
+                      onChange={(e) => setShippingCost(Math.max(0, Number(e.target.value || 0)))}
+                      placeholder="0.00"
+                      className="pl-6 text-right"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-between text-sm font-bold border-t pt-2">
+                  <span>Total paid</span>
+                  <span>${grandTotal.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Informational only — does not update item prices.</p>
+              </div>
+            );
+          })()}
           <div className="flex justify-between">
             <Button variant="ghost" onClick={() => setStep(2)}><ArrowLeft className="h-4 w-4" /> Back</Button>
             <Button onClick={save} disabled={saving}>
