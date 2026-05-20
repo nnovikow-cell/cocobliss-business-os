@@ -687,6 +687,7 @@ export type Database = {
           density: number | null
           density_source: string | null
           id: string
+          is_active: boolean
           is_archived: boolean
           last_restocked_at: string | null
           library_code: string | null
@@ -718,6 +719,7 @@ export type Database = {
           density?: number | null
           density_source?: string | null
           id?: string
+          is_active?: boolean
           is_archived?: boolean
           last_restocked_at?: string | null
           library_code?: string | null
@@ -749,6 +751,7 @@ export type Database = {
           density?: number | null
           density_source?: string | null
           id?: string
+          is_active?: boolean
           is_archived?: boolean
           last_restocked_at?: string | null
           library_code?: string | null
