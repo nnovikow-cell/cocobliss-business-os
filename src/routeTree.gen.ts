@@ -28,6 +28,7 @@ import { Route as SalesSettingsRouteImport } from './routes/sales.settings'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as InventoryNewRouteImport } from './routes/inventory.new'
 import { Route as InventoryListRouteImport } from './routes/inventory.list'
+import { Route as InventoryHistoryRouteImport } from './routes/inventory.history'
 import { Route as InventoryItemIdRouteImport } from './routes/inventory.$itemId'
 import { Route as EventsSeriesRouteImport } from './routes/events.series'
 import { Route as EventsScheduleRouteImport } from './routes/events.schedule'
@@ -136,6 +137,11 @@ const InventoryListRoute = InventoryListRouteImport.update({
   path: '/inventory/list',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryHistoryRoute = InventoryHistoryRouteImport.update({
+  id: '/inventory/history',
+  path: '/inventory/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InventoryItemIdRoute = InventoryItemIdRouteImport.update({
   id: '/inventory/$itemId',
   path: '/inventory/$itemId',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
+  '/inventory/history': typeof InventoryHistoryRoute
   '/inventory/list': typeof InventoryListRoute
   '/inventory/new': typeof InventoryNewRoute
   '/products/$id': typeof ProductsIdRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
+  '/inventory/history': typeof InventoryHistoryRoute
   '/inventory/list': typeof InventoryListRoute
   '/inventory/new': typeof InventoryNewRoute
   '/products/$id': typeof ProductsIdRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/events/schedule': typeof EventsScheduleRoute
   '/events/series': typeof EventsSeriesRoute
   '/inventory/$itemId': typeof InventoryItemIdRoute
+  '/inventory/history': typeof InventoryHistoryRoute
   '/inventory/list': typeof InventoryListRoute
   '/inventory/new': typeof InventoryNewRoute
   '/products/$id': typeof ProductsIdRoute
@@ -315,6 +324,7 @@ export interface FileRouteTypes {
     | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
+    | '/inventory/history'
     | '/inventory/list'
     | '/inventory/new'
     | '/products/$id'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
+    | '/inventory/history'
     | '/inventory/list'
     | '/inventory/new'
     | '/products/$id'
@@ -380,6 +391,7 @@ export interface FileRouteTypes {
     | '/events/schedule'
     | '/events/series'
     | '/inventory/$itemId'
+    | '/inventory/history'
     | '/inventory/list'
     | '/inventory/new'
     | '/products/$id'
@@ -411,6 +423,7 @@ export interface RootRouteChildren {
   ChecklistSessionIdRoute: typeof ChecklistSessionIdRoute
   ChecklistSettingsRoute: typeof ChecklistSettingsRoute
   InventoryItemIdRoute: typeof InventoryItemIdRoute
+  InventoryHistoryRoute: typeof InventoryHistoryRoute
   InventoryListRoute: typeof InventoryListRoute
   InventoryNewRoute: typeof InventoryNewRoute
   ProductsIdRoute: typeof ProductsIdRoute
@@ -562,6 +575,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/history': {
+      id: '/inventory/history'
+      path: '/inventory/history'
+      fullPath: '/inventory/history'
+      preLoaderRoute: typeof InventoryHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inventory/$itemId': {
       id: '/inventory/$itemId'
       path: '/inventory/$itemId'
@@ -681,6 +701,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChecklistSessionIdRoute: ChecklistSessionIdRoute,
   ChecklistSettingsRoute: ChecklistSettingsRoute,
   InventoryItemIdRoute: InventoryItemIdRoute,
+  InventoryHistoryRoute: InventoryHistoryRoute,
   InventoryListRoute: InventoryListRoute,
   InventoryNewRoute: InventoryNewRoute,
   ProductsIdRoute: ProductsIdRoute,

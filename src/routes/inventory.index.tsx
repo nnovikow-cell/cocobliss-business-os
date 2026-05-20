@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus,
+  AlertTriangle, PackageX, CheckCircle2, ListChecks, Factory, PackagePlus, PartyPopper, ChevronRight, Plus, History,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,7 @@ function InventoryHome() {
         <ActionCard to="/inventory/log/batch" icon={Factory} title="Log Production Batch" desc="Ingredients used in a batch." />
         <ActionCard to="/inventory/log/restock" icon={PackagePlus} title="Log Restock" desc="Items received from supplier." />
         <ActionCard to="/inventory/log/event" icon={PartyPopper} title="Log Event" desc="Disposables & toppings used." />
+        <ActionCard to="/inventory/history" icon={History} title="History" desc="All logs across items." />
       </section>
     </AppShell>
   );
