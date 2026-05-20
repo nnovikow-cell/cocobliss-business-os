@@ -397,13 +397,14 @@ function formatQty(n: number) {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, "");
 }
 
-function toPackages(item: InventoryItem) {
+function toPackages(item: InventoryItem, qty?: number) {
+  const raw = qty !== undefined ? Number(qty) : Number(item.current_quantity);
   const pkgSize = Number(item.package_size);
   const pkgType = item.package_type?.trim() || null;
   if (!pkgSize || !pkgType) {
-    return { display: `${formatQty(Number(item.current_quantity))} ${item.unit}`, isPackage: false };
+    return { display: `${formatQty(raw)} ${item.unit}`, isPackage: false };
   }
-  const pkgs = Number(item.current_quantity) / pkgSize;
+  const pkgs = raw / pkgSize;
   return { display: `${formatQty(pkgs)} ${pkgType}${pkgs !== 1 ? "s" : ""}`, isPackage: true };
 }
 
