@@ -257,14 +257,17 @@ function InventoryList() {
                     <p className="mt-1.5 text-sm">
                       {(() => {
                         const pkg = toPackages(i);
-                        const pkgTypeTrim = i.package_type?.trim();
+                        const par = toPackages(i, i.par_level);
                         return (
                           <>
                             <span className="font-semibold">{pkg.display}</span>
                             {pkg.isPackage && (
                               <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.current_quantity))} {i.unit})</span>
                             )}
-                            <span className="text-muted-foreground"> / par {formatQty(i.par_level)} {pkgTypeTrim ? pkgTypeTrim + "s" : i.unit}</span>
+                            <span className="text-muted-foreground"> / par {par.display}</span>
+                            {par.isPackage && (
+                              <span className="text-muted-foreground text-xs"> ({formatQty(Number(i.par_level))} {i.unit})</span>
+                            )}
                           </>
                         );
                       })()}
@@ -397,13 +400,14 @@ function formatQty(n: number) {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, "");
 }
 
-function toPackages(item: InventoryItem) {
+function toPackages(item: InventoryItem, qty?: number) {
+  const raw = qty !== undefined ? Number(qty) : Number(item.current_quantity);
   const pkgSize = Number(item.package_size);
   const pkgType = item.package_type?.trim() || null;
   if (!pkgSize || !pkgType) {
-    return { display: `${formatQty(Number(item.current_quantity))} ${item.unit}`, isPackage: false };
+    return { display: `${formatQty(raw)} ${item.unit}`, isPackage: false };
   }
-  const pkgs = Number(item.current_quantity) / pkgSize;
+  const pkgs = raw / pkgSize;
   return { display: `${formatQty(pkgs)} ${pkgType}${pkgs !== 1 ? "s" : ""}`, isPackage: true };
 }
 

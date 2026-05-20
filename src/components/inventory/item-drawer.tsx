@@ -484,12 +484,7 @@ export function InventoryItemDrawer({
                         <QuantityOnHandField form={form} set={set} />
                       </div>
                       <div>
-                        <Label>Par level</Label>
-                        <Input
-                          type="number" inputMode="decimal"
-                          value={form.par_level}
-                          onChange={(e) => set("par_level", e.target.value)}
-                        />
+                        <ParLevelField form={form} set={set} />
                       </div>
                     </div>
 
@@ -784,12 +779,7 @@ function QuantityOnHandField({
     : (rawQty === 0 ? "" : String(rawQty));
   return (
     <div>
-      <Label>Quantity on hand</Label>
-      {hasPkg && (
-        <p className="mb-1 text-[11px] text-muted-foreground">
-          (enter in {pkgType}s — 1 {pkgType} = {pkgSize} {unit})
-        </p>
-      )}
+      <Label>Quantity on hand{hasPkg ? ` (${pkgType}s)` : ""}</Label>
       <Input
         type="number" inputMode="decimal"
         value={displayValue}
@@ -797,6 +787,41 @@ function QuantityOnHandField({
           const v = Number(e.target.value || 0);
           const stored = hasPkg ? v * pkgSize : v;
           set("current_quantity", String(stored));
+        }}
+      />
+      {hasPkg && (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          = {(+rawQty.toFixed(4)).toString()} {unit} total
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ParLevelField({
+  form, set,
+}: {
+  form: FormState;
+  set: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+}) {
+  const pkgSize = form.unit_size ? Number(form.unit_size) : 0;
+  const pkgType = form.package_type?.trim() || "package";
+  const unit = form.unit || "units";
+  const rawQty = Number(form.par_level || 0);
+  const hasPkg = pkgSize > 0;
+  const displayValue = hasPkg
+    ? (rawQty === 0 ? "" : (rawQty / pkgSize).toFixed(2).replace(/\.?0+$/, ""))
+    : (rawQty === 0 ? "" : String(rawQty));
+  return (
+    <div>
+      <Label>Par level{hasPkg ? ` (${pkgType}s)` : ""}</Label>
+      <Input
+        type="number" inputMode="decimal"
+        value={displayValue}
+        onChange={(e) => {
+          const v = Number(e.target.value || 0);
+          const stored = hasPkg ? v * pkgSize : v;
+          set("par_level", String(stored));
         }}
       />
       {hasPkg && (

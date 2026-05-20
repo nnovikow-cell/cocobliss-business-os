@@ -207,7 +207,21 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">{it.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              On hand {Number(it.current_quantity)} {it.unit}
+                              {(() => {
+                                const ps = it.package_size != null ? Number(it.package_size) : 0;
+                                const pt = it.package_type?.trim() || null;
+                                const cur = Number(it.current_quantity);
+                                if (ps > 0 && pt) {
+                                  const pkgs = cur / ps;
+                                  return (
+                                    <>
+                                      On hand {(+pkgs.toFixed(2)).toString()} {pt}{pkgs !== 1 ? "s" : ""}
+                                      <span className="ml-1">({cur} {it.unit})</span>
+                                    </>
+                                  );
+                                }
+                                return <>On hand {cur} {it.unit}</>;
+                              })()}
                             </p>
                             {q > 0 && (
                               <p className="mt-0.5 text-[11px] text-muted-foreground">
