@@ -367,7 +367,14 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
                 const sign = kind === "restock" ? "+" : "−";
                 return (
                   <li key={it.id} className="flex items-center justify-between py-2 text-sm">
-                    <span className="font-medium">{it.name}</span>
+                    <span className="font-medium">
+                      {it.name}
+                      {kind === "restock" && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {qtyById[it.id]} × ${Number(it.price ?? 0).toFixed(2)} = ${(qtyById[it.id]! * Number(it.price ?? 0)).toFixed(2)}
+                        </span>
+                      )}
+                    </span>
                     <span>
                       <span className="font-semibold">{sign}{inputQty}</span>{" "}
                       <span className="text-muted-foreground">
@@ -383,7 +390,9 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
           </div>
           {kind === "restock" && (() => {
             const itemsTotal = selected.reduce((sum, it) => {
-              return sum + (qtyById[it.id] ?? 0) * Number(it.price ?? 0);
+              const cases = qtyById[it.id] ?? 0;
+              const casePrice = Number(it.price ?? 0);
+              return sum + cases * casePrice;
             }, 0);
             const grandTotal = itemsTotal + shippingCost;
             return (
