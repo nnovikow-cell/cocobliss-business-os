@@ -776,6 +776,8 @@ export type Database = {
       }
       inventory_log_batches: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           event_instance_id: string | null
           id: string
@@ -794,6 +796,8 @@ export type Database = {
           supplier_name: string | null
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           event_instance_id?: string | null
           id?: string
@@ -812,6 +816,8 @@ export type Database = {
           supplier_name?: string | null
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           event_instance_id?: string | null
           id?: string
