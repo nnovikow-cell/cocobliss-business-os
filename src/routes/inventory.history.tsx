@@ -100,7 +100,7 @@ function InventoryHistory() {
       setLoading(true);
       const { data, error } = await supabase
         .from("inventory_logs")
-        .select("*, inventory_items(name, unit, package_size, package_type, library_code), inventory_log_batches(status, order_number)")
+        .select("*, inventory_items(name, unit, package_size, package_type, library_code), inventory_log_batches!inventory_logs_batch_id_fkey(status, order_number)")
         .is("reverted_at", null)
         .order("created_at", { ascending: false })
         .limit(200);
