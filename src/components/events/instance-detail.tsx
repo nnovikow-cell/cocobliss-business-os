@@ -3,7 +3,7 @@ import { format, parseISO } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import {
   CalendarDays, MapPin, Users, Receipt, ClipboardList, Package,
-  ArrowUpRight,
+  ArrowUpRight, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,13 @@ type ChecklistAgg = {
 type InventoryAgg = {
   totalLogs: number; useCount: number; restockCount: number;
 };
+type InvoiceRow = {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  due_date: string;
+  paid_at: string | null;
+};
 
 export function InstanceDetail({
   instanceId, onChanged, onClose,
@@ -53,6 +60,7 @@ export function InstanceDetail({
   const [sales, setSales] = useState<SalesAgg | null>(null);
   const [checklist, setChecklist] = useState<ChecklistAgg | null>(null);
   const [inventory, setInventory] = useState<InventoryAgg | null>(null);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -141,6 +149,15 @@ export function InstanceDetail({
       totalLogs: invLogs?.length ?? 0,
       useCount, restockCount,
     });
+
+    // Invoices linked to this instance
+    const { data: invRows } = await supabase
+      .from("invoices")
+      .select("id, invoice_number, amount, due_date, paid_at")
+      .eq("event_instance_id", instanceId)
+      .is("deleted_at", null)
+      .order("due_date", { ascending: false });
+    setInvoices((invRows ?? []) as InvoiceRow[]);
 
     setLoading(false);
   };
