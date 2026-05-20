@@ -122,7 +122,13 @@ export function LogFlow({ kind }: { kind: LogFlowKind }) {
     for (const it of selected) {
       const inputQty = qtyById[it.id]!;
       const pkgSize = it.package_size != null ? Number(it.package_size) : null;
-      const storedQty = pkgSize ? inputQty * pkgSize : inputQty;
+      const cat = it.category_v2;
+      const askInUnits =
+        (kind === "event_use" || kind === "production_batch") &&
+        (cat === "disposable" || cat === "consumable");
+      const storedQty = askInUnits
+        ? inputQty
+        : (pkgSize ? inputQty * pkgSize : inputQty);
       const newQty = Math.max(0, Number(it.current_quantity) + sign * storedQty);
       const itemUpdate: { current_quantity: number; last_restocked_at?: string } = { current_quantity: newQty };
       if (kind === "restock") itemUpdate.last_restocked_at = new Date().toISOString();
