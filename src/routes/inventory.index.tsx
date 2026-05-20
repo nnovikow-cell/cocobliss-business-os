@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { statusOf, type InventoryItem, type InventoryStatus } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/inventory/")({ component: InventoryHome });
+export const Route = createFileRoute("/inventory/")({ component: InventoryHome, gcTime: 0 });
 
 function InventoryHome() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -18,25 +18,25 @@ function InventoryHome() {
   const [inactiveCount, setInactiveCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from("inventory_items").select("*")
-        .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
-      if (error) toast.error(error.message);
-      setItems((data ?? []) as InventoryItem[]);
-      const { data: allItems } = await supabase
-        .from("inventory_items")
-        .select("id, is_active")
-        .is("deleted_at", null)
-        .eq("is_archived", false);
-      const total = allItems?.length ?? 0;
-      const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
-      setInactiveCount(inactive);
-      setActiveCount(total - inactive);
-      setLoading(false);
-    })();
-  }, []);
+  const fetchData = async () => {
+    const { data, error } = await supabase
+      .from("inventory_items").select("*")
+      .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
+    if (error) toast.error(error.message);
+    setItems((data ?? []) as InventoryItem[]);
+    const { data: allItems } = await supabase
+      .from("inventory_items")
+      .select("id, is_active")
+      .is("deleted_at", null)
+      .eq("is_archived", false);
+    const total = allItems?.length ?? 0;
+    const inactive = allItems?.filter((i) => i.is_active === false).length ?? 0;
+    setInactiveCount(inactive);
+    setActiveCount(total - inactive);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const counts = useMemo(() => {
     const out = { ok: 0, low: 0, out: 0 };
@@ -60,7 +60,7 @@ function InventoryHome() {
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
         <StatusCard
           to="/inventory/list"
-          search={{ status: "out" }}
+          search={{ status: "out", active: "true" }}
           icon={PackageX}
           tone="danger"
           label="Reorder Now"
@@ -69,7 +69,7 @@ function InventoryHome() {
         />
         <StatusCard
           to="/inventory/list"
-          search={{ status: "low" }}
+          search={{ status: "low", active: "true" }}
           icon={AlertTriangle}
           tone="warn"
           label="Low Stock"
@@ -78,7 +78,7 @@ function InventoryHome() {
         />
         <StatusCard
           to="/inventory/list"
-          search={{ status: "ok" }}
+          search={{ status: "ok", active: "true" }}
           icon={CheckCircle2}
           tone="ok"
           label="Good to Go"
