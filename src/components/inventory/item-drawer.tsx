@@ -481,12 +481,7 @@ export function InventoryItemDrawer({
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
-                        <Label>Quantity owned</Label>
-                        <Input
-                          type="number" inputMode="decimal"
-                          value={form.current_quantity}
-                          onChange={(e) => set("current_quantity", e.target.value)}
-                        />
+                        <QuantityOnHandField form={form} set={set} />
                       </div>
                       <div>
                         <Label>Par level</Label>
