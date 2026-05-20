@@ -20,7 +20,7 @@ function InventoryHome() {
     (async () => {
       const { data, error } = await supabase
         .from("inventory_items").select("*")
-        .is("deleted_at", null).eq("is_archived", false).order("name");
+        .is("deleted_at", null).eq("is_archived", false).eq("is_active", true).order("name");
       if (error) toast.error(error.message);
       setItems((data ?? []) as InventoryItem[]);
       setLoading(false);
