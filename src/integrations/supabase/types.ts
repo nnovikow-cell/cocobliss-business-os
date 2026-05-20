@@ -782,8 +782,14 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by: string | null
           note: string | null
+          order_date: string | null
+          order_number: string | null
           production_date: string | null
+          projected_received_date: string | null
           projected_use_date: string | null
+          received_at: string | null
+          received_by: string | null
+          status: string
           supplier_name: string | null
         }
         Insert: {
@@ -793,8 +799,14 @@ export type Database = {
           kind: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by?: string | null
           note?: string | null
+          order_date?: string | null
+          order_number?: string | null
           production_date?: string | null
+          projected_received_date?: string | null
           projected_use_date?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          status?: string
           supplier_name?: string | null
         }
         Update: {
@@ -804,8 +816,14 @@ export type Database = {
           kind?: Database["public"]["Enums"]["inventory_log_kind"]
           logged_by?: string | null
           note?: string | null
+          order_date?: string | null
+          order_number?: string | null
           production_date?: string | null
+          projected_received_date?: string | null
           projected_use_date?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          status?: string
           supplier_name?: string | null
         }
         Relationships: []
