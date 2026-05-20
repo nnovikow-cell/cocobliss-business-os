@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -38,6 +39,7 @@ type FormState = {
   name: string;
   library_code: string;
   category: Cat;
+  is_active: boolean;
   package_type: string;
   package_qty: string;        // units per case
   unit_size: string;          // size of one unit (=> inventory_items.package_size)
@@ -57,6 +59,7 @@ type FormState = {
 
 const empty: FormState = {
   name: "", library_code: "", category: "ingredient",
+  is_active: true,
   package_type: "", package_qty: "", unit_size: "", unit: "fl oz",
   density: "", density_source: "",
   workflow_tags: ["restock"],
@@ -72,6 +75,7 @@ function fromItem(it: InventoryItem): FormState {
     name: it.name,
     library_code: (it as unknown as { library_code: string | null }).library_code ?? "",
     category: cat,
+    is_active: (it as unknown as { is_active: boolean | null }).is_active ?? true,
     package_type: it.package_type ?? "",
     package_qty: (it as unknown as { package_qty: number | null }).package_qty != null
       ? String((it as unknown as { package_qty: number | null }).package_qty) : "",
@@ -257,6 +261,7 @@ export function InventoryItemDrawer({
     if (!isEdit) {
       payload.price = form.price ? Number(form.price) : null;
       payload.created_by = user?.id ?? null;
+    payload.is_active = form.is_active;
       const { data, error } = await supabase.from("inventory_items")
         .insert(payload as never).select("id").single();
       setSaving(false);
@@ -265,6 +270,7 @@ export function InventoryItemDrawer({
       onSaved?.(data!.id);
       onOpenChange(false);
     } else {
+      payload.is_active = form.is_active;
       const { error } = await supabase.from("inventory_items")
         .update(payload as never).eq("id", itemId!);
       setSaving(false);
