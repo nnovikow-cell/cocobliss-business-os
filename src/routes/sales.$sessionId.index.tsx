@@ -441,12 +441,22 @@ function ActiveSession() {
                       </button>
                     </div>
                   ) : (
+                    <div className="flex items-center gap-1">
+                      {s.note !== "Tip" && (
+                        <button
+                          onClick={() => openEdit(s)}
+                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Edit
+                        </button>
+                      )}
                     <button
                       onClick={() => setConfirmDeleteId(s.id)}
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" /> Delete
                     </button>
+                    </div>
                   )
                 )}
               </div>
@@ -456,8 +466,9 @@ function ActiveSession() {
       </section>
 
       <SaleComposer
-        open={composerOpen} onClose={() => setComposerOpen(false)}
-        mode="sale"
+        open={composerOpen} onClose={() => { setComposerOpen(false); setEditInitial(null); }}
+        mode={editInitial ? editMode : "sale"}
+        initial={editInitial}
         products={products} flavors={flavors} paymentMethods={paymentMethods}
         demographics={demographics} tipOptions={tipOptions} taxRate={taxRate} onSubmit={submitSale}
       />
