@@ -422,7 +422,7 @@ export function SaleComposer(props: Props) {
                 {tipOptions.map((t) => {
                   const sel = t.id === tipId;
                   return (
-                    <button key={t.id} onClick={() => setTipId(sel ? "" : t.id)}
+                    <button key={t.id} onClick={() => { setTipId(sel ? "" : t.id); setTipOverride(null); }}
                       className={cn("rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all",
                         sel ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card")}>
                       {t.label}
