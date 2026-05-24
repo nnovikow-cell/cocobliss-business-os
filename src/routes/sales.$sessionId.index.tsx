@@ -403,9 +403,33 @@ function ActiveSession() {
               className="h-14 flex-1 rounded-xl border-2 text-sm font-bold">
               <Gift className="mr-1 h-4 w-4" /> Sample
             </Button>
+            <Button onClick={() => setTipOpen(true)} variant="outline"
+              className="h-14 flex-1 rounded-xl border-2 text-sm font-bold">
+              <DollarSign className="mr-1 h-4 w-4" /> Tip
+            </Button>
           </div>
         </div>
       )}
+
+      <Dialog open={tipOpen} onOpenChange={(o) => { setTipOpen(o); if (!o) setTipAmount(""); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add tip</DialogTitle></DialogHeader>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+            <Input
+              autoFocus inputMode="decimal" type="number" step="0.01" min="0"
+              placeholder="0.00" value={tipAmount}
+              onChange={(e) => setTipAmount(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") submitTip(); }}
+              className="h-12 pl-7 text-lg font-bold"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTipOpen(false)}>Cancel</Button>
+            <Button onClick={submitTip} disabled={savingTip || !tipAmount}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
         <DialogContent>
