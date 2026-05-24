@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Plus, Trash2, Lock, Gift, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Lock, Gift, Package, DollarSign } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fmt, computeTotals } from "@/lib/money";
@@ -47,6 +48,9 @@ function ActiveSession() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [sampling, setSampling] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
+  const [tipAmount, setTipAmount] = useState("");
+  const [savingTip, setSavingTip] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
   const [unitsSold, setUnitsSold] = useState<{ shakes: number; paletas: number }>({ shakes: 0, paletas: 0 });
@@ -176,6 +180,25 @@ function ActiveSession() {
     setSampling(false);
     if (error) return toast.error(error.message);
     toast.success("Sample logged");
+    loadSales();
+  };
+
+  const submitTip = async () => {
+    if (!user || savingTip) return;
+    const amt = Number(tipAmount);
+    if (!Number.isFinite(amt) || amt <= 0) return toast.error("Enter a tip amount");
+    setSavingTip(true);
+    const { error } = await supabase.from("sales").insert({
+      session_id: sessionId, logged_by: user.id, sale_kind: "single",
+      payment_method_id: null, payment_method_name_snapshot: "Tip",
+      applies_tax_snapshot: false, tax_rate_snapshot: 0,
+      subtotal: 0, tax_amount: 0, tip_amount: amt, total: amt,
+      is_sample: false, note: "Tip",
+    });
+    setSavingTip(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Tip logged · ${fmt(amt)}`);
+    setTipAmount(""); setTipOpen(false);
     loadSales();
   };
 
