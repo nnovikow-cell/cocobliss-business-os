@@ -21,7 +21,16 @@ type Props = {
   demographics: DemographicOption[];
   tipOptions: TipOption[];
   taxRate: number;
+  initial?: {
+    saleId: string;
+    kind: "single" | "group";
+    carts: CustomerCart[];
+    paymentMethodId: string | null;
+    tipAmount: number;
+    note: string;
+  } | null;
   onSubmit: (input: {
+    saleId?: string;
     kind: "single" | "group";
     paymentMethod: PaymentMethod | null;
     customers: CustomerCart[];
@@ -32,7 +41,7 @@ type Props = {
 };
 
 export function SaleComposer(props: Props) {
-  const { open, onClose, products, flavors, paymentMethods, demographics, tipOptions, taxRate, onSubmit, mode = "sale" } = props;
+  const { open, onClose, products, flavors, paymentMethods, demographics, tipOptions, taxRate, onSubmit, mode = "sale", initial } = props;
   const isSample = mode === "sample";
   const [kind, setKind] = useState<"single" | "group">("single");
   const [carts, setCarts] = useState<CustomerCart[]>([{ lines: [], demographicIds: [] }]);
@@ -40,25 +49,42 @@ export function SaleComposer(props: Props) {
   const [pendingPaleta, setPendingPaleta] = useState<Product | null>(null);
   const [paymentId, setPaymentId] = useState<string>("");
   const [tipId, setTipId] = useState<string>("");
+  const [tipOverride, setTipOverride] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setKind("single");
-      setCarts([{ lines: [], demographicIds: [] }]);
-      setActiveCustomer(0);
-      setPendingPaleta(null);
-      setPaymentId("");
-      setTipId("");
-      setNote("");
+      if (initial) {
+        setKind(initial.kind);
+        setCarts(initial.carts.length ? initial.carts : [{ lines: [], demographicIds: [] }]);
+        setActiveCustomer(0);
+        setPendingPaleta(null);
+        setPaymentId(initial.paymentMethodId ?? "");
+        setTipId("");
+        setTipOverride(initial.tipAmount > 0 ? initial.tipAmount : null);
+        setNote(initial.note);
+      } else {
+        setKind("single");
+        setCarts([{ lines: [], demographicIds: [] }]);
+        setActiveCustomer(0);
+        setPendingPaleta(null);
+        setPaymentId("");
+        setTipId("");
+        setTipOverride(null);
+        setNote("");
+      }
     }
-  }, [open]);
+  }, [open, initial]);
 
   const subtotal = useMemo(() => cartSubtotal(carts), [carts]);
   const selectedMethod = paymentMethods.find((m) => m.id === paymentId) ?? null;
   const selectedTip = tipOptions.find((t) => t.id === tipId) ?? null;
-  const tipAmount = isSample ? 0 : computeTip(selectedTip, subtotal);
+  const tipAmount = isSample
+    ? 0
+    : selectedTip
+      ? computeTip(selectedTip, subtotal)
+      : (tipOverride ?? 0);
   const totals = computeTotals({
     subtotal: isSample ? 0 : subtotal,
     appliesTax: !isSample && (selectedMethod?.applies_tax ?? false),
@@ -146,6 +172,7 @@ export function SaleComposer(props: Props) {
     setBusy(true);
     try {
       await onSubmit({
+        saleId: initial?.saleId,
         kind,
         paymentMethod: isSample ? null : selectedMethod,
         customers: carts,
