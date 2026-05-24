@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Plus, Trash2, Lock, Gift, Package, DollarSign } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Lock, Gift, Package, DollarSign, Pencil } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fmt, computeTotals } from "@/lib/money";
 import { SaleComposer } from "@/components/sales/sale-composer";
-import type { Product, Flavor, PaymentMethod, DemographicOption, TipOption } from "@/lib/sales-types";
+import type { Product, Flavor, PaymentMethod, DemographicOption, TipOption, CustomerCart } from "@/lib/sales-types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/sales/$sessionId/")({ component: ActiveSession });
@@ -46,6 +46,15 @@ function ActiveSession() {
   const [tipOptions, setTipOptions] = useState<TipOption[]>([]);
   const [taxRate, setTaxRate] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [editInitial, setEditInitial] = useState<{
+    saleId: string;
+    kind: "single" | "group";
+    carts: CustomerCart[];
+    paymentMethodId: string | null;
+    tipAmount: number;
+    note: string;
+  } | null>(null);
+  const [editMode, setEditMode] = useState<"sale" | "sample">("sale");
   const [sampling, setSampling] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
@@ -135,8 +144,8 @@ function ActiveSession() {
     const appliesTax = !input.isSample && (input.paymentMethod?.applies_tax ?? false);
     const totals = computeTotals({ subtotal, appliesTax, taxRate, tip: input.isSample ? 0 : input.tipAmount });
 
-    const { data: sale, error } = await supabase.from("sales").insert({
-      session_id: sessionId, logged_by: user.id, sale_kind: input.kind,
+    const payload = {
+      sale_kind: input.kind,
       payment_method_id: input.paymentMethod?.id ?? null,
       payment_method_name_snapshot: input.paymentMethod?.name ?? (input.isSample ? "Sample" : ""),
       applies_tax_snapshot: appliesTax,
@@ -144,11 +153,24 @@ function ActiveSession() {
       subtotal: totals.subtotal, tax_amount: totals.tax, tip_amount: totals.tip, total: totals.total,
       is_sample: input.isSample,
       note: input.note || null,
-    }).select("id").single();
-    if (error || !sale) { toast.error(error?.message ?? "Failed"); return; }
+    };
+
+    let saleId = input.saleId;
+    if (saleId) {
+      const { error: upErr } = await supabase.from("sales").update(payload).eq("id", saleId);
+      if (upErr) { toast.error(upErr.message); return; }
+      await supabase.from("sale_items").delete().eq("sale_id", saleId);
+      await supabase.from("sale_demographics").delete().eq("sale_id", saleId);
+    } else {
+      const { data: sale, error } = await supabase.from("sales").insert({
+        session_id: sessionId, logged_by: user.id, ...payload,
+      }).select("id").single();
+      if (error || !sale) { toast.error(error?.message ?? "Failed"); return; }
+      saleId = sale.id;
+    }
 
     const items = input.customers.flatMap((c, ci) => c.lines.map((l) => ({
-      sale_id: sale.id, customer_index: ci,
+      sale_id: saleId!, customer_index: ci,
       product_id: l.productId, product_name_snapshot: l.productName, product_type_snapshot: l.productType,
       base_price_snapshot: l.basePrice,
       flavor_upgrade_id: l.flavorId ?? null, flavor_name_snapshot: l.flavorName ?? null,
@@ -158,13 +180,61 @@ function ActiveSession() {
     if (items.length) await supabase.from("sale_items").insert(items);
 
     const demos = input.customers.flatMap((c, ci) =>
-      c.demographicIds.map((d) => ({ sale_id: sale.id, customer_index: ci, demographic_option_id: d }))
+      c.demographicIds.map((d) => ({ sale_id: saleId!, customer_index: ci, demographic_option_id: d }))
     );
     if (demos.length) await supabase.from("sale_demographics").insert(demos);
 
-    toast.success(input.isSample ? "Sample logged" : `Sale logged · ${fmt(totals.total)}`);
+    toast.success(input.saleId ? "Sale updated" : input.isSample ? "Sample logged" : `Sale logged · ${fmt(totals.total)}`);
     setComposerOpen(false);
+    setEditInitial(null);
     loadSales();
+  };
+
+  const openEdit = async (saleRow: SaleRow) => {
+    const [{ data: itemRows }, { data: demoRows }] = await Promise.all([
+      supabase.from("sale_items")
+        .select("customer_index,product_id,product_name_snapshot,product_type_snapshot,base_price_snapshot,flavor_upgrade_id,flavor_name_snapshot,upgrade_price_snapshot,quantity")
+        .eq("sale_id", saleRow.id).is("deleted_at", null).order("customer_index"),
+      supabase.from("sale_demographics")
+        .select("customer_index,demographic_option_id").eq("sale_id", saleRow.id),
+    ]);
+    const byCust = new Map<number, CustomerCart>();
+    (itemRows ?? []).forEach((r) => {
+      const ci = r.customer_index ?? 0;
+      if (!byCust.has(ci)) byCust.set(ci, { lines: [], demographicIds: [] });
+      byCust.get(ci)!.lines.push({
+        productId: r.product_id ?? "",
+        productName: r.product_name_snapshot,
+        productType: r.product_type_snapshot as "shake" | "paleta",
+        basePrice: Number(r.base_price_snapshot),
+        flavorId: r.flavor_upgrade_id ?? undefined,
+        flavorName: r.flavor_name_snapshot ?? undefined,
+        upgradePrice: Number(r.upgrade_price_snapshot),
+        quantity: r.quantity ?? 1,
+      });
+    });
+    (demoRows ?? []).forEach((r) => {
+      const ci = r.customer_index ?? 0;
+      if (!byCust.has(ci)) byCust.set(ci, { lines: [], demographicIds: [] });
+      byCust.get(ci)!.demographicIds.push(r.demographic_option_id);
+    });
+    const maxIdx = Math.max(0, ...Array.from(byCust.keys()));
+    const carts: CustomerCart[] = [];
+    for (let i = 0; i <= maxIdx; i++) carts.push(byCust.get(i) ?? { lines: [], demographicIds: [] });
+
+    // Resolve payment method id from snapshot name
+    const pm = paymentMethods.find((m) => m.name === saleRow.payment_method_name_snapshot);
+
+    setEditMode(saleRow.is_sample ? "sample" : "sale");
+    setEditInitial({
+      saleId: saleRow.id,
+      kind: saleRow.sale_kind,
+      carts: carts.length ? carts : [{ lines: [], demographicIds: [] }],
+      paymentMethodId: pm?.id ?? null,
+      tipAmount: saleRow.tip_amount,
+      note: saleRow.note ?? "",
+    });
+    setComposerOpen(true);
   };
 
   const quickSample = async () => {
