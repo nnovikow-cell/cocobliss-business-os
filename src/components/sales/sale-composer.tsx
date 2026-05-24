@@ -200,7 +200,7 @@ export function SaleComposer(props: Props) {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <SheetTitle className="flex-1 text-left text-xl font-black">
-              {isSample ? "Free sample" : "New sale"}
+              {initial ? (isSample ? "Edit sample" : "Edit sale") : (isSample ? "Free sample" : "New sale")}
             </SheetTitle>
             <button
               onClick={onClose}
@@ -451,7 +451,7 @@ export function SaleComposer(props: Props) {
           <Button onClick={submit} disabled={!canSubmit}
             className="h-14 w-full rounded-2xl text-base font-bold shadow-lg"
             style={canSubmit ? { background: "var(--gradient-hero)" } : undefined}>
-            <Check className="mr-2 h-5 w-5" /> {busy ? "Saving..." : isSample ? "Save sample" : "Save sale"}
+            <Check className="mr-2 h-5 w-5" /> {busy ? "Saving..." : initial ? "Update" : isSample ? "Save sample" : "Save sale"}
           </Button>
         </div>
       </SheetContent>
