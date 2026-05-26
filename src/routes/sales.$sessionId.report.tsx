@@ -414,9 +414,11 @@ function ReportPage() {
                       position="top"
                       fill="var(--foreground)"
                       fontSize={11}
-                      content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
-                        const { x = 0, y = 0, value = 0, index = 0 } = props;
-                        const item = inventoryData[index];
+                      content={(props: { x?: number | string; y?: number | string; value?: number | string; index?: number }) => {
+                        const x = Number(props.x ?? 0);
+                        const y = Number(props.y ?? 0);
+                        const value = Number(props.value ?? 0);
+                        const item = inventoryData[props.index ?? 0];
                         const label = `${value} · ${pct(value, item?.brought ?? 0)}`;
                         return (
                           <text x={x} y={y} dy={-4} fill="var(--foreground)" fontSize={11} textAnchor="middle">
