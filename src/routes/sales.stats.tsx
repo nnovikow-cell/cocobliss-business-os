@@ -22,7 +22,7 @@ function StatsPage() {
   const [range, setRange] = useState<Range>("30");
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; created_at: string; is_sample: boolean }>>([]);
+  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
   const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; quantity: number; line_total: number }>>([]);
   const [demos, setDemos] = useState<Array<{ category: string; label: string }>>([]);
 
@@ -68,9 +68,11 @@ function StatsPage() {
 
   const totals = useMemo(() => {
     const total = sales.reduce((s, r) => s + r.total, 0);
-    const count = sales.length;
+    const saleRows = sales.filter((r) => r.note !== "Tip");
+    const count = saleRows.length;
+    const interactions = sales.length - saleRows.length; // tips (samples already excluded from `sales`)
     const avg = count ? total / count : 0;
-    return { total, count, avg, sessions: sessions.length };
+    return { total, count, interactions, avg, sessions: sessions.length };
   }, [sales, sessions]);
 
   // Revenue by session (chronological)
