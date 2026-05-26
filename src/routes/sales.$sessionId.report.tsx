@@ -8,6 +8,7 @@ import {
 import { AppShell } from "@/components/app/app-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { fmt } from "@/lib/money";
+import { SaleDetailDialog, type SaleDetail } from "@/components/sales/sale-detail-dialog";
 
 export const Route = createFileRoute("/sales/$sessionId/report")({ component: ReportPage });
 
@@ -60,6 +61,7 @@ function ReportPage() {
   const { sessionId } = Route.useParams();
   const [session, setSession] = useState<Session | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [detailSale, setDetailSale] = useState<SaleDetail | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -235,7 +237,22 @@ function ReportPage() {
             <ChartCard title="Transaction log">
               <div className="space-y-1.5">
                 {stats.entries.map((e) => (
-                  <div key={e.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5">
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setDetailSale({
+                      id: e.id,
+                      created_at: e.created_at,
+                      total: e.total,
+                      subtotal: e.subtotal,
+                      tax_amount: e.tax,
+                      tip_amount: e.tip,
+                      payment_method_name_snapshot: e.payment,
+                      note: e.note,
+                      is_sample: e.is_sample,
+                    })}
+                    className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-left transition-colors hover:border-primary"
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold">
                         {e.is_sample ? (
@@ -254,7 +271,7 @@ function ReportPage() {
                         {e.note && ` · ${e.note}`}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </ChartCard>
