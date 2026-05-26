@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Receipt, DollarSign, Cloud, Percent } from "lucide-react";
+import { ArrowLeft, Receipt, DollarSign, Cloud, Percent, Gift } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
@@ -189,12 +189,13 @@ function StatsPage() {
             <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Revenue</p>
             <p className="mt-1 text-5xl font-black tabular-nums">{fmt(totals.total)}</p>
             <p className="mt-2 text-xs opacity-90">
-              {totals.sessions} session{totals.sessions === 1 ? "" : "s"} · {totals.count} sales
+              {totals.sessions} session{totals.sessions === 1 ? "" : "s"} · {totals.count} sales · {totals.interactions} interaction{totals.interactions === 1 ? "" : "s"}
             </p>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Kpi icon={<Receipt className="h-4 w-4" />} label="Sales" value={String(totals.count)} />
+            <Kpi icon={<Gift className="h-4 w-4" />} label="Interactions" value={String(totals.interactions)} />
             <Kpi icon={<DollarSign className="h-4 w-4" />} label="Avg ticket" value={fmt(totals.avg)} />
             <Kpi icon={<Percent className="h-4 w-4" />} label="Per session" value={fmt(totals.sessions ? totals.total / totals.sessions : 0)} />
           </div>
