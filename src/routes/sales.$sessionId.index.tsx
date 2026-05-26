@@ -63,7 +63,7 @@ function ActiveSession() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
   const [unitsSold, setUnitsSold] = useState<{ shakes: number; paletas: number }>({ shakes: 0, paletas: 0 });
-  const [counts, setCounts] = useState<{ sales: number; samples: number }>({ sales: 0, samples: 0 });
+  const [counts, setCounts] = useState<{ sales: number; samples: number; tips: number }>({ sales: 0, samples: 0, tips: 0 });
 
   const loadConfig = async () => {
     const [{ data: prods }, { data: flv }, { data: pm }, { data: dem }, { data: tips }, { data: settings }] = await Promise.all([
@@ -100,9 +100,10 @@ function ActiveSession() {
       subtotal: Number(r.subtotal), tax_amount: Number(r.tax_amount), tip_amount: Number(r.tip_amount ?? 0), total: Number(r.total),
     })) as SaleRow[]);
     const rows = data ?? [];
-    const realSales = rows.filter((r) => !r.is_sample);
-    const sampleCount = rows.length - realSales.length;
-    setCounts({ sales: realSales.length, samples: sampleCount });
+    const sampleCount = rows.filter((r) => r.is_sample).length;
+    const tipCount = rows.filter((r) => !r.is_sample && r.note === "Tip").length;
+    const realSales = rows.filter((r) => !r.is_sample && r.note !== "Tip");
+    setCounts({ sales: realSales.length, samples: sampleCount, tips: tipCount });
     const ids = realSales.map((r) => r.id);
     if (ids.length === 0) { setTopProduct(null); setUnitsSold({ shakes: 0, paletas: 0 }); return; }
     const { data: items } = await supabase
