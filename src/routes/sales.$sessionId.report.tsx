@@ -179,7 +179,12 @@ function ReportPage() {
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Kpi icon={<Receipt className="h-4 w-4" />} label="Sales" value={String(stats.count)} />
             <Kpi icon={<Percent className="h-4 w-4" />} label="Avg ticket" value={fmt(stats.avgTicket)} />
-            <Kpi icon={<Gift className="h-4 w-4" />} label="Samples" value={String(stats.sampleCount)} />
+            <Kpi
+              icon={<Gift className="h-4 w-4" />}
+              label="Interactions"
+              value={String(stats.interactionCount)}
+              sub={`${stats.sampleCount} sample${stats.sampleCount === 1 ? "" : "s"} · ${stats.tipCount} tip${stats.tipCount === 1 ? "" : "s"}`}
+            />
             <Kpi
               icon={<Percent className="h-4 w-4" />}
               label="Conversion"
