@@ -348,7 +348,10 @@ function ActiveSession() {
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Live revenue</p>
             <p className="mt-1 text-5xl font-black tabular-nums">{fmt(total)}</p>
-            <p className="mt-1 text-xs opacity-90">{sales.length} sale{sales.length === 1 ? "" : "s"}</p>
+            <p className="mt-1 text-xs opacity-90">
+              {counts.sales} sale{counts.sales === 1 ? "" : "s"}
+              {(counts.samples + counts.tips) > 0 && ` · ${counts.samples + counts.tips} interaction${counts.samples + counts.tips === 1 ? "" : "s"}`}
+            </p>
           </div>
           {topProduct && (
             <div className="shrink-0 rounded-2xl bg-white/15 px-3 py-2 text-right backdrop-blur-sm">
