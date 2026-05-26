@@ -47,11 +47,11 @@ function StatsPage() {
       }
 
       const { data: sl } = await supabase
-        .from("sales").select("id,session_id,total,created_at,is_sample")
+        .from("sales").select("id,session_id,total,created_at,is_sample,note")
         .in("session_id", sIds).is("deleted_at", null);
       const real = (sl ?? []).filter((r) => !r.is_sample).map((r) => ({ ...r, total: Number(r.total) }));
       setSales(real);
-      const saleIds = real.map((r) => r.id);
+      const saleIds = real.filter((r) => r.note !== "Tip").map((r) => r.id);
 
       if (saleIds.length === 0) { setItems([]); setDemos([]); setLoading(false); return; }
 
