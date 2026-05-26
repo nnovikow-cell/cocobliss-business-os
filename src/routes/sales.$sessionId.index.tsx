@@ -61,6 +61,8 @@ function ActiveSession() {
   const [tipAmount, setTipAmount] = useState("");
   const [savingTip, setSavingTip] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [detailSale, setDetailSale] = useState<SaleRow | null>(null);
+  const [detailItems, setDetailItems] = useState<Array<{ product_name_snapshot: string; flavor_name_snapshot: string | null; quantity: number; line_total: number }>>([]);
   const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
   const [unitsSold, setUnitsSold] = useState<{ shakes: number; paletas: number }>({ shakes: 0, paletas: 0 });
   const [counts, setCounts] = useState<{ sales: number; samples: number; tips: number }>({ sales: 0, samples: 0, tips: 0 });
@@ -281,6 +283,15 @@ function ActiveSession() {
     loadSales();
   };
 
+  const openDetail = async (s: SaleRow) => {
+    setDetailSale(s);
+    setDetailItems([]);
+    const { data } = await supabase.from("sale_items")
+      .select("product_name_snapshot,flavor_name_snapshot,quantity,line_total")
+      .eq("sale_id", s.id).is("deleted_at", null);
+    setDetailItems((data ?? []).map((r) => ({ ...r, line_total: Number(r.line_total) })));
+  };
+
   const closeSession = async () => {
     if (!user) return;
     const { error } = await supabase.from("sales_sessions")
@@ -415,7 +426,11 @@ function ActiveSession() {
         ) : (
           <div className="space-y-2">
             {sales.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+              <div
+                key={s.id}
+                onClick={!isOpen ? () => openDetail(s) : undefined}
+                className={`flex items-center gap-3 rounded-2xl border border-border bg-card p-3 ${!isOpen ? "cursor-pointer hover:border-primary/40" : ""}`}
+              >
                 <div className="flex-1">
                   <p className="font-bold">
                     {s.is_sample ? <span className="inline-flex items-center gap-1 text-accent-foreground"><Gift className="h-3.5 w-3.5" /> Sample</span> : fmt(s.total)}
@@ -520,11 +535,54 @@ function ActiveSession() {
         <DialogContent>
           <DialogHeader><DialogTitle>Close session?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Total: <strong>{fmt(total)}</strong> across {sales.length} sale{sales.length === 1 ? "" : "s"}.
+            Total: <strong>{fmt(total)}</strong> · {counts.sales} sale{counts.sales === 1 ? "" : "s"} · {counts.samples} sample{counts.samples === 1 ? "" : "s"} · {counts.tips} tip{counts.tips === 1 ? "" : "s"}.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCloseOpen(false)}>Cancel</Button>
             <Button onClick={closeSession}>Close session</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detailSale} onOpenChange={(o) => { if (!o) { setDetailSale(null); setDetailItems([]); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {detailSale?.is_sample ? "Sample" : detailSale?.note === "Tip" ? "Tip" : "Sale"}
+              {detailSale && !detailSale.is_sample && ` · ${fmt(detailSale.total)}`}
+            </DialogTitle>
+          </DialogHeader>
+          {detailSale && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-muted-foreground">When</span><div className="font-bold">{new Date(detailSale.created_at).toLocaleString()}</div></div>
+                <div><span className="text-muted-foreground">Type</span><div className="font-bold">{detailSale.is_sample ? "Sample" : detailSale.note === "Tip" ? "Tip" : detailSale.sale_kind}</div></div>
+                <div><span className="text-muted-foreground">Payment</span><div className="font-bold">{detailSale.payment_method_name_snapshot ?? "—"}</div></div>
+                <div><span className="text-muted-foreground">Total</span><div className="font-bold tabular-nums">{fmt(detailSale.total)}</div></div>
+                {detailSale.subtotal > 0 && <div><span className="text-muted-foreground">Subtotal</span><div className="font-bold tabular-nums">{fmt(detailSale.subtotal)}</div></div>}
+                {detailSale.tax_amount > 0 && <div><span className="text-muted-foreground">Tax</span><div className="font-bold tabular-nums">{fmt(detailSale.tax_amount)}</div></div>}
+                {detailSale.tip_amount > 0 && <div><span className="text-muted-foreground">Tip</span><div className="font-bold tabular-nums">{fmt(detailSale.tip_amount)}</div></div>}
+              </div>
+              {detailItems.length > 0 && (
+                <div>
+                  <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Items</p>
+                  <ul className="space-y-1">
+                    {detailItems.map((it, i) => (
+                      <li key={i} className="flex items-center justify-between rounded-lg border border-border bg-card px-2 py-1.5 text-xs">
+                        <span>{it.quantity}× {it.product_name_snapshot}{it.flavor_name_snapshot ? ` · ${it.flavor_name_snapshot}` : ""}</span>
+                        <span className="font-bold tabular-nums">{fmt(it.line_total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {detailSale.note && detailSale.note !== "Tip" && (
+                <p className="text-xs text-muted-foreground">Note: {detailSale.note}</p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDetailSale(null); setDetailItems([]); }}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
