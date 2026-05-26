@@ -28,6 +28,11 @@ type Stats = {
   byDemo: Array<{ category: string; label: string; count: number }>;
   unitsSold: { shakes: number; paletas: number };
   byHour: Array<{ hour: number; label: string; count: number; total: number }>;
+  entries: Array<{
+    id: string; created_at: string; total: number; subtotal: number;
+    tax: number; tip: number; payment: string | null; note: string | null;
+    is_sample: boolean; sale_kind: string;
+  }>;
 };
 
 function bucketByHour(rows: Array<{ created_at: string; total: number }>) {
@@ -126,6 +131,21 @@ function ReportPage() {
         count: saleRows.length, sampleCount, tipCount, interactionCount: sampleCount + tipCount, avgTicket,
         byPayment, byProduct, byDemo, unitsSold: { shakes: shakeUnits, paletas: paletaUnits },
         byHour: bucketByHour(saleRows.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
+        entries: allRows
+          .slice()
+          .sort((a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime())
+          .map((r) => ({
+            id: r.id as string,
+            created_at: r.created_at as string,
+            total: Number(r.total),
+            subtotal: Number(r.subtotal),
+            tax: Number(r.tax_amount),
+            tip: Number(r.tip_amount ?? 0),
+            payment: r.payment_method_name_snapshot as string | null,
+            note: r.note as string | null,
+            is_sample: !!r.is_sample,
+            sale_kind: "single",
+          })),
       });
     })();
   }, [sessionId]);
