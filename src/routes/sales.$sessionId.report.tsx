@@ -302,7 +302,7 @@ function ReportPage() {
           <ChartCard title="Sales by product">
             {stats.byProduct.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={Math.max(160, stats.byProduct.length * 36)}>
-                <BarChart data={stats.byProduct} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <BarChart data={stats.byProduct} layout="vertical" margin={{ left: 8, right: 80 }}>
                   <CartesianGrid horizontal={false} stroke="var(--border)" />
                   <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
                   <YAxis type="category" dataKey="name" width={90} stroke="var(--muted-foreground)" fontSize={11} />
@@ -310,7 +310,15 @@ function ReportPage() {
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
                     formatter={(v: number, _n, p) => [fmt(v), `${p.payload.qty} sold`]}
                   />
-                  <Bar dataKey="total" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="total" fill="var(--chart-1)" radius={[0, 6, 6, 0]}>
+                    <LabelList
+                      dataKey="qty"
+                      position="right"
+                      fill="var(--foreground)"
+                      fontSize={11}
+                      formatter={(v: number) => `${v} · ${pct(v, productUnitsTotal)}`}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -321,7 +329,18 @@ function ReportPage() {
             {stats.byPayment.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={stats.byPayment} dataKey="total" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                  <Pie
+                    data={stats.byPayment}
+                    dataKey="total"
+                    nameKey="name"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    label={({ value }: { value: number }) =>
+                      `${fmt(value)} · ${pct(value, paymentRevenueTotal)}`
+                    }
+                    labelLine
+                  >
                     {stats.byPayment.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip
@@ -338,12 +357,20 @@ function ReportPage() {
           {ageData.length > 0 && (
             <ChartCard title="By age group">
               <ResponsiveContainer width="100%" height={Math.max(140, ageData.length * 32)}>
-                <BarChart data={ageData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <BarChart data={ageData} layout="vertical" margin={{ left: 8, right: 80 }}>
                   <CartesianGrid horizontal={false} stroke="var(--border)" />
                   <XAxis type="number" allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
                   <YAxis type="category" dataKey="label" width={90} stroke="var(--muted-foreground)" fontSize={11} />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                  <Bar dataKey="count" fill="var(--chart-4)" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="count" fill="var(--chart-4)" radius={[0, 6, 6, 0]}>
+                    <LabelList
+                      dataKey="count"
+                      position="right"
+                      fill="var(--foreground)"
+                      fontSize={11}
+                      formatter={(v: number) => `${v} · ${pct(v, ageTotal)}`}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -359,7 +386,9 @@ function ReportPage() {
                       <span className="mr-2 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase">{r.category}</span>
                       {r.label}
                     </span>
-                    <span className="font-bold tabular-nums">{r.count}</span>
+                    <span className="font-bold tabular-nums">
+                      {r.count} · {pct(r.count, otherDemoTotals.get(r.category) ?? 0)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -376,8 +405,27 @@ function ReportPage() {
                   <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="brought" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="sold" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="brought" fill="var(--chart-3)" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="brought" position="top" fill="var(--foreground)" fontSize={11} />
+                  </Bar>
+                  <Bar dataKey="sold" fill="var(--chart-1)" radius={[6, 6, 0, 0]}>
+                    <LabelList
+                      dataKey="sold"
+                      position="top"
+                      fill="var(--foreground)"
+                      fontSize={11}
+                      content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
+                        const { x = 0, y = 0, value = 0, index = 0 } = props;
+                        const item = inventoryData[index];
+                        const label = `${value} · ${pct(value, item?.brought ?? 0)}`;
+                        return (
+                          <text x={x} y={y} dy={-4} fill="var(--foreground)" fontSize={11} textAnchor="middle">
+                            {label}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -395,7 +443,15 @@ function ReportPage() {
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
                     formatter={(v: number, _n, p) => [`${v} sales`, fmt(p.payload.total)]}
                   />
-                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]}>
+                    <LabelList
+                      dataKey="count"
+                      position="top"
+                      fill="var(--foreground)"
+                      fontSize={10}
+                      formatter={(v: number) => `${v} · ${pct(v, hourSalesTotal)}`}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
