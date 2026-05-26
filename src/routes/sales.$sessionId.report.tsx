@@ -167,6 +167,27 @@ function ReportPage() {
     return stats.byDemo.filter((d) => /age/i.test(d.category));
   }, [stats]);
 
+  const ageTotal = useMemo(() => ageData.reduce((s, d) => s + d.count, 0), [ageData]);
+  const productUnitsTotal = useMemo(
+    () => (stats?.byProduct ?? []).reduce((s, p) => s + p.qty, 0),
+    [stats],
+  );
+  const paymentRevenueTotal = useMemo(
+    () => (stats?.byPayment ?? []).reduce((s, p) => s + p.total, 0),
+    [stats],
+  );
+  const hourSalesTotal = useMemo(
+    () => (stats?.byHour ?? []).reduce((s, h) => s + h.count, 0),
+    [stats],
+  );
+  const otherDemoTotals = useMemo(() => {
+    const m = new Map<string, number>();
+    (stats?.byDemo ?? [])
+      .filter((d) => !/age/i.test(d.category))
+      .forEach((d) => m.set(d.category, (m.get(d.category) ?? 0) + d.count));
+    return m;
+  }, [stats]);
+
   const conversion = stats && stats.sampleCount > 0 ? stats.count / stats.sampleCount : null;
 
   return (
