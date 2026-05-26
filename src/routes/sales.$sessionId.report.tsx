@@ -31,7 +31,7 @@ type Stats = {
   entries: Array<{
     id: string; created_at: string; total: number; subtotal: number;
     tax: number; tip: number; payment: string | null; note: string | null;
-    is_sample: boolean; sale_kind: string;
+    is_sample: boolean;
   }>;
 };
 
@@ -144,7 +144,6 @@ function ReportPage() {
             payment: r.payment_method_name_snapshot as string | null,
             note: r.note as string | null,
             is_sample: !!r.is_sample,
-            sale_kind: "single",
           })),
       });
     })();
