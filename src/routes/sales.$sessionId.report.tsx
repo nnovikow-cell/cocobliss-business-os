@@ -28,6 +28,11 @@ type Stats = {
   byDemo: Array<{ category: string; label: string; count: number }>;
   unitsSold: { shakes: number; paletas: number };
   byHour: Array<{ hour: number; label: string; count: number; total: number }>;
+  entries: Array<{
+    id: string; created_at: string; total: number; subtotal: number;
+    tax: number; tip: number; payment: string | null; note: string | null;
+    is_sample: boolean;
+  }>;
 };
 
 function bucketByHour(rows: Array<{ created_at: string; total: number }>) {
@@ -84,14 +89,16 @@ function ReportPage() {
         demos = (dm ?? []) as typeof demos;
       }
 
+      // Revenue total includes tips; avg ticket divides sale-only revenue by sale count.
       const total = real.reduce((s, r) => s + Number(r.total), 0);
       const subtotal = real.reduce((s, r) => s + Number(r.subtotal), 0);
       const tax = real.reduce((s, r) => s + Number(r.tax_amount), 0);
       const tip = real.reduce((s, r) => s + Number(r.tip_amount ?? 0), 0);
-      const avgTicket = saleRows.length ? total / saleRows.length : 0;
+      const saleRevenue = saleRows.reduce((s, r) => s + Number(r.total), 0);
+      const avgTicket = saleRows.length ? saleRevenue / saleRows.length : 0;
 
       const byPaymentMap = new Map<string, { total: number; count: number }>();
-      real.forEach((r) => {
+      saleRows.forEach((r) => {
         const cur = byPaymentMap.get(r.payment_method_name_snapshot) ?? { total: 0, count: 0 };
         cur.total += Number(r.total); cur.count += 1;
         byPaymentMap.set(r.payment_method_name_snapshot, cur);
@@ -123,7 +130,21 @@ function ReportPage() {
         total, subtotal, tax, tip,
         count: saleRows.length, sampleCount, tipCount, interactionCount: sampleCount + tipCount, avgTicket,
         byPayment, byProduct, byDemo, unitsSold: { shakes: shakeUnits, paletas: paletaUnits },
-        byHour: bucketByHour(real.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
+        byHour: bucketByHour(saleRows.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
+        entries: allRows
+          .slice()
+          .sort((a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime())
+          .map((r) => ({
+            id: r.id as string,
+            created_at: r.created_at as string,
+            total: Number(r.total),
+            subtotal: Number(r.subtotal),
+            tax: Number(r.tax_amount),
+            tip: Number(r.tip_amount ?? 0),
+            payment: r.payment_method_name_snapshot as string | null,
+            note: r.note as string | null,
+            is_sample: !!r.is_sample,
+          })),
       });
     })();
   }, [sessionId]);
@@ -207,6 +228,36 @@ function ReportPage() {
                 </span>
               )}
             </div>
+          )}
+
+          {/* Transaction log (read-only) */}
+          {stats.entries.length > 0 && (
+            <ChartCard title="Transaction log">
+              <div className="space-y-1.5">
+                {stats.entries.map((e) => (
+                  <div key={e.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold">
+                        {e.is_sample ? (
+                          <span className="inline-flex items-center gap-1 text-accent-foreground"><Gift className="h-3.5 w-3.5" /> Sample</span>
+                        ) : (
+                          <>
+                            {fmt(e.total)}
+                            <span className="text-xs font-normal text-muted-foreground"> · {e.payment ?? "—"}</span>
+                          </>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(e.created_at).toLocaleTimeString()}
+                        {e.tax > 0 && ` · tax ${fmt(e.tax)}`}
+                        {e.tip > 0 && ` · tip ${fmt(e.tip)}`}
+                        {e.note && ` · ${e.note}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
           )}
 
           {/* Sales by product */}

@@ -24,6 +24,7 @@ function StatsPage() {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
   const [sampleCount, setSampleCount] = useState(0);
+  const [tipCount, setTipCount] = useState(0);
   const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; quantity: number; line_total: number }>>([]);
   const [demos, setDemos] = useState<Array<{ category: string; label: string }>>([]);
 
@@ -52,9 +53,11 @@ function StatsPage() {
         .in("session_id", sIds).is("deleted_at", null);
       const all = sl ?? [];
       const real = all.filter((r) => !r.is_sample).map((r) => ({ ...r, total: Number(r.total) }));
+      const saleRows = real.filter((r) => r.note !== "Tip");
       setSampleCount(all.length - real.length);
-      setSales(real);
-      const saleIds = real.filter((r) => r.note !== "Tip").map((r) => r.id);
+      setTipCount(real.length - saleRows.length);
+      setSales(saleRows);
+      const saleIds = saleRows.map((r) => r.id);
 
       if (saleIds.length === 0) { setItems([]); setDemos([]); setLoading(false); return; }
 
@@ -71,13 +74,11 @@ function StatsPage() {
 
   const totals = useMemo(() => {
     const total = sales.reduce((s, r) => s + r.total, 0);
-    const saleRows = sales.filter((r) => r.note !== "Tip");
-    const count = saleRows.length;
-    const tipCount = sales.length - saleRows.length;
+    const count = sales.length;
     const interactions = tipCount + sampleCount;
     const avg = count ? total / count : 0;
     return { total, count, interactions, avg, sessions: sessions.length };
-  }, [sales, sessions, sampleCount]);
+  }, [sales, sessions, sampleCount, tipCount]);
 
   // Revenue by session (chronological)
   const revenueSeries = useMemo(() => {
