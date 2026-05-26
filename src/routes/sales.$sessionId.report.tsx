@@ -230,6 +230,36 @@ function ReportPage() {
             </div>
           )}
 
+          {/* Transaction log (read-only) */}
+          {stats.entries.length > 0 && (
+            <ChartCard title="Transaction log">
+              <div className="space-y-1.5">
+                {stats.entries.map((e) => (
+                  <div key={e.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold">
+                        {e.is_sample ? (
+                          <span className="inline-flex items-center gap-1 text-accent-foreground"><Gift className="h-3.5 w-3.5" /> Sample</span>
+                        ) : (
+                          <>
+                            {fmt(e.total)}
+                            <span className="text-xs font-normal text-muted-foreground"> · {e.payment ?? "—"}</span>
+                          </>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(e.created_at).toLocaleTimeString()}
+                        {e.tax > 0 && ` · tax ${fmt(e.tax)}`}
+                        {e.tip > 0 && ` · tip ${fmt(e.tip)}`}
+                        {e.note && ` · ${e.note}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
+          )}
+
           {/* Sales by product */}
           <ChartCard title="Sales by product">
             {stats.byProduct.length === 0 ? <Empty /> : (
