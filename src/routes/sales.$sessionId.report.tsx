@@ -22,7 +22,7 @@ type Session = {
 
 type Stats = {
   total: number; subtotal: number; tax: number; tip: number;
-  count: number; sampleCount: number; avgTicket: number;
+  count: number; sampleCount: number; tipCount: number; interactionCount: number; avgTicket: number;
   byPayment: Array<{ name: string; total: number; count: number }>;
   byProduct: Array<{ name: string; qty: number; total: number }>;
   byDemo: Array<{ category: string; label: string; count: number }>;
@@ -64,11 +64,14 @@ function ReportPage() {
       setSession(s as Session | null);
 
       const { data: sales } = await supabase
-        .from("sales").select("id,subtotal,tax_amount,tip_amount,total,payment_method_name_snapshot,is_sample,created_at")
+        .from("sales").select("id,subtotal,tax_amount,tip_amount,total,payment_method_name_snapshot,is_sample,note,created_at")
         .eq("session_id", sessionId).is("deleted_at", null);
-      const real = (sales ?? []).filter((r) => !r.is_sample);
-      const sampleCount = (sales ?? []).length - real.length;
-      const saleIds = real.map((r) => r.id);
+      const allRows = sales ?? [];
+      const real = allRows.filter((r) => !r.is_sample); // revenue-producing rows (incl. tips)
+      const saleRows = real.filter((r) => r.note !== "Tip"); // actual sales only
+      const sampleCount = allRows.filter((r) => r.is_sample).length;
+      const tipCount = real.length - saleRows.length;
+      const saleIds = saleRows.map((r) => r.id);
 
       let items: Array<{ product_name_snapshot: string; product_type_snapshot: string; quantity: number; line_total: number }> = [];
       let demos: Array<{ demographic_options: { category: string; label: string } | null }> = [];
@@ -85,7 +88,7 @@ function ReportPage() {
       const subtotal = real.reduce((s, r) => s + Number(r.subtotal), 0);
       const tax = real.reduce((s, r) => s + Number(r.tax_amount), 0);
       const tip = real.reduce((s, r) => s + Number(r.tip_amount ?? 0), 0);
-      const avgTicket = real.length ? total / real.length : 0;
+      const avgTicket = saleRows.length ? total / saleRows.length : 0;
 
       const byPaymentMap = new Map<string, { total: number; count: number }>();
       real.forEach((r) => {
@@ -117,7 +120,8 @@ function ReportPage() {
       const byDemo = [...byDemoMap.values()].sort((a, b) => b.count - a.count);
 
       setStats({
-        total, subtotal, tax, tip, count: real.length, sampleCount, avgTicket,
+        total, subtotal, tax, tip,
+        count: saleRows.length, sampleCount, tipCount, interactionCount: sampleCount + tipCount, avgTicket,
         byPayment, byProduct, byDemo, unitsSold: { shakes: shakeUnits, paletas: paletaUnits },
         byHour: bucketByHour(real.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
       });
@@ -175,7 +179,12 @@ function ReportPage() {
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Kpi icon={<Receipt className="h-4 w-4" />} label="Sales" value={String(stats.count)} />
             <Kpi icon={<Percent className="h-4 w-4" />} label="Avg ticket" value={fmt(stats.avgTicket)} />
-            <Kpi icon={<Gift className="h-4 w-4" />} label="Samples" value={String(stats.sampleCount)} />
+            <Kpi
+              icon={<Gift className="h-4 w-4" />}
+              label="Interactions"
+              value={String(stats.interactionCount)}
+              sub={`${stats.sampleCount} sample${stats.sampleCount === 1 ? "" : "s"} · ${stats.tipCount} tip${stats.tipCount === 1 ? "" : "s"}`}
+            />
             <Kpi
               icon={<Percent className="h-4 w-4" />}
               label="Conversion"

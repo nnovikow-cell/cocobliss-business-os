@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Receipt, DollarSign, Cloud, Percent } from "lucide-react";
+import { ArrowLeft, Receipt, DollarSign, Cloud, Percent, Gift } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
@@ -22,7 +22,8 @@ function StatsPage() {
   const [range, setRange] = useState<Range>("30");
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; created_at: string; is_sample: boolean }>>([]);
+  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
+  const [sampleCount, setSampleCount] = useState(0);
   const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; quantity: number; line_total: number }>>([]);
   const [demos, setDemos] = useState<Array<{ category: string; label: string }>>([]);
 
@@ -47,11 +48,13 @@ function StatsPage() {
       }
 
       const { data: sl } = await supabase
-        .from("sales").select("id,session_id,total,created_at,is_sample")
+        .from("sales").select("id,session_id,total,created_at,is_sample,note")
         .in("session_id", sIds).is("deleted_at", null);
-      const real = (sl ?? []).filter((r) => !r.is_sample).map((r) => ({ ...r, total: Number(r.total) }));
+      const all = sl ?? [];
+      const real = all.filter((r) => !r.is_sample).map((r) => ({ ...r, total: Number(r.total) }));
+      setSampleCount(all.length - real.length);
       setSales(real);
-      const saleIds = real.map((r) => r.id);
+      const saleIds = real.filter((r) => r.note !== "Tip").map((r) => r.id);
 
       if (saleIds.length === 0) { setItems([]); setDemos([]); setLoading(false); return; }
 
@@ -68,10 +71,13 @@ function StatsPage() {
 
   const totals = useMemo(() => {
     const total = sales.reduce((s, r) => s + r.total, 0);
-    const count = sales.length;
+    const saleRows = sales.filter((r) => r.note !== "Tip");
+    const count = saleRows.length;
+    const tipCount = sales.length - saleRows.length;
+    const interactions = tipCount + sampleCount;
     const avg = count ? total / count : 0;
-    return { total, count, avg, sessions: sessions.length };
-  }, [sales, sessions]);
+    return { total, count, interactions, avg, sessions: sessions.length };
+  }, [sales, sessions, sampleCount]);
 
   // Revenue by session (chronological)
   const revenueSeries = useMemo(() => {
@@ -183,12 +189,13 @@ function StatsPage() {
             <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Revenue</p>
             <p className="mt-1 text-5xl font-black tabular-nums">{fmt(totals.total)}</p>
             <p className="mt-2 text-xs opacity-90">
-              {totals.sessions} session{totals.sessions === 1 ? "" : "s"} · {totals.count} sales
+              {totals.sessions} session{totals.sessions === 1 ? "" : "s"} · {totals.count} sales · {totals.interactions} interaction{totals.interactions === 1 ? "" : "s"}
             </p>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Kpi icon={<Receipt className="h-4 w-4" />} label="Sales" value={String(totals.count)} />
+            <Kpi icon={<Gift className="h-4 w-4" />} label="Interactions" value={String(totals.interactions)} />
             <Kpi icon={<DollarSign className="h-4 w-4" />} label="Avg ticket" value={fmt(totals.avg)} />
             <Kpi icon={<Percent className="h-4 w-4" />} label="Per session" value={fmt(totals.sessions ? totals.total / totals.sessions : 0)} />
           </div>
