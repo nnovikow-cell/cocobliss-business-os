@@ -84,14 +84,16 @@ function ReportPage() {
         demos = (dm ?? []) as typeof demos;
       }
 
+      // Revenue total includes tips; avg ticket divides sale-only revenue by sale count.
       const total = real.reduce((s, r) => s + Number(r.total), 0);
       const subtotal = real.reduce((s, r) => s + Number(r.subtotal), 0);
       const tax = real.reduce((s, r) => s + Number(r.tax_amount), 0);
       const tip = real.reduce((s, r) => s + Number(r.tip_amount ?? 0), 0);
-      const avgTicket = saleRows.length ? total / saleRows.length : 0;
+      const saleRevenue = saleRows.reduce((s, r) => s + Number(r.total), 0);
+      const avgTicket = saleRows.length ? saleRevenue / saleRows.length : 0;
 
       const byPaymentMap = new Map<string, { total: number; count: number }>();
-      real.forEach((r) => {
+      saleRows.forEach((r) => {
         const cur = byPaymentMap.get(r.payment_method_name_snapshot) ?? { total: 0, count: 0 };
         cur.total += Number(r.total); cur.count += 1;
         byPaymentMap.set(r.payment_method_name_snapshot, cur);
@@ -123,7 +125,7 @@ function ReportPage() {
         total, subtotal, tax, tip,
         count: saleRows.length, sampleCount, tipCount, interactionCount: sampleCount + tipCount, avgTicket,
         byPayment, byProduct, byDemo, unitsSold: { shakes: shakeUnits, paletas: paletaUnits },
-        byHour: bucketByHour(real.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
+        byHour: bucketByHour(saleRows.map((r) => ({ created_at: r.created_at as string, total: Number(r.total) }))),
       });
     })();
   }, [sessionId]);
