@@ -381,6 +381,7 @@ function ReportPage() {
           )}
         </>
       )}
+      <SaleDetailDialog sale={detailSale} onClose={() => setDetailSale(null)} />
     </AppShell>
   );
 }
