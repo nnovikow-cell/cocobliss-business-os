@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Cloud, Users as UsersIcon, Receipt, Gift, Percent } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, LabelList,
 } from "recharts";
 import { AppShell } from "@/components/app/app-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -167,6 +167,27 @@ function ReportPage() {
     return stats.byDemo.filter((d) => /age/i.test(d.category));
   }, [stats]);
 
+  const ageTotal = useMemo(() => ageData.reduce((s, d) => s + d.count, 0), [ageData]);
+  const productUnitsTotal = useMemo(
+    () => (stats?.byProduct ?? []).reduce((s, p) => s + p.qty, 0),
+    [stats],
+  );
+  const paymentRevenueTotal = useMemo(
+    () => (stats?.byPayment ?? []).reduce((s, p) => s + p.total, 0),
+    [stats],
+  );
+  const hourSalesTotal = useMemo(
+    () => (stats?.byHour ?? []).reduce((s, h) => s + h.count, 0),
+    [stats],
+  );
+  const otherDemoTotals = useMemo(() => {
+    const m = new Map<string, number>();
+    (stats?.byDemo ?? [])
+      .filter((d) => !/age/i.test(d.category))
+      .forEach((d) => m.set(d.category, (m.get(d.category) ?? 0) + d.count));
+    return m;
+  }, [stats]);
+
   const conversion = stats && stats.sampleCount > 0 ? stats.count / stats.sampleCount : null;
 
   return (
@@ -281,7 +302,7 @@ function ReportPage() {
           <ChartCard title="Sales by product">
             {stats.byProduct.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={Math.max(160, stats.byProduct.length * 36)}>
-                <BarChart data={stats.byProduct} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <BarChart data={stats.byProduct} layout="vertical" margin={{ left: 8, right: 80 }}>
                   <CartesianGrid horizontal={false} stroke="var(--border)" />
                   <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
                   <YAxis type="category" dataKey="name" width={90} stroke="var(--muted-foreground)" fontSize={11} />
@@ -289,7 +310,15 @@ function ReportPage() {
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
                     formatter={(v: number, _n, p) => [fmt(v), `${p.payload.qty} sold`]}
                   />
-                  <Bar dataKey="total" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="total" fill="var(--chart-1)" radius={[0, 6, 6, 0]}>
+                    <LabelList
+                      dataKey="qty"
+                      position="right"
+                      fill="var(--foreground)"
+                      fontSize={11}
+                      formatter={(v: number) => `${v} · ${pct(v, productUnitsTotal)}`}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -300,7 +329,18 @@ function ReportPage() {
             {stats.byPayment.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={stats.byPayment} dataKey="total" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                  <Pie
+                    data={stats.byPayment}
+                    dataKey="total"
+                    nameKey="name"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    label={({ value }: { value: number }) =>
+                      `${fmt(value)} · ${pct(value, paymentRevenueTotal)}`
+                    }
+                    labelLine
+                  >
                     {stats.byPayment.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip
@@ -317,12 +357,20 @@ function ReportPage() {
           {ageData.length > 0 && (
             <ChartCard title="By age group">
               <ResponsiveContainer width="100%" height={Math.max(140, ageData.length * 32)}>
-                <BarChart data={ageData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <BarChart data={ageData} layout="vertical" margin={{ left: 8, right: 80 }}>
                   <CartesianGrid horizontal={false} stroke="var(--border)" />
                   <XAxis type="number" allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
                   <YAxis type="category" dataKey="label" width={90} stroke="var(--muted-foreground)" fontSize={11} />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                  <Bar dataKey="count" fill="var(--chart-4)" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="count" fill="var(--chart-4)" radius={[0, 6, 6, 0]}>
+                    <LabelList
+                      dataKey="count"
+                      position="right"
+                      fill="var(--foreground)"
+                      fontSize={11}
+                      formatter={(v: number) => `${v} · ${pct(v, ageTotal)}`}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -338,7 +386,9 @@ function ReportPage() {
                       <span className="mr-2 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase">{r.category}</span>
                       {r.label}
                     </span>
-                    <span className="font-bold tabular-nums">{r.count}</span>
+                    <span className="font-bold tabular-nums">
+                      {r.count} · {pct(r.count, otherDemoTotals.get(r.category) ?? 0)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -355,8 +405,29 @@ function ReportPage() {
                   <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="brought" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="sold" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="brought" fill="var(--chart-3)" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="brought" position="top" fill="var(--foreground)" fontSize={11} />
+                  </Bar>
+                  <Bar dataKey="sold" fill="var(--chart-1)" radius={[6, 6, 0, 0]}>
+                    <LabelList
+                      dataKey="sold"
+                      position="top"
+                      fill="var(--foreground)"
+                      fontSize={11}
+                      content={(props: { x?: number | string; y?: number | string; value?: number | string; index?: number }) => {
+                        const x = Number(props.x ?? 0);
+                        const y = Number(props.y ?? 0);
+                        const value = Number(props.value ?? 0);
+                        const item = inventoryData[props.index ?? 0];
+                        const label = `${value} · ${pct(value, item?.brought ?? 0)}`;
+                        return (
+                          <text x={x} y={y} dy={-4} fill="var(--foreground)" fontSize={11} textAnchor="middle">
+                            {label}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -374,7 +445,15 @@ function ReportPage() {
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
                     formatter={(v: number, _n, p) => [`${v} sales`, fmt(p.payload.total)]}
                   />
-                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]}>
+                    <LabelList
+                      dataKey="count"
+                      position="top"
+                      fill="var(--foreground)"
+                      fontSize={10}
+                      formatter={(v: number) => `${v} · ${pct(v, hourSalesTotal)}`}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -410,3 +489,6 @@ function Kpi({ icon, label, value, sub }: { icon: React.ReactNode; label: string
 function Empty() {
   return <p className="text-sm text-muted-foreground">No data.</p>;
 }
+
+const pct = (n: number, total: number) =>
+  total > 0 ? `${Math.round((n / total) * 100)}%` : "0%";
