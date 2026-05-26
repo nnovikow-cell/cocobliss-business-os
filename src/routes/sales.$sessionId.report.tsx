@@ -431,3 +431,6 @@ function Kpi({ icon, label, value, sub }: { icon: React.ReactNode; label: string
 function Empty() {
   return <p className="text-sm text-muted-foreground">No data.</p>;
 }
+
+const pct = (n: number, total: number) =>
+  total > 0 ? `${Math.round((n / total) * 100)}%` : "0%";
