@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Cloud, Users as UsersIcon, Receipt, Gift, Percent } from "lucide-react";
+import { ArrowLeft, Cloud, Users as UsersIcon, Receipt, Gift, Percent, Download } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell, Legend, LabelList,
@@ -8,6 +8,7 @@ import {
 import { AppShell } from "@/components/app/app-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { fmt } from "@/lib/money";
+import { Button } from "@/components/ui/button";
 import { SaleDetailDialog, type SaleDetail } from "@/components/sales/sale-detail-dialog";
 
 export const Route = createFileRoute("/sales/$sessionId/report")({ component: ReportPage });
@@ -33,6 +34,10 @@ type Stats = {
     id: string; created_at: string; total: number; subtotal: number;
     tax: number; tip: number; payment: string | null; note: string | null;
     is_sample: boolean;
+    products: string[];
+    quantity: number;
+    flavors: string[];
+    demos: Record<string, string[]>;
   }>;
 };
 
@@ -80,12 +85,12 @@ function ReportPage() {
       const tipCount = real.length - saleRows.length;
       const saleIds = saleRows.map((r) => r.id);
 
-      let items: Array<{ product_name_snapshot: string; product_type_snapshot: string; quantity: number; line_total: number }> = [];
-      let demos: Array<{ demographic_options: { category: string; label: string } | null }> = [];
+      let items: Array<{ sale_id: string; product_name_snapshot: string; product_type_snapshot: string; flavor_name_snapshot: string | null; quantity: number; line_total: number }> = [];
+      let demos: Array<{ sale_id: string; demographic_options: { category: string; label: string } | null }> = [];
       if (saleIds.length) {
         const [{ data: it }, { data: dm }] = await Promise.all([
-          supabase.from("sale_items").select("product_name_snapshot,product_type_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
-          supabase.from("sale_demographics").select("demographic_options(category,label)").in("sale_id", saleIds),
+          supabase.from("sale_items").select("sale_id,product_name_snapshot,product_type_snapshot,flavor_name_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
+          supabase.from("sale_demographics").select("sale_id,demographic_options(category,label)").in("sale_id", saleIds),
         ]);
         items = (it ?? []).map((r) => ({ ...r, line_total: Number(r.line_total) })) as typeof items;
         demos = (dm ?? []) as typeof demos;
@@ -128,6 +133,21 @@ function ReportPage() {
       });
       const byDemo = [...byDemoMap.values()].sort((a, b) => b.count - a.count);
 
+      // Per-sale item & demographic groupings for the transaction log / CSV export.
+      const itemsBySale = new Map<string, typeof items>();
+      items.forEach((i) => {
+        const arr = itemsBySale.get(i.sale_id) ?? [];
+        arr.push(i);
+        itemsBySale.set(i.sale_id, arr);
+      });
+      const demosBySale = new Map<string, Array<{ category: string; label: string }>>();
+      demos.forEach((d) => {
+        if (!d.demographic_options) return;
+        const arr = demosBySale.get(d.sale_id) ?? [];
+        arr.push(d.demographic_options);
+        demosBySale.set(d.sale_id, arr);
+      });
+
       setStats({
         total, subtotal, tax, tip,
         count: saleRows.length, sampleCount, tipCount, interactionCount: sampleCount + tipCount, avgTicket,
@@ -136,17 +156,29 @@ function ReportPage() {
         entries: allRows
           .slice()
           .sort((a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime())
-          .map((r) => ({
-            id: r.id as string,
-            created_at: r.created_at as string,
-            total: Number(r.total),
-            subtotal: Number(r.subtotal),
-            tax: Number(r.tax_amount),
-            tip: Number(r.tip_amount ?? 0),
-            payment: r.payment_method_name_snapshot as string | null,
-            note: r.note as string | null,
-            is_sample: !!r.is_sample,
-          })),
+          .map((r) => {
+            const its = itemsBySale.get(r.id as string) ?? [];
+            const dms = demosBySale.get(r.id as string) ?? [];
+            const demosByCat: Record<string, string[]> = {};
+            dms.forEach((d) => {
+              (demosByCat[d.category] ??= []).push(d.label);
+            });
+            return {
+              id: r.id as string,
+              created_at: r.created_at as string,
+              total: Number(r.total),
+              subtotal: Number(r.subtotal),
+              tax: Number(r.tax_amount),
+              tip: Number(r.tip_amount ?? 0),
+              payment: r.payment_method_name_snapshot as string | null,
+              note: r.note as string | null,
+              is_sample: !!r.is_sample,
+              products: its.map((i) => i.product_name_snapshot),
+              quantity: its.reduce((s, i) => s + Number(i.quantity), 0),
+              flavors: its.map((i) => i.flavor_name_snapshot).filter((f): f is string => !!f),
+              demos: demosByCat,
+            };
+          }),
       });
     })();
   }, [sessionId]);
@@ -190,6 +222,54 @@ function ReportPage() {
 
   const conversion = stats && stats.sampleCount > 0 ? stats.count / stats.sampleCount : null;
 
+  const downloadCsv = () => {
+    if (!stats || !session) return;
+    const headers = [
+      "timestamp","event_type","product","quantity","flavor","payment_method",
+      "amount","tax","tip","note","age_range","gender","heard_from",
+    ];
+    const findDemo = (demos: Record<string, string[]>, key: RegExp) => {
+      const k = Object.keys(demos).find((c) => key.test(c));
+      return k ? demos[k].join("; ") : "";
+    };
+    const esc = (v: string | number) => {
+      const s = String(v ?? "");
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = stats.entries
+      .slice()
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((e) => {
+        const eventType = e.is_sample ? "sample" : e.note === "Tip" ? "tip" : "sale";
+        return [
+          new Date(e.created_at).toISOString(),
+          eventType,
+          e.products.join("; "),
+          e.quantity || "",
+          e.flavors.join("; "),
+          e.payment ?? "",
+          e.total.toFixed(2),
+          e.tax.toFixed(2),
+          e.tip.toFixed(2),
+          eventType === "tip" ? "" : (e.note ?? ""),
+          findDemo(e.demos, /age/i),
+          findDemo(e.demos, /gender/i),
+          findDemo(e.demos, /heard|source/i),
+        ].map(esc).join(",");
+      });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const date = (session.opened_at ? new Date(session.opened_at) : new Date()).toISOString().slice(0, 10);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cocobliss-session-${sessionId}-${date}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <AppShell>
       <header className="mb-4 flex items-center gap-3">
@@ -203,6 +283,15 @@ function ReportPage() {
             {session?.closed_at && ` → ${new Date(session.closed_at).toLocaleDateString()}`}
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={downloadCsv}
+          disabled={!stats || !session}
+          className="shrink-0"
+        >
+          <Download className="h-4 w-4" /> CSV
+        </Button>
       </header>
 
       {!stats || !session ? (
