@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./theme-toggle";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
 const items: NavItem[] = [
@@ -103,6 +104,12 @@ export function SideNav({
           );
         })}
       </ul>
+      <div className={cn("border-t border-border p-2", collapsed ? "flex justify-center" : "")}>
+        <ThemeToggle
+          className={cn("w-full", collapsed && "w-auto justify-center px-2")}
+          label={collapsed ? undefined : "Theme"}
+        />
+      </div>
     </aside>
   );
 }
