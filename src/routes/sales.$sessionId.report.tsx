@@ -225,8 +225,9 @@ function ReportPage() {
   const downloadCsv = () => {
     if (!stats || !session) return;
     const headers = [
+      "session_date","market_name","weather","attendants","shakes_brought","paletas_brought",
       "timestamp","event_type","product","quantity","flavor","payment_method",
-      "amount","tax","tip","note","age_range","gender","heard_from",
+      "amount","tax","tip","note","age_range","gender",
     ];
     const findDemo = (demos: Record<string, string[]>, key: RegExp) => {
       const k = Object.keys(demos).find((c) => key.test(c));
@@ -236,12 +237,24 @@ function ReportPage() {
       const s = String(v ?? "");
       return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
+    const sessionDate = (session.opened_at ? new Date(session.opened_at) : new Date()).toISOString().slice(0, 10);
+    const marketName = session.location ?? session.name ?? "";
+    const weather = session.weather_label_snapshot ?? "";
+    const attendants = (session.attendant_names_snapshot ?? []).join("; ");
+    const shakesBrought = Number(session.shakes_quarts_brought) || 0;
+    const paletasBrought = Number(session.paletas_brought) || 0;
     const rows = stats.entries
       .slice()
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .map((e) => {
         const eventType = e.is_sample ? "sample" : e.note === "Tip" ? "tip" : "sale";
         return [
+          sessionDate,
+          marketName,
+          weather,
+          attendants,
+          shakesBrought,
+          paletasBrought,
           new Date(e.created_at).toISOString(),
           eventType,
           e.products.join("; "),
@@ -254,16 +267,14 @@ function ReportPage() {
           eventType === "tip" ? "" : (e.note ?? ""),
           findDemo(e.demos, /age/i),
           findDemo(e.demos, /gender/i),
-          findDemo(e.demos, /heard|source/i),
         ].map(esc).join(",");
       });
     const csv = [headers.join(","), ...rows].join("\n");
-    const date = (session.opened_at ? new Date(session.opened_at) : new Date()).toISOString().slice(0, 10);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `cocobliss-session-${sessionId}-${date}.csv`;
+    a.download = `cocobliss-session-${sessionId}-${sessionDate}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
