@@ -3,10 +3,10 @@ import { Plus, Minus, X, Check, Users, User, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { fmt, computeTotals, computeTip } from "@/lib/money";
+import { fmt, computeTotals, computeTip, computeDiscount } from "@/lib/money";
 import {
   type Product, type Flavor, type PaymentMethod, type DemographicOption,
-  type TipOption,
+  type TipOption, type DiscountOption,
   type CartLine, type CustomerCart, lineTotal, cartSubtotal,
 } from "@/lib/sales-types";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ type Props = {
   paymentMethods: PaymentMethod[];
   demographics: DemographicOption[];
   tipOptions: TipOption[];
+  discountOptions: DiscountOption[];
   taxRate: number;
   initial?: {
     saleId: string;
@@ -27,6 +28,8 @@ type Props = {
     carts: CustomerCart[];
     paymentMethodId: string | null;
     tipAmount: number;
+    discountId: string | null;
+    discountAmount: number;
     note: string;
   } | null;
   onSubmit: (input: {
@@ -36,12 +39,14 @@ type Props = {
     customers: CustomerCart[];
     note: string;
     tipAmount: number;
+    discountOption: DiscountOption | null;
+    discountAmount: number;
     isSample: boolean;
   }) => Promise<void>;
 };
 
 export function SaleComposer(props: Props) {
-  const { open, onClose, products, flavors, paymentMethods, demographics, tipOptions, taxRate, onSubmit, mode = "sale", initial } = props;
+  const { open, onClose, products, flavors, paymentMethods, demographics, tipOptions, discountOptions, taxRate, onSubmit, mode = "sale", initial } = props;
   const isSample = mode === "sample";
   const [kind, setKind] = useState<"single" | "group">("single");
   const [carts, setCarts] = useState<CustomerCart[]>([{ lines: [], demographicIds: [] }]);
@@ -50,6 +55,7 @@ export function SaleComposer(props: Props) {
   const [paymentId, setPaymentId] = useState<string>("");
   const [tipId, setTipId] = useState<string>("");
   const [tipOverride, setTipOverride] = useState<number | null>(null);
+  const [discountId, setDiscountId] = useState<string>("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -63,6 +69,7 @@ export function SaleComposer(props: Props) {
         setPaymentId(initial.paymentMethodId ?? "");
         setTipId("");
         setTipOverride(initial.tipAmount > 0 ? initial.tipAmount : null);
+        setDiscountId(initial.discountId ?? "");
         setNote(initial.note);
       } else {
         setKind("single");
@@ -72,6 +79,7 @@ export function SaleComposer(props: Props) {
         setPaymentId("");
         setTipId("");
         setTipOverride(null);
+        setDiscountId("");
         setNote("");
       }
     }
@@ -80,16 +88,19 @@ export function SaleComposer(props: Props) {
   const subtotal = useMemo(() => cartSubtotal(carts), [carts]);
   const selectedMethod = paymentMethods.find((m) => m.id === paymentId) ?? null;
   const selectedTip = tipOptions.find((t) => t.id === tipId) ?? null;
+  const selectedDiscount = discountOptions.find((d) => d.id === discountId) ?? null;
   const tipAmount = isSample
     ? 0
     : selectedTip
       ? computeTip(selectedTip, subtotal)
       : (tipOverride ?? 0);
+  const discountAmount = isSample ? 0 : computeDiscount(selectedDiscount, subtotal);
   const totals = computeTotals({
     subtotal: isSample ? 0 : subtotal,
     appliesTax: !isSample && (selectedMethod?.applies_tax ?? false),
     taxRate,
     tip: tipAmount,
+    discount: discountAmount,
   });
 
   const shakes = products.filter((p) => p.type === "shake");
@@ -178,6 +189,8 @@ export function SaleComposer(props: Props) {
         customers: carts,
         note,
         tipAmount,
+        discountOption: isSample ? null : selectedDiscount,
+        discountAmount,
         isSample,
       });
     } finally { setBusy(false); }
@@ -432,6 +445,23 @@ export function SaleComposer(props: Props) {
               </div>
             </div>
           )}
+          {discountOptions.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Discount</p>
+              <div className="flex flex-wrap gap-2">
+                {discountOptions.map((d) => {
+                  const sel = d.id === discountId;
+                  return (
+                    <button key={d.id} onClick={() => setDiscountId(sel ? "" : d.id)}
+                      className={cn("rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all",
+                        sel ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card")}>
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           </>
           )}
           <div className="mb-3 flex items-baseline justify-between">
@@ -441,6 +471,7 @@ export function SaleComposer(props: Props) {
               ) : (
                 <>
                   Subtotal {fmt(totals.subtotal)}
+                  {totals.discount > 0 && <span className="ml-2">− disc {fmt(totals.discount)}</span>}
                   {totals.tax > 0 && <span className="ml-2">+ tax {fmt(totals.tax)}</span>}
                   {totals.tip > 0 && <span className="ml-2">+ tip {fmt(totals.tip)}</span>}
                 </>
