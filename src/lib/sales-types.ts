@@ -30,6 +30,13 @@ export type TipOption = {
   amount: number;
 };
 
+export type DiscountOption = {
+  id: string;
+  label: string;
+  kind: "percent" | "fixed";
+  amount: number;
+};
+
 export type WeatherOption = {
   id: string;
   label: string;
