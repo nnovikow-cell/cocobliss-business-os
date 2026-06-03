@@ -31,10 +31,11 @@ function SettingsPage() {
         </TabsList>
         <TabsList className="mt-2 grid w-full grid-cols-3">
           <TabsTrigger value="tips">Tips</TabsTrigger>
+          <TabsTrigger value="discounts">Discounts</TabsTrigger>
           <TabsTrigger value="weather">Weather</TabsTrigger>
-          <TabsTrigger value="demographics">Demos</TabsTrigger>
         </TabsList>
-        <TabsList className="mt-2 grid w-full grid-cols-2">
+        <TabsList className="mt-2 grid w-full grid-cols-3">
+          <TabsTrigger value="demographics">Demos</TabsTrigger>
           <TabsTrigger value="tax">Tax</TabsTrigger>
           <TabsTrigger value="shake">Shake</TabsTrigger>
         </TabsList>
@@ -43,6 +44,7 @@ function SettingsPage() {
         <TabsContent value="flavors" className="mt-4"><FlavorsTab /></TabsContent>
         <TabsContent value="payments" className="mt-4"><PaymentMethodsTab /></TabsContent>
         <TabsContent value="tips" className="mt-4"><TipsTab /></TabsContent>
+        <TabsContent value="discounts" className="mt-4"><DiscountsTab /></TabsContent>
         <TabsContent value="weather" className="mt-4"><WeatherTab /></TabsContent>
         <TabsContent value="demographics" className="mt-4"><DemographicsTab /></TabsContent>
         <TabsContent value="tax" className="mt-4"><TaxTab /></TabsContent>
