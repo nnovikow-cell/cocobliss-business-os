@@ -493,6 +493,64 @@ function TipsTab() {
   );
 }
 
+/* ---------- Discounts ---------- */
+function DiscountsTab() {
+  const [items, setItems] = useState<Array<{ id: string; label: string; kind: "percent" | "fixed"; amount: number }>>([]);
+  const [newLabel, setNewLabel] = useState("");
+  const [newKind, setNewKind] = useState<"percent" | "fixed">("percent");
+  const [newAmt, setNewAmt] = useState("");
+
+  const load = async () => {
+    const { data } = await supabase.from("discount_options").select("*").is("deleted_at", null).order("sort_order");
+    setItems((data ?? []).map((d) => ({ ...d, amount: Number(d.amount) })) as Array<{ id: string; label: string; kind: "percent" | "fixed"; amount: number }>);
+  };
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    if (!newLabel.trim()) return;
+    const { error } = await supabase.from("discount_options").insert({
+      label: newLabel.trim(), kind: newKind, amount: parseFloat(newAmt) || 0, sort_order: items.length * 10,
+    });
+    if (error) return toast.error(error.message);
+    setNewLabel(""); setNewAmt(""); load();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
+        <h3 className="mb-3 font-bold">Add discount preset</h3>
+        <Input placeholder="Label (e.g. 10% off, $2 off)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Select value={newKind} onValueChange={(v) => setNewKind(v as "percent" | "fixed")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="percent">Percent</SelectItem>
+              <SelectItem value="fixed">Fixed $</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="number" step="0.01" placeholder={newKind === "percent" ? "%" : "$"} value={newAmt} onChange={(e) => setNewAmt(e.target.value)} />
+        </div>
+        <Button onClick={add} className="mt-3 w-full"><Plus className="mr-2 h-4 w-4" />Add</Button>
+      </div>
+      <div className="space-y-2">
+        {items.map((d) => (
+          <div key={d.id} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3">
+            <span className="flex-1 font-bold">{d.label}</span>
+            <span className="text-sm text-muted-foreground">{d.kind === "percent" ? `${d.amount}%` : `$${d.amount}`}</span>
+            <Button size="icon" variant="ghost" onClick={async () => {
+              if (!confirm("Archive discount preset?")) return;
+              await supabase.from("discount_options").update({ deleted_at: new Date().toISOString() }).eq("id", d.id);
+              load();
+            }}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Weather ---------- */
 function WeatherTab() {
   const [items, setItems] = useState<Array<{ id: string; label: string }>>([]);
