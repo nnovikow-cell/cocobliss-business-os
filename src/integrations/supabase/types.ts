@@ -430,6 +430,42 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_options: {
+        Row: {
+          amount: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_archived: boolean
+          kind: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          kind?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_archived?: boolean
+          kind?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       disposable_items: {
         Row: {
           created_at: string
@@ -1588,6 +1624,8 @@ export type Database = {
           applies_tax_snapshot: boolean
           created_at: string
           deleted_at: string | null
+          discount_amount: number
+          discount_label_snapshot: string | null
           id: string
           is_sample: boolean
           logged_by: string
@@ -1607,6 +1645,8 @@ export type Database = {
           applies_tax_snapshot?: boolean
           created_at?: string
           deleted_at?: string | null
+          discount_amount?: number
+          discount_label_snapshot?: string | null
           id?: string
           is_sample?: boolean
           logged_by: string
@@ -1626,6 +1666,8 @@ export type Database = {
           applies_tax_snapshot?: boolean
           created_at?: string
           deleted_at?: string | null
+          discount_amount?: number
+          discount_label_snapshot?: string | null
           id?: string
           is_sample?: boolean
           logged_by?: string
