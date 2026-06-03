@@ -32,7 +32,7 @@ type Stats = {
   byHour: Array<{ hour: number; label: string; count: number; total: number }>;
   entries: Array<{
     id: string; created_at: string; total: number; subtotal: number;
-    tax: number; tip: number; payment: string | null; note: string | null;
+    tax: number; tip: number; discount: number; payment: string | null; note: string | null;
     is_sample: boolean;
     products: string[];
     quantity: number;
@@ -76,7 +76,7 @@ function ReportPage() {
       setSession(s as Session | null);
 
       const { data: sales } = await supabase
-        .from("sales").select("id,subtotal,tax_amount,tip_amount,total,payment_method_name_snapshot,is_sample,note,created_at")
+        .from("sales").select("id,subtotal,tax_amount,tip_amount,discount_amount,total,payment_method_name_snapshot,is_sample,note,created_at")
         .eq("session_id", sessionId).is("deleted_at", null);
       const allRows = sales ?? [];
       const real = allRows.filter((r) => !r.is_sample); // revenue-producing rows (incl. tips)
@@ -170,6 +170,7 @@ function ReportPage() {
               subtotal: Number(r.subtotal),
               tax: Number(r.tax_amount),
               tip: Number(r.tip_amount ?? 0),
+              discount: Number((r as { discount_amount?: number | string | null }).discount_amount ?? 0),
               payment: r.payment_method_name_snapshot as string | null,
               note: r.note as string | null,
               is_sample: !!r.is_sample,
@@ -227,7 +228,7 @@ function ReportPage() {
     const headers = [
       "session_date","market_name","weather","attendants","shakes_brought","paletas_brought",
       "timestamp","event_type","product","quantity","flavor","payment_method",
-      "amount","tax","tip","note","age_range","gender",
+      "amount","discount","tax","tip","note","age_range","gender",
     ];
     const findDemo = (demos: Record<string, string[]>, key: RegExp) => {
       const k = Object.keys(demos).find((c) => key.test(c));
@@ -262,6 +263,7 @@ function ReportPage() {
           e.flavors.join("; "),
           e.payment ?? "",
           e.total.toFixed(2),
+          e.discount.toFixed(2),
           e.tax.toFixed(2),
           e.tip.toFixed(2),
           eventType === "tip" ? "" : (e.note ?? ""),
