@@ -445,6 +445,23 @@ export function SaleComposer(props: Props) {
               </div>
             </div>
           )}
+          {discountOptions.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Discount</p>
+              <div className="flex flex-wrap gap-2">
+                {discountOptions.map((d) => {
+                  const sel = d.id === discountId;
+                  return (
+                    <button key={d.id} onClick={() => setDiscountId(sel ? "" : d.id)}
+                      className={cn("rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all",
+                        sel ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card")}>
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           </>
           )}
           <div className="mb-3 flex items-baseline justify-between">
@@ -454,6 +471,7 @@ export function SaleComposer(props: Props) {
               ) : (
                 <>
                   Subtotal {fmt(totals.subtotal)}
+                  {totals.discount > 0 && <span className="ml-2">− disc {fmt(totals.discount)}</span>}
                   {totals.tax > 0 && <span className="ml-2">+ tax {fmt(totals.tax)}</span>}
                   {totals.tip > 0 && <span className="ml-2">+ tip {fmt(totals.tip)}</span>}
                 </>
