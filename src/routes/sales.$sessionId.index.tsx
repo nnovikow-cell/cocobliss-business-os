@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { fmt, computeTotals } from "@/lib/money";
 import { SaleComposer } from "@/components/sales/sale-composer";
 import { SaleDetailDialog } from "@/components/sales/sale-detail-dialog";
-import type { Product, Flavor, PaymentMethod, DemographicOption, TipOption, CustomerCart } from "@/lib/sales-types";
+import type { Product, Flavor, PaymentMethod, DemographicOption, TipOption, DiscountOption, CustomerCart } from "@/lib/sales-types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/sales/$sessionId/")({ component: ActiveSession });
@@ -28,7 +28,9 @@ type SaleRow = {
   id: string; created_at: string; sale_kind: "single" | "group";
   payment_method_name_snapshot: string | null;
   applies_tax_snapshot: boolean;
-  subtotal: number; tax_amount: number; tip_amount: number; total: number;
+  subtotal: number; tax_amount: number; tip_amount: number; discount_amount: number;
+  discount_label_snapshot: string | null;
+  total: number;
   note: string | null; logged_by: string;
   is_sample: boolean;
 };
@@ -45,6 +47,7 @@ function ActiveSession() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [demographics, setDemographics] = useState<DemographicOption[]>([]);
   const [tipOptions, setTipOptions] = useState<TipOption[]>([]);
+  const [discountOptions, setDiscountOptions] = useState<DiscountOption[]>([]);
   const [taxRate, setTaxRate] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editInitial, setEditInitial] = useState<{
@@ -53,6 +56,8 @@ function ActiveSession() {
     carts: CustomerCart[];
     paymentMethodId: string | null;
     tipAmount: number;
+    discountId: string | null;
+    discountAmount: number;
     note: string;
   } | null>(null);
   const [editMode, setEditMode] = useState<"sale" | "sample">("sale");
@@ -68,12 +73,13 @@ function ActiveSession() {
   const [counts, setCounts] = useState<{ sales: number; samples: number; tips: number }>({ sales: 0, samples: 0, tips: 0 });
 
   const loadConfig = async () => {
-    const [{ data: prods }, { data: flv }, { data: pm }, { data: dem }, { data: tips }, { data: settings }] = await Promise.all([
+    const [{ data: prods }, { data: flv }, { data: pm }, { data: dem }, { data: tips }, { data: discs }, { data: settings }] = await Promise.all([
       supabase.from("products").select("id,name,type,price").is("deleted_at", null).eq("is_archived", false).order("type").order("sort_order"),
       supabase.from("paleta_flavor_upgrades").select("id,name,upgrade_price").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("payment_methods").select("id,name,applies_tax").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("demographic_options").select("id,category,label").is("deleted_at", null).eq("is_archived", false).order("category").order("sort_order"),
       supabase.from("tip_options").select("id,label,kind,amount").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
+      supabase.from("discount_options").select("id,label,kind,amount").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
       supabase.from("app_settings").select("tax_rate").limit(1).maybeSingle(),
     ]);
     setProducts((prods ?? []).map((p) => ({ ...p, price: Number(p.price) })) as Product[]);
@@ -81,6 +87,7 @@ function ActiveSession() {
     setPaymentMethods((pm ?? []) as PaymentMethod[]);
     setDemographics((dem ?? []) as DemographicOption[]);
     setTipOptions((tips ?? []).map((t) => ({ ...t, amount: Number(t.amount) })) as TipOption[]);
+    setDiscountOptions((discs ?? []).map((d) => ({ ...d, amount: Number(d.amount) })) as DiscountOption[]);
     setTaxRate(Number(settings?.tax_rate ?? 0));
   };
 
@@ -94,12 +101,14 @@ function ActiveSession() {
   const loadSales = async () => {
     const { data } = await supabase
       .from("sales")
-      .select("id,created_at,sale_kind,payment_method_name_snapshot,applies_tax_snapshot,subtotal,tax_amount,tip_amount,total,note,logged_by,is_sample")
+      .select("id,created_at,sale_kind,payment_method_name_snapshot,applies_tax_snapshot,subtotal,tax_amount,tip_amount,discount_amount,discount_label_snapshot,total,note,logged_by,is_sample")
       .eq("session_id", sessionId).is("deleted_at", null)
       .order("created_at", { ascending: false });
     setSales((data ?? []).map((r) => ({
       ...r,
-      subtotal: Number(r.subtotal), tax_amount: Number(r.tax_amount), tip_amount: Number(r.tip_amount ?? 0), total: Number(r.total),
+      subtotal: Number(r.subtotal), tax_amount: Number(r.tax_amount), tip_amount: Number(r.tip_amount ?? 0),
+      discount_amount: Number((r as { discount_amount?: number }).discount_amount ?? 0),
+      total: Number(r.total),
     })) as SaleRow[]);
     const rows = data ?? [];
     const sampleCount = rows.filter((r) => r.is_sample).length;
@@ -145,7 +154,11 @@ function ActiveSession() {
       sum + c.lines.reduce((s, l) => s + (l.basePrice + l.upgradePrice) * l.quantity, 0), 0);
     const subtotal = input.isSample ? 0 : rawSubtotal;
     const appliesTax = !input.isSample && (input.paymentMethod?.applies_tax ?? false);
-    const totals = computeTotals({ subtotal, appliesTax, taxRate, tip: input.isSample ? 0 : input.tipAmount });
+    const totals = computeTotals({
+      subtotal, appliesTax, taxRate,
+      tip: input.isSample ? 0 : input.tipAmount,
+      discount: input.isSample ? 0 : input.discountAmount,
+    });
 
     const payload = {
       sale_kind: input.kind,
@@ -153,7 +166,10 @@ function ActiveSession() {
       payment_method_name_snapshot: input.paymentMethod?.name ?? (input.isSample ? "Sample" : ""),
       applies_tax_snapshot: appliesTax,
       tax_rate_snapshot: appliesTax ? taxRate : 0,
-      subtotal: totals.subtotal, tax_amount: totals.tax, tip_amount: totals.tip, total: totals.total,
+      subtotal: totals.subtotal, tax_amount: totals.tax, tip_amount: totals.tip,
+      discount_amount: totals.discount,
+      discount_label_snapshot: input.discountOption?.label ?? null,
+      total: totals.total,
       is_sample: input.isSample,
       note: input.note || null,
     };
@@ -235,6 +251,8 @@ function ActiveSession() {
       carts: carts.length ? carts : [{ lines: [], demographicIds: [] }],
       paymentMethodId: pm?.id ?? null,
       tipAmount: saleRow.tip_amount,
+      discountId: discountOptions.find((d) => d.label === saleRow.discount_label_snapshot)?.id ?? null,
+      discountAmount: saleRow.discount_amount,
       note: saleRow.note ?? "",
     });
     setComposerOpen(true);
@@ -484,7 +502,8 @@ function ActiveSession() {
         mode={editInitial ? editMode : "sale"}
         initial={editInitial}
         products={products} flavors={flavors} paymentMethods={paymentMethods}
-        demographics={demographics} tipOptions={tipOptions} taxRate={taxRate} onSubmit={submitSale}
+        demographics={demographics} tipOptions={tipOptions} discountOptions={discountOptions}
+        taxRate={taxRate} onSubmit={submitSale}
       />
 
       {isOpen && (
