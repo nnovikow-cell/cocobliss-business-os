@@ -262,7 +262,7 @@ function ReportPage() {
           e.quantity || "",
           e.flavors.join("; "),
           e.payment ?? "",
-          e.total.toFixed(2),
+          e.subtotal.toFixed(2),
           e.discount.toFixed(2),
           e.tax.toFixed(2),
           e.tip.toFixed(2),
