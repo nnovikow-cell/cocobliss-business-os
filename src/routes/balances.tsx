@@ -616,6 +616,101 @@ function BalancesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Balance Logs dialog */}
+      <Dialog open={!!logsFor} onOpenChange={(o) => { if (!o) { setLogsFor(null); setEditingEntryId(null); setAddingEntry(false); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{logsFor?.name} — Balance Logs</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {!addingEntry ? (
+              <Button size="sm" variant="outline" onClick={() => setAddingEntry(true)}>
+                <Plus className="mr-1 h-4 w-4" /> Add entry
+              </Button>
+            ) : (
+              <div className="space-y-2 rounded-xl border bg-muted/30 p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Date</Label>
+                    <Input type="date" value={newEntryDate} onChange={(e) => setNewEntryDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Balance ($)</Label>
+                    <Input type="number" inputMode="decimal" step="0.01" value={newEntryBalance} onChange={(e) => setNewEntryBalance(e.target.value)} placeholder="0.00" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Notes</Label>
+                  <Textarea rows={2} value={newEntryNotes} onChange={(e) => setNewEntryNotes(e.target.value)} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setAddingEntry(false)}>Cancel</Button>
+                  <Button size="sm" onClick={addEntry}>Save</Button>
+                </div>
+              </div>
+            )}
+
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+              {logsLoading ? (
+                <div className="h-20 animate-pulse rounded-xl bg-muted/50" />
+              ) : logsEntries.length === 0 ? (
+                <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  No entries yet.
+                </div>
+              ) : (
+                logsEntries.map((e) => {
+                  const isEditing = editingEntryId === e.id;
+                  return (
+                    <div key={e.id} className="rounded-xl border bg-card p-3">
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input type="date" value={editEntryDate} onChange={(ev) => setEditEntryDate(ev.target.value)} />
+                            <Input type="number" inputMode="decimal" step="0.01" value={editEntryBalance} onChange={(ev) => setEditEntryBalance(ev.target.value)} />
+                          </div>
+                          <Textarea rows={2} value={editEntryNotes} onChange={(ev) => setEditEntryNotes(ev.target.value)} />
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => setEditingEntryId(null)}>Cancel</Button>
+                            <Button size="sm" onClick={saveEditEntry}>
+                              <Check className="mr-1 h-4 w-4" /> Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(e.logged_at), "MMM d, yyyy")}
+                              </span>
+                              <span className="text-sm font-bold">${fmtMoney(Number(e.balance))}</span>
+                            </div>
+                            {e.notes && (
+                              <p className="mt-1 text-xs text-muted-foreground">{e.notes}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEditEntry(e)} aria-label="Edit entry">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-600" onClick={() => deleteEntry(e)} aria-label="Delete entry">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogsFor(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
