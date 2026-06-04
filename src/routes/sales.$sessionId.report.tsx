@@ -266,7 +266,7 @@ function ReportPage() {
           e.discount.toFixed(2),
           e.tax.toFixed(2),
           e.tip.toFixed(2),
-          e.total.toFixed(2),
+          (e.subtotal - e.discount + e.tax + e.tip).toFixed(2),
           eventType === "tip" ? "" : (e.note ?? ""),
           findDemo(e.demos, /age/i),
           findDemo(e.demos, /gender/i),
