@@ -78,7 +78,6 @@ function BalancesPage() {
         .from("balance_accounts")
         .select("*")
         .is("deleted_at", null)
-        .eq("is_active", true)
         .order("sort_order"),
       supabase
         .from("balance_entries")
@@ -137,13 +136,13 @@ function BalancesPage() {
     return dates.map((d) => {
       const row: Record<string, string | number> = { date: d, label: format(new Date(d), "MMM d") };
       if (mode === "per_account") {
-        for (const a of accounts) {
+        for (const a of accounts.filter((x) => x.is_active)) {
           const v = balanceAt(a.id, d);
           if (v !== null) row[a.id] = v;
         }
       } else {
         let net = 0;
-        for (const a of accounts) {
+        for (const a of accounts.filter((x) => x.is_active)) {
           const v = balanceAt(a.id, d) ?? 0;
           net += a.type === "credit" ? -v : v;
         }
@@ -211,6 +210,16 @@ function BalancesPage() {
     fetchData();
   };
 
+  const activate = async (a: Account) => {
+    const { error } = await supabase
+      .from("balance_accounts")
+      .update({ is_active: true })
+      .eq("id", a.id);
+    if (error) return toast.error(error.message);
+    toast.success("Account activated");
+    fetchData();
+  };
+
   return (
     <AppShell>
       <header className="mb-4 flex items-center justify-between">
@@ -240,7 +249,7 @@ function BalancesPage() {
               const bal = latest ? Number(latest.balance) : 0;
               const isCredit = a.type === "credit";
               return (
-                <div key={a.id} className="rounded-2xl border bg-card p-4">
+                <div key={a.id} className={cn("rounded-2xl border bg-card p-4", !a.is_active && "opacity-60")}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -248,6 +257,11 @@ function BalancesPage() {
                         <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", meta.badge)}>
                           {meta.label}
                         </span>
+                        {!a.is_active && (
+                          <span className="rounded-full border border-muted-foreground/30 bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                            Inactive
+                          </span>
+                        )}
                       </div>
                       <p className={cn("mt-2 text-2xl font-black tracking-tight", isCredit && "text-red-600 dark:text-red-400")}>
                         ${fmtMoney(bal)}
@@ -270,7 +284,11 @@ function BalancesPage() {
                           setEditName(a.name);
                           setEditType(a.type);
                         }}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => deactivate(a)}>Deactivate</DropdownMenuItem>
+                        {a.is_active ? (
+                          <DropdownMenuItem onClick={() => deactivate(a)}>Deactivate</DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => activate(a)}>Activate</DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
