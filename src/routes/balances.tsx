@@ -574,6 +574,7 @@ function BalancesPage() {
                   <SelectItem value="checking">Checking</SelectItem>
                   <SelectItem value="savings">Savings</SelectItem>
                   <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -604,6 +605,7 @@ function BalancesPage() {
                   <SelectItem value="checking">Checking</SelectItem>
                   <SelectItem value="savings">Savings</SelectItem>
                   <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
             </div>
