@@ -228,7 +228,7 @@ function ReportPage() {
     const headers = [
       "session_date","market_name","weather","attendants","shakes_brought","paletas_brought",
       "timestamp","event_type","product","quantity","flavor","payment_method",
-      "amount","discount","tax","tip","note","age_range","gender",
+      "subtotal","discount","tax","tip","total","note","age_range","gender",
     ];
     const findDemo = (demos: Record<string, string[]>, key: RegExp) => {
       const k = Object.keys(demos).find((c) => key.test(c));
@@ -266,6 +266,7 @@ function ReportPage() {
           e.discount.toFixed(2),
           e.tax.toFixed(2),
           e.tip.toFixed(2),
+          e.total.toFixed(2),
           eventType === "tip" ? "" : (e.note ?? ""),
           findDemo(e.demos, /age/i),
           findDemo(e.demos, /gender/i),
