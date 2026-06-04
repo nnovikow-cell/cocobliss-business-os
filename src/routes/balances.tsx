@@ -136,13 +136,13 @@ function BalancesPage() {
     return dates.map((d) => {
       const row: Record<string, string | number> = { date: d, label: format(new Date(d), "MMM d") };
       if (mode === "per_account") {
-        for (const a of accounts) {
+        for (const a of accounts.filter((x) => x.is_active)) {
           const v = balanceAt(a.id, d);
           if (v !== null) row[a.id] = v;
         }
       } else {
         let net = 0;
-        for (const a of accounts) {
+        for (const a of accounts.filter((x) => x.is_active)) {
           const v = balanceAt(a.id, d) ?? 0;
           net += a.type === "credit" ? -v : v;
         }
