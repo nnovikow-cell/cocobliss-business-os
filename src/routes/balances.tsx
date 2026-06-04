@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, MoreVertical } from "lucide-react";
+import { Plus, MoreVertical, Pencil, Trash2, Check } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ReferenceLine,
 } from "recharts";
@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/balances")({ component: BalancesPage });
 
-type AccountType = "checking" | "savings" | "credit";
+type AccountType = "checking" | "savings" | "credit" | "cash";
 type Account = { id: string; name: string; type: AccountType; is_active: boolean; sort_order: number };
 type Entry = {
   id: string;
@@ -41,6 +41,7 @@ const TYPE_META: Record<AccountType, { label: string; badge: string; color: stri
   checking: { label: "Checking", badge: "border-teal-500/30 bg-teal-500/15 text-teal-700 dark:text-teal-300", color: "#0d9488" },
   savings: { label: "Savings", badge: "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300", color: "#10b981" },
   credit: { label: "Credit", badge: "border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-300", color: "#f97316" },
+  cash: { label: "Cash", badge: "border-yellow-500/30 bg-yellow-500/15 text-yellow-700 dark:text-yellow-300", color: "#eab308" },
 };
 
 type GraphMode = "per_account" | "net_worth";
@@ -70,6 +71,18 @@ function BalancesPage() {
   const [editAcct, setEditAcct] = useState<Account | null>(null);
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState<AccountType>("checking");
+
+  const [logsFor, setLogsFor] = useState<Account | null>(null);
+  const [logsEntries, setLogsEntries] = useState<Entry[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [addingEntry, setAddingEntry] = useState(false);
+  const [newEntryBalance, setNewEntryBalance] = useState("");
+  const [newEntryDate, setNewEntryDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [newEntryNotes, setNewEntryNotes] = useState("");
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editEntryBalance, setEditEntryBalance] = useState("");
+  const [editEntryDate, setEditEntryDate] = useState("");
+  const [editEntryNotes, setEditEntryNotes] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -200,13 +213,14 @@ function BalancesPage() {
     fetchData();
   };
 
-  const deactivate = async (a: Account) => {
+  const deleteAccount = async (a: Account) => {
+    if (!confirm(`Delete account "${a.name}"? This cannot be undone from the UI.`)) return;
     const { error } = await supabase
       .from("balance_accounts")
-      .update({ is_active: false })
+      .update({ deleted_at: new Date().toISOString() })
       .eq("id", a.id);
     if (error) return toast.error(error.message);
-    toast.success("Account deactivated");
+    toast.success("Account deleted");
     fetchData();
   };
 
@@ -217,6 +231,89 @@ function BalancesPage() {
       .eq("id", a.id);
     if (error) return toast.error(error.message);
     toast.success("Account activated");
+    fetchData();
+  };
+
+  const openLogs = async (a: Account) => {
+    setLogsFor(a);
+    setAddingEntry(false);
+    setEditingEntryId(null);
+    setNewEntryBalance("");
+    setNewEntryNotes("");
+    setNewEntryDate(format(new Date(), "yyyy-MM-dd"));
+    await refreshLogs(a.id);
+  };
+
+  const refreshLogs = async (accountId: string) => {
+    setLogsLoading(true);
+    const { data, error } = await supabase
+      .from("balance_entries")
+      .select("id, account_id, balance, logged_at, notes, balance_accounts(name, type)")
+      .eq("account_id", accountId)
+      .is("deleted_at", null)
+      .order("logged_at", { ascending: false });
+    if (error) toast.error(error.message);
+    setLogsEntries((data ?? []) as unknown as Entry[]);
+    setLogsLoading(false);
+  };
+
+  const addEntry = async () => {
+    if (!logsFor) return;
+    const bal = parseFloat(newEntryBalance);
+    if (Number.isNaN(bal)) return toast.error("Enter a valid balance");
+    const { error } = await supabase.from("balance_entries").insert({
+      account_id: logsFor.id,
+      balance: bal,
+      logged_at: newEntryDate,
+      notes: newEntryNotes.trim() || null,
+      created_by: user?.id ?? null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Entry added");
+    setAddingEntry(false);
+    setNewEntryBalance("");
+    setNewEntryNotes("");
+    setNewEntryDate(format(new Date(), "yyyy-MM-dd"));
+    await refreshLogs(logsFor.id);
+    fetchData();
+  };
+
+  const startEditEntry = (e: Entry) => {
+    setEditingEntryId(e.id);
+    setEditEntryBalance(String(e.balance));
+    setEditEntryDate(e.logged_at);
+    setEditEntryNotes(e.notes ?? "");
+  };
+
+  const saveEditEntry = async () => {
+    if (!editingEntryId || !logsFor) return;
+    const bal = parseFloat(editEntryBalance);
+    if (Number.isNaN(bal)) return toast.error("Enter a valid balance");
+    const { error } = await supabase
+      .from("balance_entries")
+      .update({
+        balance: bal,
+        logged_at: editEntryDate,
+        notes: editEntryNotes.trim() || null,
+      })
+      .eq("id", editingEntryId);
+    if (error) return toast.error(error.message);
+    toast.success("Entry updated");
+    setEditingEntryId(null);
+    await refreshLogs(logsFor.id);
+    fetchData();
+  };
+
+  const deleteEntry = async (e: Entry) => {
+    if (!logsFor) return;
+    if (!confirm("Delete this entry?")) return;
+    const { error } = await supabase
+      .from("balance_entries")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", e.id);
+    if (error) return toast.error(error.message);
+    toast.success("Entry deleted");
+    await refreshLogs(logsFor.id);
     fetchData();
   };
 
@@ -284,11 +381,13 @@ function BalancesPage() {
                           setEditName(a.name);
                           setEditType(a.type);
                         }}>Edit</DropdownMenuItem>
-                        {a.is_active ? (
-                          <DropdownMenuItem onClick={() => deactivate(a)}>Deactivate</DropdownMenuItem>
-                        ) : (
+                        <DropdownMenuItem onClick={() => openLogs(a)}>Balance Logs</DropdownMenuItem>
+                        {!a.is_active && (
                           <DropdownMenuItem onClick={() => activate(a)}>Activate</DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={() => deleteAccount(a)} className="text-red-600 focus:text-red-600">
+                          Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -475,6 +574,7 @@ function BalancesPage() {
                   <SelectItem value="checking">Checking</SelectItem>
                   <SelectItem value="savings">Savings</SelectItem>
                   <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -505,6 +605,7 @@ function BalancesPage() {
                   <SelectItem value="checking">Checking</SelectItem>
                   <SelectItem value="savings">Savings</SelectItem>
                   <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -512,6 +613,101 @@ function BalancesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditAcct(null)}>Cancel</Button>
             <Button onClick={submitEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Balance Logs dialog */}
+      <Dialog open={!!logsFor} onOpenChange={(o) => { if (!o) { setLogsFor(null); setEditingEntryId(null); setAddingEntry(false); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{logsFor?.name} — Balance Logs</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {!addingEntry ? (
+              <Button size="sm" variant="outline" onClick={() => setAddingEntry(true)}>
+                <Plus className="mr-1 h-4 w-4" /> Add entry
+              </Button>
+            ) : (
+              <div className="space-y-2 rounded-xl border bg-muted/30 p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Date</Label>
+                    <Input type="date" value={newEntryDate} onChange={(e) => setNewEntryDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Balance ($)</Label>
+                    <Input type="number" inputMode="decimal" step="0.01" value={newEntryBalance} onChange={(e) => setNewEntryBalance(e.target.value)} placeholder="0.00" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Notes</Label>
+                  <Textarea rows={2} value={newEntryNotes} onChange={(e) => setNewEntryNotes(e.target.value)} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setAddingEntry(false)}>Cancel</Button>
+                  <Button size="sm" onClick={addEntry}>Save</Button>
+                </div>
+              </div>
+            )}
+
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+              {logsLoading ? (
+                <div className="h-20 animate-pulse rounded-xl bg-muted/50" />
+              ) : logsEntries.length === 0 ? (
+                <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  No entries yet.
+                </div>
+              ) : (
+                logsEntries.map((e) => {
+                  const isEditing = editingEntryId === e.id;
+                  return (
+                    <div key={e.id} className="rounded-xl border bg-card p-3">
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input type="date" value={editEntryDate} onChange={(ev) => setEditEntryDate(ev.target.value)} />
+                            <Input type="number" inputMode="decimal" step="0.01" value={editEntryBalance} onChange={(ev) => setEditEntryBalance(ev.target.value)} />
+                          </div>
+                          <Textarea rows={2} value={editEntryNotes} onChange={(ev) => setEditEntryNotes(ev.target.value)} />
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => setEditingEntryId(null)}>Cancel</Button>
+                            <Button size="sm" onClick={saveEditEntry}>
+                              <Check className="mr-1 h-4 w-4" /> Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(e.logged_at), "MMM d, yyyy")}
+                              </span>
+                              <span className="text-sm font-bold">${fmtMoney(Number(e.balance))}</span>
+                            </div>
+                            {e.notes && (
+                              <p className="mt-1 text-xs text-muted-foreground">{e.notes}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEditEntry(e)} aria-label="Edit entry">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-600" onClick={() => deleteEntry(e)} aria-label="Delete entry">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogsFor(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
