@@ -249,7 +249,7 @@ function BalancesPage() {
               const bal = latest ? Number(latest.balance) : 0;
               const isCredit = a.type === "credit";
               return (
-                <div key={a.id} className="rounded-2xl border bg-card p-4">
+                <div key={a.id} className={cn("rounded-2xl border bg-card p-4", !a.is_active && "opacity-60")}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -257,6 +257,11 @@ function BalancesPage() {
                         <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", meta.badge)}>
                           {meta.label}
                         </span>
+                        {!a.is_active && (
+                          <span className="rounded-full border border-muted-foreground/30 bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                            Inactive
+                          </span>
+                        )}
                       </div>
                       <p className={cn("mt-2 text-2xl font-black tracking-tight", isCredit && "text-red-600 dark:text-red-400")}>
                         ${fmtMoney(bal)}
@@ -279,7 +284,11 @@ function BalancesPage() {
                           setEditName(a.name);
                           setEditType(a.type);
                         }}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => deactivate(a)}>Deactivate</DropdownMenuItem>
+                        {a.is_active ? (
+                          <DropdownMenuItem onClick={() => deactivate(a)}>Deactivate</DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => activate(a)}>Activate</DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
