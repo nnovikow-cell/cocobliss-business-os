@@ -78,7 +78,6 @@ function BalancesPage() {
         .from("balance_accounts")
         .select("*")
         .is("deleted_at", null)
-        .eq("is_active", true)
         .order("sort_order"),
       supabase
         .from("balance_entries")
