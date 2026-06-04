@@ -210,6 +210,16 @@ function BalancesPage() {
     fetchData();
   };
 
+  const activate = async (a: Account) => {
+    const { error } = await supabase
+      .from("balance_accounts")
+      .update({ is_active: true })
+      .eq("id", a.id);
+    if (error) return toast.error(error.message);
+    toast.success("Account activated");
+    fetchData();
+  };
+
   return (
     <AppShell>
       <header className="mb-4 flex items-center justify-between">
