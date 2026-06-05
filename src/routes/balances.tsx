@@ -150,9 +150,11 @@ function BalancesPage() {
     return dates.map((d) => {
       const row: Record<string, string | number> = { date: d, label: format(parseISO(d), "MMM d") };
       if (mode === "per_account") {
-        for (const a of accounts.filter((x) => x.is_active)) {
+        const activeList = accounts.filter((x) => x.is_active);
+        for (let i = 0; i < activeList.length; i++) {
+          const a = activeList[i];
           const v = balanceAt(a.id, d);
-          if (v !== null) row[a.id] = v;
+          if (v !== null) row[`acct${i}`] = v;
         }
       } else {
         let net = 0;
@@ -165,6 +167,7 @@ function BalancesPage() {
       return row;
     });
   }, [entries, accounts, cutoffDate, mode]);
+
 
   const submitLog = async () => {
     if (!logFor) return;
@@ -470,52 +473,50 @@ function BalancesPage() {
               <Tooltip
                 formatter={(value: number | string, name) => {
                   const num = Number(value);
-                  const acct = accounts.find((a) => a.id === name);
-                  return [`$${fmtMoney(num)}`, acct?.name ?? (name === "net" ? "Net Worth" : String(name))];
+                  return [`$${fmtMoney(num)}`, name === "net" ? "Net Worth" : String(name)];
                 }}
                 labelFormatter={(_l, payload) => {
                   const d = payload?.[0]?.payload?.date as string | undefined;
                   return d ? format(parseISO(d), "MMM d, yyyy") : "";
                 }}
               />
-              {mode === "per_account" ? (
-                <>
-                  <Legend formatter={(v) => accounts.find((a) => a.id === v)?.name ?? v} />
-                  {accounts.filter((x) => x.is_active).map((a) => (
-                    <Line
-                      key={a.id}
-                      type="monotone"
-                      dataKey={a.id}
-                      stroke={TYPE_META[a.type].color}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      connectNulls
-                    />
-                  ))}
-                </>
-              ) : (
-                <>
-                  <ReferenceLine y={0} strokeDasharray="3 3" className="stroke-muted-foreground" />
+              {mode === "per_account" && <Legend />}
+              {mode === "per_account" &&
+                accounts.filter((x) => x.is_active).map((a, i) => (
                   <Line
+                    key={a.id}
                     type="monotone"
-                    dataKey="net"
-                    stroke="#10b981"
+                    dataKey={`acct${i}`}
+                    name={a.name}
+                    stroke={TYPE_META[a.type].color}
                     strokeWidth={2}
-                    dot={(props: { cx?: number; cy?: number; payload?: { net?: number }; index?: number }) => {
-                      const { cx, cy, payload, index } = props;
-                      const v = Number(payload?.net ?? 0);
-                      return (
-                        <circle
-                          key={index}
-                          cx={cx}
-                          cy={cy}
-                          r={3}
-                          fill={v >= 0 ? "#10b981" : "#ef4444"}
-                        />
-                      );
-                    }}
+                    dot={{ r: 3 }}
+                    connectNulls
                   />
-                </>
+                ))}
+              {mode === "net_worth" && (
+                <ReferenceLine y={0} strokeDasharray="3 3" className="stroke-muted-foreground" />
+              )}
+              {mode === "net_worth" && (
+                <Line
+                  type="monotone"
+                  dataKey="net"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={(props: { cx?: number; cy?: number; payload?: { net?: number }; index?: number }) => {
+                    const { cx, cy, payload, index } = props;
+                    const v = Number(payload?.net ?? 0);
+                    return (
+                      <circle
+                        key={index}
+                        cx={cx}
+                        cy={cy}
+                        r={3}
+                        fill={v >= 0 ? "#10b981" : "#ef4444"}
+                      />
+                    );
+                  }}
+                />
               )}
             </LineChart>
           </ResponsiveContainer>
