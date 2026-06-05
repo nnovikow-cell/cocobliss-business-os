@@ -481,7 +481,7 @@ function BalancesPage() {
               {mode === "per_account" ? (
                 <>
                   <Legend formatter={(v) => accounts.find((a) => a.id === v)?.name ?? v} />
-                  {accounts.map((a) => (
+                  {accounts.filter((x) => x.is_active).map((a) => (
                     <Line
                       key={a.id}
                       type="monotone"
