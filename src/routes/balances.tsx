@@ -475,7 +475,7 @@ function BalancesPage() {
                 }}
                 labelFormatter={(_l, payload) => {
                   const d = payload?.[0]?.payload?.date as string | undefined;
-                  return d ? format(new Date(d), "MMM d, yyyy") : "";
+                  return d ? format(parseISO(d), "MMM d, yyyy") : "";
                 }}
               />
               {mode === "per_account" ? (
@@ -683,7 +683,7 @@ function BalancesPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">
-                                {format(new Date(e.logged_at), "MMM d, yyyy")}
+                                {format(parseISO(e.logged_at), "MMM d, yyyy")}
                               </span>
                               <span className="text-sm font-bold">${fmtMoney(Number(e.balance))}</span>
                             </div>
