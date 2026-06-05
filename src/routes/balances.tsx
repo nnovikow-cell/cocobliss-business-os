@@ -484,11 +484,11 @@ function BalancesPage() {
               {mode === "per_account" ? (
                 <>
                   <Legend formatter={(v) => accounts.find((a) => a.id === v)?.name ?? v} />
-                  {accounts.filter((x) => x.is_active).map((a) => (
+                  {accounts.filter((x) => x.is_active).map((a, i) => (
                     <Line
                       key={a.id}
                       type="monotone"
-                      dataKey={(row: Record<string, unknown>) => row[a.id] as number | undefined}
+                      dataKey={`acct${i}`}
                       name={a.name}
                       stroke={TYPE_META[a.type].color}
                       strokeWidth={2}
