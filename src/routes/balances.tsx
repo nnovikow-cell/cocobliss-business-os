@@ -486,7 +486,8 @@ function BalancesPage() {
                     <Line
                       key={a.id}
                       type="monotone"
-                      dataKey={a.id}
+                      dataKey={(row: Record<string, unknown>) => row[a.id] as number | undefined}
+                      name={a.name}
                       stroke={TYPE_META[a.type].color}
                       strokeWidth={2}
                       dot={{ r: 3 }}
