@@ -166,6 +166,9 @@ function BalancesPage() {
     });
   }, [entries, accounts, cutoffDate, mode]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { console.log("chartData", chartData, "entries", entries.slice(0,3)); }, [chartData]);
+
   const submitLog = async () => {
     if (!logFor) return;
     const bal = parseFloat(logBalance);
