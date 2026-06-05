@@ -473,8 +473,7 @@ function BalancesPage() {
               <Tooltip
                 formatter={(value: number | string, name) => {
                   const num = Number(value);
-                  const acct = accounts.find((a) => a.id === name);
-                  return [`$${fmtMoney(num)}`, acct?.name ?? (name === "net" ? "Net Worth" : String(name))];
+                  return [`$${fmtMoney(num)}`, name === "net" ? "Net Worth" : String(name)];
                 }}
                 labelFormatter={(_l, payload) => {
                   const d = payload?.[0]?.payload?.date as string | undefined;
@@ -483,7 +482,7 @@ function BalancesPage() {
               />
               {mode === "per_account" ? (
                 <>
-                  <Legend formatter={(v) => accounts.find((a) => a.id === v)?.name ?? v} />
+                  <Legend />
                   {accounts.filter((x) => x.is_active).map((a, i) => (
                     <Line
                       key={a.id}
