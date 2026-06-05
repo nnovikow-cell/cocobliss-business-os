@@ -480,45 +480,43 @@ function BalancesPage() {
                   return d ? format(parseISO(d), "MMM d, yyyy") : "";
                 }}
               />
-              {mode === "per_account" ? (
-                <>
-                  <Legend />
-                  {accounts.filter((x) => x.is_active).map((a, i) => (
-                    <Line
-                      key={a.id}
-                      type="monotone"
-                      dataKey={`acct${i}`}
-                      name={a.name}
-                      stroke={TYPE_META[a.type].color}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      connectNulls
-                    />
-                  ))}
-                </>
-              ) : (
-                <>
-                  <ReferenceLine y={0} strokeDasharray="3 3" className="stroke-muted-foreground" />
+              {mode === "per_account" && <Legend />}
+              {mode === "per_account" &&
+                accounts.filter((x) => x.is_active).map((a, i) => (
                   <Line
+                    key={a.id}
                     type="monotone"
-                    dataKey="net"
-                    stroke="#10b981"
+                    dataKey={`acct${i}`}
+                    name={a.name}
+                    stroke={TYPE_META[a.type].color}
                     strokeWidth={2}
-                    dot={(props: { cx?: number; cy?: number; payload?: { net?: number }; index?: number }) => {
-                      const { cx, cy, payload, index } = props;
-                      const v = Number(payload?.net ?? 0);
-                      return (
-                        <circle
-                          key={index}
-                          cx={cx}
-                          cy={cy}
-                          r={3}
-                          fill={v >= 0 ? "#10b981" : "#ef4444"}
-                        />
-                      );
-                    }}
+                    dot={{ r: 3 }}
+                    connectNulls
                   />
-                </>
+                ))}
+              {mode === "net_worth" && (
+                <ReferenceLine y={0} strokeDasharray="3 3" className="stroke-muted-foreground" />
+              )}
+              {mode === "net_worth" && (
+                <Line
+                  type="monotone"
+                  dataKey="net"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={(props: { cx?: number; cy?: number; payload?: { net?: number }; index?: number }) => {
+                    const { cx, cy, payload, index } = props;
+                    const v = Number(payload?.net ?? 0);
+                    return (
+                      <circle
+                        key={index}
+                        cx={cx}
+                        cy={cy}
+                        r={3}
+                        fill={v >= 0 ? "#10b981" : "#ef4444"}
+                      />
+                    );
+                  }}
+                />
               )}
             </LineChart>
           </ResponsiveContainer>
