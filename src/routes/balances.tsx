@@ -150,9 +150,11 @@ function BalancesPage() {
     return dates.map((d) => {
       const row: Record<string, string | number> = { date: d, label: format(parseISO(d), "MMM d") };
       if (mode === "per_account") {
-        for (const a of accounts.filter((x) => x.is_active)) {
+        const activeList = accounts.filter((x) => x.is_active);
+        for (let i = 0; i < activeList.length; i++) {
+          const a = activeList[i];
           const v = balanceAt(a.id, d);
-          if (v !== null) row[a.id] = v;
+          if (v !== null) row[`acct${i}`] = v;
         }
       } else {
         let net = 0;
