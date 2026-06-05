@@ -21,7 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { format, subMonths, subYears } from "date-fns";
+import { format, parseISO, subMonths, subYears } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/balances")({ component: BalancesPage });
@@ -118,14 +118,15 @@ function BalancesPage() {
   }, [entries]);
 
   const cutoffDate = useMemo(() => {
-    if (range === "3m") return subMonths(new Date(), 3);
-    if (range === "6m") return subMonths(new Date(), 6);
-    if (range === "1y") return subYears(new Date(), 1);
+    const now = new Date();
+    if (range === "3m") return format(subMonths(now, 3), "yyyy-MM-dd");
+    if (range === "6m") return format(subMonths(now, 6), "yyyy-MM-dd");
+    if (range === "1y") return format(subYears(now, 1), "yyyy-MM-dd");
     return null;
   }, [range]);
 
   const chartData = useMemo(() => {
-    const inRange = entries.filter((e) => !cutoffDate || new Date(e.logged_at) >= cutoffDate);
+    const inRange = entries.filter((e) => !cutoffDate || e.logged_at >= cutoffDate);
     const dates = Array.from(new Set(inRange.map((e) => e.logged_at))).sort();
     if (dates.length === 0) return [];
 
@@ -147,7 +148,7 @@ function BalancesPage() {
     };
 
     return dates.map((d) => {
-      const row: Record<string, string | number> = { date: d, label: format(new Date(d), "MMM d") };
+      const row: Record<string, string | number> = { date: d, label: format(parseISO(d), "MMM d") };
       if (mode === "per_account") {
         for (const a of accounts.filter((x) => x.is_active)) {
           const v = balanceAt(a.id, d);
@@ -365,7 +366,7 @@ function BalancesPage() {
                       </p>
                       {latest && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          as of {format(new Date(latest.logged_at), "MMM d, yyyy")}
+                          as of {format(parseISO(latest.logged_at), "MMM d, yyyy")}
                         </p>
                       )}
                     </div>
