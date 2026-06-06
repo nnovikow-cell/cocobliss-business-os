@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { format, parseISO, subMonths, subYears } from "date-fns";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/balances")({ component: BalancesPage });
@@ -58,6 +59,11 @@ function BalancesPage() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<GraphMode>("per_account");
   const [range, setRange] = useState<Range>("3m");
+
+  // Chart filter bar state
+  const [filterFrom, setFilterFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+  const [filterTo, setFilterTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [filterAccountId, setFilterAccountId] = useState<string>("all");
 
   const [logFor, setLogFor] = useState<Account | null>(null);
   const [logBalance, setLogBalance] = useState("");
@@ -126,7 +132,13 @@ function BalancesPage() {
   }, [range]);
 
   const chartData = useMemo(() => {
-    const inRange = entries.filter((e) => !cutoffDate || e.logged_at >= cutoffDate);
+    const inRange = entries.filter((e) => {
+      if (cutoffDate && e.logged_at < cutoffDate) return false;
+      if (filterFrom && e.logged_at < filterFrom) return false;
+      if (filterTo && e.logged_at > filterTo) return false;
+      if (filterAccountId !== "all" && e.account_id !== filterAccountId) return false;
+      return true;
+    });
     const dates = Array.from(new Set(inRange.map((e) => e.logged_at))).sort();
     if (dates.length === 0) return [];
 
@@ -150,7 +162,9 @@ function BalancesPage() {
     return dates.map((d) => {
       const row: Record<string, string | number> = { date: d, label: format(parseISO(d), "MMM d") };
       if (mode === "per_account") {
-        const activeList = accounts.filter((x) => x.is_active);
+        const activeList = accounts
+          .filter((x) => x.is_active)
+          .filter((x) => filterAccountId === "all" || x.id === filterAccountId);
         for (let i = 0; i < activeList.length; i++) {
           const a = activeList[i];
           const v = balanceAt(a.id, d);
@@ -158,7 +172,9 @@ function BalancesPage() {
         }
       } else {
         let net = 0;
-        for (const a of accounts.filter((x) => x.is_active)) {
+        for (const a of accounts
+          .filter((x) => x.is_active)
+          .filter((x) => filterAccountId === "all" || x.id === filterAccountId)) {
           const v = balanceAt(a.id, d) ?? 0;
           net += a.type === "credit" ? -v : v;
         }
@@ -166,7 +182,7 @@ function BalancesPage() {
       }
       return row;
     });
-  }, [entries, accounts, cutoffDate, mode]);
+  }, [entries, accounts, cutoffDate, mode, filterFrom, filterTo, filterAccountId]);
 
 
   const submitLog = async () => {
@@ -417,6 +433,54 @@ function BalancesPage() {
 
       {/* Section 2 - Graph */}
       <section className="rounded-2xl border bg-card p-4">
+        {/* Filter bar */}
+        <div className="mb-3 flex flex-wrap items-end gap-3 rounded-xl border border-dashed bg-muted/30 p-3">
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">From</Label>
+            <Input
+              type="date"
+              value={filterFrom}
+              onChange={(e) => setFilterFrom(e.target.value)}
+              className="h-9 w-[150px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">To</Label>
+            <Input
+              type="date"
+              value={filterTo}
+              onChange={(e) => setFilterTo(e.target.value)}
+              className="h-9 w-[150px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Account</Label>
+            <Select value={filterAccountId} onValueChange={setFilterAccountId}>
+              <SelectTrigger className="h-9 w-[180px]">
+                <SelectValue placeholder="All accounts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All accounts</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => {
+              setFilterFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+              setFilterTo(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+              setFilterAccountId("all");
+            }}
+          >
+            Reset
+          </Button>
+        </div>
+
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1.5">
             {([
@@ -482,7 +546,10 @@ function BalancesPage() {
               />
               {mode === "per_account" && <Legend />}
               {mode === "per_account" &&
-                accounts.filter((x) => x.is_active).map((a, i) => (
+                accounts
+                  .filter((x) => x.is_active)
+                  .filter((x) => filterAccountId === "all" || x.id === filterAccountId)
+                  .map((a, i) => (
                   <Line
                     key={a.id}
                     type="monotone"
