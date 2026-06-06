@@ -436,51 +436,44 @@ function BalancesPage() {
       {/* Section 2 - Graph */}
       <section className="rounded-2xl border bg-card p-4">
         {/* Filter bar */}
-        <div className="mb-3 flex flex-wrap items-end gap-3 rounded-xl border border-dashed bg-muted/30 p-3">
-          <div className="space-y-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">From</Label>
-            <Input
-              type="date"
-              value={filterFrom}
-              onChange={(e) => setFilterFrom(e.target.value)}
-              className="h-9 w-[150px]"
-            />
+        <div className="mb-3 rounded-xl border border-dashed bg-muted/30 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Accounts
+            </Label>
+            {selectedAccountIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedAccountIds([])}
+                className="text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Show all
+              </button>
+            )}
           </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">To</Label>
-            <Input
-              type="date"
-              value={filterTo}
-              onChange={(e) => setFilterTo(e.target.value)}
-              className="h-9 w-[150px]"
-            />
+          <div className="flex flex-wrap gap-1.5">
+            {accounts.map((a) => {
+              const selected = isAccountSelected(a.id);
+              const explicit = selectedAccountIds.includes(a.id);
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => toggleAccountFilter(a.id)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    explicit
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : selected
+                        ? "border-border bg-card text-foreground hover:bg-accent"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {a.name}
+                </button>
+              );
+            })}
           </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Account</Label>
-            <Select value={filterAccountId} onValueChange={setFilterAccountId}>
-              <SelectTrigger className="h-9 w-[180px]">
-                <SelectValue placeholder="All accounts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All accounts</SelectItem>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto"
-            onClick={() => {
-              setFilterFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-              setFilterTo(format(endOfMonth(new Date()), "yyyy-MM-dd"));
-              setFilterAccountId("all");
-            }}
-          >
-            Reset
-          </Button>
         </div>
 
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -550,7 +543,7 @@ function BalancesPage() {
               {mode === "per_account" &&
                 accounts
                   .filter((x) => x.is_active)
-                  .filter((x) => filterAccountId === "all" || x.id === filterAccountId)
+                  .filter((x) => isAccountSelected(x.id))
                   .map((a, i) => (
                   <Line
                     key={a.id}
