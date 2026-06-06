@@ -433,6 +433,54 @@ function BalancesPage() {
 
       {/* Section 2 - Graph */}
       <section className="rounded-2xl border bg-card p-4">
+        {/* Filter bar */}
+        <div className="mb-3 flex flex-wrap items-end gap-3 rounded-xl border border-dashed bg-muted/30 p-3">
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">From</Label>
+            <Input
+              type="date"
+              value={filterFrom}
+              onChange={(e) => setFilterFrom(e.target.value)}
+              className="h-9 w-[150px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">To</Label>
+            <Input
+              type="date"
+              value={filterTo}
+              onChange={(e) => setFilterTo(e.target.value)}
+              className="h-9 w-[150px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Account</Label>
+            <Select value={filterAccountId} onValueChange={setFilterAccountId}>
+              <SelectTrigger className="h-9 w-[180px]">
+                <SelectValue placeholder="All accounts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All accounts</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => {
+              setFilterFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+              setFilterTo(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+              setFilterAccountId("all");
+            }}
+          >
+            Reset
+          </Button>
+        </div>
+
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1.5">
             {([
@@ -498,7 +546,10 @@ function BalancesPage() {
               />
               {mode === "per_account" && <Legend />}
               {mode === "per_account" &&
-                accounts.filter((x) => x.is_active).map((a, i) => (
+                accounts
+                  .filter((x) => x.is_active)
+                  .filter((x) => filterAccountId === "all" || x.id === filterAccountId)
+                  .map((a, i) => (
                   <Line
                     key={a.id}
                     type="monotone"
