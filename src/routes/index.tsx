@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen, KeyRound, LayoutGrid, List as ListIcon, FileText, Landmark } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Receipt, Boxes, LogOut, Settings as SettingsIcon, ListChecks, CalendarDays, FlaskConical, TrendingUp, CheckSquare, Sparkles, Users, BookOpen, KeyRound, LayoutGrid, List as ListIcon, FileText, Landmark, Bell, AlertTriangle, PackageX } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { statusOf, type InventoryItem } from "@/lib/inventory";
 
 export const Route = createFileRoute("/")({ component: Index });
 
@@ -26,11 +29,35 @@ const modules = [
 function Index() {
   const { user, signOut } = useAuth();
   const [view, setView] = useState<"cards" | "list">("cards");
+  const [stockItems, setStockItems] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("cocobliss_hub_view");
     if (saved === "cards" || saved === "list") setView(saved);
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("inventory_items")
+        .select("*")
+        .is("deleted_at", null)
+        .eq("is_archived", false)
+        .eq("is_active", true);
+      setStockItems((data ?? []) as InventoryItem[]);
+    })();
+  }, []);
+
+  const alerts = useMemo(() => {
+    const out: InventoryItem[] = [];
+    const low: InventoryItem[] = [];
+    for (const i of stockItems) {
+      const s = statusOf(Number(i.current_quantity), Number(i.par_level));
+      if (s === "out") out.push(i);
+      else if (s === "low") low.push(i);
+    }
+    return { out, low, total: out.length + low.length };
+  }, [stockItems]);
 
   const toggleView = () => {
     const next = view === "cards" ? "list" : "cards";
@@ -46,6 +73,58 @@ function Index() {
           <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
         </div>
         <div className="flex items-center gap-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative" aria-label="Inventory alerts">
+                <Bell className="h-5 w-5" />
+                {alerts.total > 0 && (
+                  <span className="absolute right-1 top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                    {alerts.total}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-0">
+              <div className="border-b px-4 py-3">
+                <p className="text-sm font-bold">Inventory alerts</p>
+                <p className="text-xs text-muted-foreground">
+                  {alerts.total === 0 ? "All stock looks good." : `${alerts.out.length} below par · ${alerts.low.length} low stock`}
+                </p>
+              </div>
+              <Link to="/inventory/list" className="block max-h-72 overflow-y-auto">
+                {alerts.total === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-muted-foreground">Nothing needs attention.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {[...alerts.out, ...alerts.low].slice(0, 10).map((i) => {
+                      const s = statusOf(Number(i.current_quantity), Number(i.par_level));
+                      return (
+                        <li key={i.id} className="flex items-center gap-2 px-4 py-2 hover:bg-muted">
+                          {s === "out" ? (
+                            <PackageX className="h-4 w-4 shrink-0 text-red-500" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{i.name}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {Number(i.current_quantity)} / {Number(i.par_level)} {i.unit}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] font-bold uppercase ${s === "out" ? "text-red-500" : "text-amber-500"}`}>
+                            {s === "out" ? "Below par" : "Low"}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <div className="border-t px-4 py-2 text-center text-xs font-semibold text-primary hover:underline">
+                  Open Inventory
+                </div>
+              </Link>
+            </PopoverContent>
+          </Popover>
           <Button variant="ghost" size="icon" onClick={toggleView} aria-label="Toggle view">
             {view === "cards" ? <ListIcon className="h-5 w-5" /> : <LayoutGrid className="h-5 w-5" />}
           </Button>
