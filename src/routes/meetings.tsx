@@ -418,12 +418,12 @@ function MeetingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[95vh] w-[95vw] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit meeting" : "New meeting"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <div>
             <Label htmlFor="meeting-date">Meeting Date</Label>
             <Input id="meeting-date" type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} className="mt-1.5" />
