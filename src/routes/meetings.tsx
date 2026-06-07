@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, MoreVertical, Pencil, Trash2, Plus as PlusIcon, FileText, X } from "lucide-react";
+import { Plus, MoreVertical, Pencil, Trash2, Plus as PlusIcon, FileText, X, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,25 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { fmt } from "@/lib/money";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/meetings")({ component: MeetingsPage });
 
 type ActionItem = { text: string; owner: string; due_date: string | null };
+
+export type PastEvent = {
+  id: string;
+  name: string;
+  opened_at: string;
+  weather_label_snapshot: string | null;
+  attendant_names_snapshot: string[];
+  revenue: number;
+};
 
 type Meeting = {
   id: string;
@@ -37,6 +50,7 @@ type Meeting = {
   decisions: string[];
   action_items: ActionItem[];
   next_meeting_topics: string | null;
+  linked_event_id: string | null;
   created_at: string;
 };
 
@@ -63,6 +77,7 @@ function fmtDue(iso: string): string {
 function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [attendants, setAttendants] = useState<Attendant[]>([]);
+  const [pastEvents, setPastEvents] = useState<PastEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -72,13 +87,29 @@ function MeetingsPage() {
 
   async function load() {
     setLoading(true);
-    const [{ data: m, error }, { data: a }] = await Promise.all([
+    const [{ data: m, error }, { data: a }, { data: sess }] = await Promise.all([
       supabase.from("meetings").select("*").is("deleted_at", null).order("meeting_date", { ascending: false }),
       supabase.from("attendants").select("id,name,first_name,last_name").eq("active", true).order("first_name"),
+      supabase.from("sales_sessions")
+        .select("id,name,opened_at,weather_label_snapshot,attendant_names_snapshot")
+        .is("deleted_at", null)
+        .order("opened_at", { ascending: false }),
     ]);
     if (error) toast.error(error.message);
     setMeetings(((m ?? []) as unknown) as Meeting[]);
     setAttendants((a ?? []) as Attendant[]);
+    const sessions = (sess ?? []) as Array<Omit<PastEvent, "revenue">>;
+    const sessionIds = sessions.map((s) => s.id);
+    const revByS = new Map<string, number>();
+    if (sessionIds.length) {
+      const { data: salesRows } = await supabase
+        .from("sales").select("session_id,total")
+        .in("session_id", sessionIds).is("deleted_at", null);
+      for (const r of (salesRows ?? []) as Array<{ session_id: string; total: number | null }>) {
+        revByS.set(r.session_id, (revByS.get(r.session_id) ?? 0) + Number(r.total ?? 0));
+      }
+    }
+    setPastEvents(sessions.map((s) => ({ ...s, revenue: revByS.get(s.id) ?? 0 })));
     setLoading(false);
   }
 
@@ -181,6 +212,7 @@ function MeetingsPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         attendants={attendants}
+        pastEvents={pastEvents}
         defaultNextTopics={lastNextTopics ?? ""}
         onSaved={() => { setCreateOpen(false); load(); }}
       />
@@ -189,6 +221,7 @@ function MeetingsPage() {
         open={!!editing}
         onOpenChange={(o) => { if (!o) setEditing(null); }}
         attendants={attendants}
+        pastEvents={pastEvents}
         editing={editing}
         onSaved={() => { setEditing(null); load(); }}
       />
@@ -263,6 +296,19 @@ function MeetingsPage() {
                     </div>
                   </section>
                 )}
+
+                {reading.linked_event_id && (() => {
+                  const ev = pastEvents.find((e) => e.id === reading.linked_event_id);
+                  if (!ev) return null;
+                  return (
+                    <section>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Last Event Reference</h3>
+                      <div className="mt-2">
+                        <EventRefBlock event={ev} />
+                      </div>
+                    </section>
+                  );
+                })()}
               </div>
             </>
           )}
@@ -286,11 +332,12 @@ function MeetingsPage() {
 }
 
 function MeetingDialog({
-  open, onOpenChange, attendants, editing, defaultNextTopics, onSaved,
+  open, onOpenChange, attendants, pastEvents, editing, defaultNextTopics, onSaved,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   attendants: Attendant[];
+  pastEvents: PastEvent[];
   editing?: Meeting | null;
   defaultNextTopics?: string;
   onSaved: () => void;
@@ -302,6 +349,8 @@ function MeetingDialog({
   const [decisions, setDecisions] = useState<string[]>([""]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([{ text: "", owner: "", due_date: null }]);
   const [nextTopics, setNextTopics] = useState<string>("");
+  const [linkedEventId, setLinkedEventId] = useState<string | null>(null);
+  const [refOpen, setRefOpen] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -314,6 +363,8 @@ function MeetingDialog({
       setDecisions(editing.decisions.length ? editing.decisions : [""]);
       setActionItems(editing.action_items.length ? editing.action_items : [{ text: "", owner: "", due_date: null }]);
       setNextTopics(editing.next_meeting_topics ?? "");
+      setLinkedEventId(editing.linked_event_id ?? null);
+      setRefOpen(!!editing.linked_event_id);
     } else {
       setMeetingDate(todayISO());
       setAttendeeIds([]);
@@ -322,6 +373,8 @@ function MeetingDialog({
       setDecisions([""]);
       setActionItems([{ text: "", owner: "", due_date: null }]);
       setNextTopics(defaultNextTopics ?? "");
+      setLinkedEventId(null);
+      setRefOpen(false);
     }
   }, [open, editing, defaultNextTopics]);
 
@@ -347,6 +400,7 @@ function MeetingDialog({
       decisions: cleanDecisions,
       action_items: cleanActions,
       next_meeting_topics: nextTopics.trim() || null,
+      linked_event_id: linkedEventId,
     };
 
     let error;
@@ -491,6 +545,50 @@ function MeetingDialog({
             <Label htmlFor="next-topics">Next Meeting Topics</Label>
             <Textarea id="next-topics" rows={3} value={nextTopics} onChange={(e) => setNextTopics(e.target.value)} className="mt-1.5" />
           </div>
+
+          <div className="rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => setRefOpen((v) => !v)}
+              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold"
+            >
+              <span className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4" />
+                Last Event Reference
+                {linkedEventId && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">Linked</span>}
+              </span>
+              <span className="text-muted-foreground">{refOpen ? "−" : "+"}</span>
+            </button>
+            {refOpen && (
+              <div className="space-y-2 border-t border-border p-3">
+                <div className="flex items-center gap-2">
+                  <Select value={linkedEventId ?? ""} onValueChange={(v) => setLinkedEventId(v || null)}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a past event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pastEvents.length === 0 ? (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">No past events available</div>
+                      ) : pastEvents.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name} — {fmtDate(e.opened_at.slice(0, 10))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {linkedEventId && (
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setLinkedEventId(null)} aria-label="Clear linked event">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {linkedEventId && (() => {
+                  const ev = pastEvents.find((e) => e.id === linkedEventId);
+                  return ev ? <EventRefBlock event={ev} /> : null;
+                })()}
+              </div>
+            )}
+          </div>
         </div>
 
         <DialogFooter>
@@ -499,5 +597,25 @@ function MeetingDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EventRefBlock({ event }: { event: PastEvent }) {
+  const dateStr = event.opened_at ? fmtDate(event.opened_at.slice(0, 10)) : "—";
+  const staffCount = event.attendant_names_snapshot?.length ?? 0;
+  return (
+    <div className="rounded-xl bg-muted/60 p-3 text-sm">
+      <p className="font-bold">{event.name}</p>
+      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+        <dt className="text-muted-foreground">Date</dt>
+        <dd className="text-right">{dateStr}</dd>
+        <dt className="text-muted-foreground">Weather</dt>
+        <dd className="text-right">{event.weather_label_snapshot || "—"}</dd>
+        <dt className="text-muted-foreground">Staff</dt>
+        <dd className="text-right">{staffCount}</dd>
+        <dt className="text-muted-foreground">Revenue</dt>
+        <dd className="text-right font-semibold">{fmt(event.revenue)}</dd>
+      </dl>
+    </div>
   );
 }
