@@ -1123,7 +1123,8 @@ export type Database = {
           id: string
           meeting_date: string
           next_meeting_topics: string | null
-          topics_discussed: string | null
+          notes: string | null
+          topics: Json
           updated_at: string
         }
         Insert: {
@@ -1137,7 +1138,8 @@ export type Database = {
           id?: string
           meeting_date: string
           next_meeting_topics?: string | null
-          topics_discussed?: string | null
+          notes?: string | null
+          topics?: Json
           updated_at?: string
         }
         Update: {
@@ -1151,7 +1153,8 @@ export type Database = {
           id?: string
           meeting_date?: string
           next_meeting_topics?: string | null
-          topics_discussed?: string | null
+          notes?: string | null
+          topics?: Json
           updated_at?: string
         }
         Relationships: []
