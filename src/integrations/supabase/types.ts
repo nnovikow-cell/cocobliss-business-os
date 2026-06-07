@@ -1121,6 +1121,7 @@ export type Database = {
           decisions: Json
           deleted_at: string | null
           id: string
+          linked_event_id: string | null
           meeting_date: string
           next_meeting_topics: string | null
           notes: string | null
@@ -1136,6 +1137,7 @@ export type Database = {
           decisions?: Json
           deleted_at?: string | null
           id?: string
+          linked_event_id?: string | null
           meeting_date: string
           next_meeting_topics?: string | null
           notes?: string | null
@@ -1151,13 +1153,22 @@ export type Database = {
           decisions?: Json
           deleted_at?: string | null
           id?: string
+          linked_event_id?: string | null
           meeting_date?: string
           next_meeting_topics?: string | null
           notes?: string | null
           topics?: Json
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meetings_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "sales_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       paleta_flavor_upgrades: {
         Row: {
