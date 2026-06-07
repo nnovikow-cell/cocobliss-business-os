@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, MoreVertical, Pencil, Trash2, Plus as PlusIcon } from "lucide-react";
+import { Plus, MoreVertical, Pencil, Trash2, Plus as PlusIcon, FileText, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,8 @@ type Meeting = {
   meeting_date: string;
   attendee_ids: string[];
   attendee_names_snapshot: string[];
-  topics_discussed: string | null;
+  topics: string[];
+  notes: string;
   decisions: string[];
   action_items: ActionItem[];
   next_meeting_topics: string | null;
@@ -137,6 +138,11 @@ function MeetingsPage() {
                         {m.action_items.length} {m.action_items.length === 1 ? "action item" : "action items"}
                       </span>
                     )}
+                    {m.notes && m.notes.trim().length > 0 && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground" title="Has notes">
+                        <FileText className="h-3 w-3" />
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div onClick={(e) => e.stopPropagation()}>
@@ -207,10 +213,19 @@ function MeetingsPage() {
                   </p>
                 </section>
 
-                {reading.topics_discussed && (
+                {reading.topics.length > 0 && (
                   <section>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Topics Discussed</h3>
-                    <p className="mt-1 whitespace-pre-wrap text-sm">{reading.topics_discussed}</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
+                      {reading.topics.map((t, i) => (<li key={i}>{t}</li>))}
+                    </ul>
+                  </section>
+                )}
+
+                {reading.notes && reading.notes.trim().length > 0 && (
+                  <section>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Notes</h3>
+                    <p className="mt-1 whitespace-pre-wrap text-sm">{reading.notes}</p>
                   </section>
                 )}
 
