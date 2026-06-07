@@ -297,7 +297,8 @@ function MeetingDialog({
 }) {
   const [meetingDate, setMeetingDate] = useState<string>(todayISO());
   const [attendeeIds, setAttendeeIds] = useState<string[]>([]);
-  const [topics, setTopics] = useState<string>("");
+  const [topics, setTopics] = useState<string[]>([""]);
+  const [notes, setNotes] = useState<string>("");
   const [decisions, setDecisions] = useState<string[]>([""]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([{ text: "", owner: "", due_date: null }]);
   const [nextTopics, setNextTopics] = useState<string>("");
@@ -308,14 +309,16 @@ function MeetingDialog({
     if (editing) {
       setMeetingDate(editing.meeting_date);
       setAttendeeIds(editing.attendee_ids);
-      setTopics(editing.topics_discussed ?? "");
+      setTopics(editing.topics.length ? editing.topics : [""]);
+      setNotes(editing.notes ?? "");
       setDecisions(editing.decisions.length ? editing.decisions : [""]);
       setActionItems(editing.action_items.length ? editing.action_items : [{ text: "", owner: "", due_date: null }]);
       setNextTopics(editing.next_meeting_topics ?? "");
     } else {
       setMeetingDate(todayISO());
       setAttendeeIds([]);
-      setTopics("");
+      setTopics([""]);
+      setNotes("");
       setDecisions([""]);
       setActionItems([{ text: "", owner: "", due_date: null }]);
       setNextTopics(defaultNextTopics ?? "");
@@ -329,6 +332,7 @@ function MeetingDialog({
     if (!meetingDate) { toast.error("Pick a meeting date"); return; }
     setSaving(true);
     const selected = attendants.filter((a) => attendeeIds.includes(a.id));
+    const cleanTopics = topics.map((s) => s.trim()).filter(Boolean);
     const cleanDecisions = decisions.map((s) => s.trim()).filter(Boolean);
     const cleanActions = actionItems
       .map((a) => ({ text: a.text.trim(), owner: a.owner.trim(), due_date: a.due_date || null }))
@@ -338,7 +342,8 @@ function MeetingDialog({
       meeting_date: meetingDate,
       attendee_ids: attendeeIds,
       attendee_names_snapshot: selected.map(attendantLabel),
-      topics_discussed: topics.trim() || null,
+      topics: cleanTopics,
+      notes: notes.trim() || null,
       decisions: cleanDecisions,
       action_items: cleanActions,
       next_meeting_topics: nextTopics.trim() || null,
@@ -401,8 +406,29 @@ function MeetingDialog({
           )}
 
           <div>
-            <Label htmlFor="topics">Topics Discussed</Label>
-            <Textarea id="topics" rows={3} value={topics} onChange={(e) => setTopics(e.target.value)} className="mt-1.5" />
+            <Label>Topics Discussed</Label>
+            <div className="mt-1.5 space-y-2">
+              {topics.map((t, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={t}
+                    placeholder={`Topic ${i + 1}`}
+                    onChange={(e) => setTopics((prev) => prev.map((x, j) => j === i ? e.target.value : x))}
+                  />
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setTopics((prev) => prev.length === 1 ? [""] : prev.filter((_, j) => j !== i))}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setTopics((prev) => [...prev, ""])}>
+                <PlusIcon className="mr-1.5 h-3.5 w-3.5" /> Add Topic
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">General Notes</Label>
+            <Textarea id="notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1.5" />
           </div>
 
           <div>
