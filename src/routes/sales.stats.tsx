@@ -16,6 +16,11 @@ type Range = "7" | "30" | "all";
 type SessionRow = {
   id: string; name: string; opened_at: string;
   weather_label_snapshot: string | null;
+  shakes_quarts_brought: number;
+  paletas_brought: number;
+  shake_size_oz_snapshot: number;
+  missed_shakes: number;
+  missed_paletas: number;
 };
 
 function StatsPage() {
@@ -27,6 +32,7 @@ function StatsPage() {
   const [tipCount, setTipCount] = useState(0);
   const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; quantity: number; line_total: number }>>([]);
   const [demos, setDemos] = useState<Array<{ category: string; label: string }>>([]);
+  const [products, setProducts] = useState<Array<{ type: string; price: number }>>([]);
 
   useEffect(() => {
     (async () => {
@@ -35,13 +41,17 @@ function StatsPage() {
         : new Date(Date.now() - Number(range) * 86400000).toISOString();
 
       let q = supabase.from("sales_sessions")
-        .select("id,name,opened_at,weather_label_snapshot")
+        .select("id,name,opened_at,weather_label_snapshot,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,missed_shakes,missed_paletas")
         .is("deleted_at", null)
         .order("opened_at", { ascending: true });
       if (since) q = q.gte("opened_at", since);
-      const { data: ss } = await q;
+      const [{ data: ss }, { data: prodData }] = await Promise.all([
+        q,
+        supabase.from("products").select("type,price").is("deleted_at", null).eq("is_archived", false),
+      ]);
       const sessionRows = (ss ?? []) as SessionRow[];
       setSessions(sessionRows);
+      setProducts((prodData ?? []).map((p) => ({ type: p.type as string, price: Number(p.price) })));
       const sIds = sessionRows.map((s) => s.id);
 
       if (sIds.length === 0) {
@@ -88,6 +98,31 @@ function StatsPage() {
     const avg = count ? total / count : 0;
     return { total, subtotal, tax, tip, count, interactions, avg, sessions: sessions.length };
   }, [sales, sessions, sampleCount, tipCount]);
+
+  const forecastStats = useMemo(() => {
+    const cheapestShake = products
+      .filter((p) => p.type === "shake")
+      .reduce((min, p) => (p.price < min ? p.price : min), Infinity);
+    const cheapestPaleta = products
+      .filter((p) => p.type === "paleta")
+      .reduce((min, p) => (p.price < min ? p.price : min), Infinity);
+    const shakePrice = isFinite(cheapestShake) ? cheapestShake : 0;
+    const palataPrice = isFinite(cheapestPaleta) ? cheapestPaleta : 0;
+    let totalFloor = 0;
+    let totalMissedShakes = 0;
+    let totalMissedPaletas = 0;
+    sessions.forEach((s) => {
+      const shakeSize = Number(s.shake_size_oz_snapshot) || 12;
+      const totalShakes = Math.floor((Number(s.shakes_quarts_brought) * 32) / shakeSize);
+      const totalPaletas = Number(s.paletas_brought);
+      totalFloor += totalShakes * shakePrice + totalPaletas * palataPrice;
+      totalMissedShakes += Number(s.missed_shakes ?? 0);
+      totalMissedPaletas += Number(s.missed_paletas ?? 0);
+    });
+    const missedRevenue = totalMissedShakes * shakePrice + totalMissedPaletas * palataPrice;
+    const hasMissed = totalMissedShakes > 0 || totalMissedPaletas > 0;
+    return { totalFloor, totalMissedShakes, totalMissedPaletas, missedRevenue, hasMissed };
+  }, [sessions, products]);
 
   // Revenue by session (chronological)
   const revenueSeries = useMemo(() => {
@@ -215,6 +250,27 @@ function StatsPage() {
                 <p className="mt-0.5 text-base font-black tabular-nums">{fmt(totals.tip)}</p>
               </div>
             </div>
+            {(forecastStats.totalFloor > 0 || forecastStats.hasMissed) && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {forecastStats.totalFloor > 0 && (
+                  <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Sellout floor</p>
+                    <p className="mt-0.5 text-base font-black tabular-nums">{fmt(forecastStats.totalFloor)}</p>
+                  </div>
+                )}
+                {forecastStats.hasMissed && (
+                  <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Missed potential</p>
+                    <p className="mt-0.5 text-base font-black tabular-nums">{fmt(forecastStats.missedRevenue)}</p>
+                    <p className="text-[10px] opacity-70">
+                      {forecastStats.totalMissedShakes > 0 && `${forecastStats.totalMissedShakes} shake${forecastStats.totalMissedShakes !== 1 ? "s" : ""}`}
+                      {forecastStats.totalMissedShakes > 0 && forecastStats.totalMissedPaletas > 0 && " · "}
+                      {forecastStats.totalMissedPaletas > 0 && `${forecastStats.totalMissedPaletas} paleta${forecastStats.totalMissedPaletas !== 1 ? "s" : ""}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
