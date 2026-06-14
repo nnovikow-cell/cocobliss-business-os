@@ -440,12 +440,20 @@ function ActiveSession() {
           </p>
         </div>
         {isOpen ? (
-          <button
-            onClick={() => setCloseOpen(true)}
-            className="inline-flex items-center gap-1 rounded-full border-2 border-border bg-card px-3 py-2 text-xs font-bold hover:border-destructive hover:text-destructive"
-          >
-            <Lock className="h-3.5 w-3.5" /> Close
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={openMetaEditor}
+              className="inline-flex items-center gap-1 rounded-full border-2 border-border bg-card px-3 py-2 text-xs font-bold hover:border-primary hover:text-primary"
+            >
+              <Settings2 className="h-3.5 w-3.5" /> Edit
+            </button>
+            <button
+              onClick={() => setCloseOpen(true)}
+              className="inline-flex items-center gap-1 rounded-full border-2 border-border bg-card px-3 py-2 text-xs font-bold hover:border-destructive hover:text-destructive"
+            >
+              <Lock className="h-3.5 w-3.5" /> Close
+            </button>
+          </div>
         ) : (
           <Link to="/sales/$sessionId/report" params={{ sessionId }} className="rounded-full bg-secondary px-3 py-2 text-xs font-bold">
             Report
