@@ -654,6 +654,91 @@ function ActiveSession() {
 
       <SaleDetailDialog sale={detailSale} onClose={() => setDetailSale(null)} />
 
+      <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit session details</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Event</Label>
+              <Select value={metaEventId} onValueChange={setMetaEventId}>
+                <SelectTrigger><SelectValue placeholder="Pick an event" /></SelectTrigger>
+                <SelectContent>
+                  {metaEvents.map((e) => {
+                    const [y, m, d] = e.date.split("-").map(Number);
+                    const labelDate = new Date(y, m - 1, d).toLocaleDateString(undefined, {
+                      month: "long", day: "numeric", year: "numeric",
+                    });
+                    return (
+                      <SelectItem key={e.id} value={e.id}>
+                        <span className="font-medium">{e.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          — {labelDate}{e.location ? ` · ${e.location}` : ""}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="flex items-center gap-1.5"><CalendarIcon className="h-3.5 w-3.5" /> Session date</Label>
+              <Input type="date" value={metaDate} onChange={(e) => setMetaDate(e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <WheelPicker label="Shakes (quarts)" value={metaShakesQuarts} onChange={setMetaShakesQuarts} step={0.5} max={50} suffix="qt" />
+              <WheelPicker label="Paletas (units)" value={metaPaletas} onChange={setMetaPaletas} step={1} max={500} />
+            </div>
+
+            {metaWeatherOpts.length > 0 && (
+              <div>
+                <Label>Weather</Label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {metaWeatherOpts.map((w) => {
+                    const sel = w.id === metaWeatherId;
+                    return (
+                      <button key={w.id} onClick={() => setMetaWeatherId(sel ? "" : w.id)}
+                        className={cn("rounded-full border-2 px-4 py-2 text-sm font-bold transition-all",
+                          sel ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card")}>
+                        {w.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {metaAttendantOpts.length > 0 && (
+              <div>
+                <Label>Attendants</Label>
+                <div className="mt-1.5 space-y-1.5">
+                  {metaAttendantOpts.map((a) => {
+                    const on = metaAttendantIds.includes(a.id);
+                    return (
+                      <button key={a.id}
+                        onClick={() => setMetaAttendantIds((prev) => on ? prev.filter((x) => x !== a.id) : [...prev, a.id])}
+                        className={cn("flex w-full items-center justify-between rounded-xl border-2 px-3 py-2 text-left text-sm font-semibold",
+                          on ? "border-primary bg-primary/10" : "border-border bg-card")}>
+                        <span>{a.name}</span>
+                        <span className={cn("flex h-5 w-5 items-center justify-center rounded border-2",
+                          on ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
+                          {on && "✓"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMetaOpen(false)}>Cancel</Button>
+            <Button onClick={saveMeta} disabled={savingMeta}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
     </AppShell>
   );
