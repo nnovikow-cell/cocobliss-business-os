@@ -76,6 +76,88 @@ function ActiveSession() {
   const [unitsSold, setUnitsSold] = useState<{ shakes: number; paletas: number }>({ shakes: 0, paletas: 0 });
   const [counts, setCounts] = useState<{ sales: number; samples: number; tips: number }>({ sales: 0, samples: 0, tips: 0 });
 
+  // ---------- Edit session meta ----------
+  type EventInstanceOpt = { id: string; date: string; name: string; location: string | null };
+  const [metaOpen, setMetaOpen] = useState(false);
+  const [savingMeta, setSavingMeta] = useState(false);
+  const [metaEvents, setMetaEvents] = useState<EventInstanceOpt[]>([]);
+  const [metaWeatherOpts, setMetaWeatherOpts] = useState<Array<{ id: string; label: string }>>([]);
+  const [metaAttendantOpts, setMetaAttendantOpts] = useState<Array<{ id: string; name: string }>>([]);
+  const [metaEventId, setMetaEventId] = useState<string>("");
+  const [metaDate, setMetaDate] = useState<string>("");
+  const [metaWeatherId, setMetaWeatherId] = useState<string>("");
+  const [metaAttendantIds, setMetaAttendantIds] = useState<string[]>([]);
+  const [metaShakesQuarts, setMetaShakesQuarts] = useState(0);
+  const [metaPaletas, setMetaPaletas] = useState(0);
+
+  const openMetaEditor = async () => {
+    if (!session) return;
+    // Pre-populate from current session
+    const dateOnly = new Date(session.opened_at).toISOString().slice(0, 10);
+    setMetaDate(dateOnly);
+    setMetaShakesQuarts(Number(session.shakes_quarts_brought ?? 0));
+    setMetaPaletas(Number(session.paletas_brought ?? 0));
+    setMetaOpen(true);
+
+    const [{ data: w }, { data: a }, { data: e }, { data: cur }] = await Promise.all([
+      supabase.from("weather_options").select("id,label").is("deleted_at", null).eq("is_archived", false).order("sort_order"),
+      supabase.from("attendants").select("id,name").is("deleted_at", null).eq("is_archived", false).eq("active", true).order("sort_order"),
+      supabase
+        .from("event_instances")
+        .select("id,date,status,series:event_series(name,location)")
+        .is("deleted_at", null)
+        .order("date", { ascending: false })
+        .limit(300),
+      supabase.from("sales_sessions")
+        .select("event_instance_id,weather_option_id,attendant_ids")
+        .eq("id", sessionId).maybeSingle(),
+    ]);
+    setMetaWeatherOpts((w ?? []) as Array<{ id: string; label: string }>);
+    setMetaAttendantOpts((a ?? []) as Array<{ id: string; name: string }>);
+    const rows = (e ?? []) as Array<{ id: string; date: string; series: { name: string; location: string | null } | null }>;
+    setMetaEvents(rows.map((r) => ({
+      id: r.id, date: r.date,
+      name: r.series?.name ?? "—", location: r.series?.location ?? null,
+    })));
+    const c = cur as { event_instance_id: string | null; weather_option_id: string | null; attendant_ids: string[] | null } | null;
+    setMetaEventId(c?.event_instance_id ?? "");
+    setMetaWeatherId(c?.weather_option_id ?? "");
+    setMetaAttendantIds(c?.attendant_ids ?? []);
+  };
+
+  const saveMeta = async () => {
+    if (!session || savingMeta) return;
+    setSavingMeta(true);
+    const ev = metaEvents.find((x) => x.id === metaEventId) ?? null;
+    const weather = metaWeatherOpts.find((w) => w.id === metaWeatherId) ?? null;
+    const selectedAttendants = metaAttendantOpts.filter((a) => metaAttendantIds.includes(a.id));
+    // Recompute opened_at from chosen date, preserving current time-of-day
+    let openedAt: string | undefined;
+    if (metaDate) {
+      const cur = new Date(session.opened_at);
+      const [y, m, d] = metaDate.split("-").map(Number);
+      const dt = new Date(y, m - 1, d, cur.getHours(), cur.getMinutes(), cur.getSeconds());
+      openedAt = dt.toISOString();
+    }
+    const payload: Record<string, unknown> = {
+      shakes_quarts_brought: metaShakesQuarts,
+      paletas_brought: metaPaletas,
+      weather_option_id: weather?.id ?? null,
+      weather_label_snapshot: weather?.label ?? null,
+      attendant_ids: metaAttendantIds,
+      attendant_names_snapshot: selectedAttendants.map((a) => a.name),
+      ...(openedAt ? { opened_at: openedAt } : {}),
+      ...(ev ? { event_instance_id: ev.id, name: ev.name, location: ev.location } : {}),
+    };
+    const { error } = await supabase.from("sales_sessions").update(payload).eq("id", sessionId);
+    setSavingMeta(false);
+    if (error) return toast.error(error.message);
+    toast.success("Session details updated");
+    setMetaOpen(false);
+    loadSession();
+  };
+  // ---------- /Edit session meta ----------
+
   const loadConfig = async () => {
     const [{ data: prods }, { data: flv }, { data: pm }, { data: dem }, { data: tips }, { data: discs }, { data: settings }] = await Promise.all([
       supabase.from("products").select("id,name,type,price").is("deleted_at", null).eq("is_archived", false).order("type").order("sort_order"),
