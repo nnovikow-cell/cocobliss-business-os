@@ -139,7 +139,7 @@ function ActiveSession() {
       const dt = new Date(y, m - 1, d, cur.getHours(), cur.getMinutes(), cur.getSeconds());
       openedAt = dt.toISOString();
     }
-    const payload: Record<string, unknown> = {
+    const payload = {
       shakes_quarts_brought: metaShakesQuarts,
       paletas_brought: metaPaletas,
       weather_option_id: weather?.id ?? null,
@@ -148,7 +148,7 @@ function ActiveSession() {
       attendant_names_snapshot: selectedAttendants.map((a) => a.name),
       ...(openedAt ? { opened_at: openedAt } : {}),
       ...(ev ? { event_instance_id: ev.id, name: ev.name, location: ev.location } : {}),
-    };
+    } as const;
     const { error } = await supabase.from("sales_sessions").update(payload).eq("id", sessionId);
     setSavingMeta(false);
     if (error) return toast.error(error.message);
