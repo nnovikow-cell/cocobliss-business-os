@@ -22,7 +22,7 @@ function StatsPage() {
   const [range, setRange] = useState<Range>("30");
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
+  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; subtotal: number; tax: number; tip: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
   const [sampleCount, setSampleCount] = useState(0);
   const [tipCount, setTipCount] = useState(0);
   const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; quantity: number; line_total: number }>>([]);
@@ -49,10 +49,16 @@ function StatsPage() {
       }
 
       const { data: sl } = await supabase
-        .from("sales").select("id,session_id,total,created_at,is_sample,note")
+        .from("sales").select("id,session_id,total,subtotal,tax_amount,tip_amount,created_at,is_sample,note")
         .in("session_id", sIds).is("deleted_at", null);
       const all = sl ?? [];
-      const real = all.filter((r) => !r.is_sample).map((r) => ({ ...r, total: Number(r.total) }));
+      const real = all.filter((r) => !r.is_sample).map((r) => ({
+        ...r,
+        total: Number(r.total),
+        subtotal: Number(r.subtotal ?? 0),
+        tax: Number(r.tax_amount ?? 0),
+        tip: Number(r.tip_amount ?? 0),
+      }));
       const saleRows = real.filter((r) => r.note !== "Tip");
       setSampleCount(all.length - real.length);
       setTipCount(real.length - saleRows.length);
@@ -74,10 +80,13 @@ function StatsPage() {
 
   const totals = useMemo(() => {
     const total = sales.reduce((s, r) => s + r.total, 0);
+    const subtotal = sales.reduce((s, r) => s + (r.subtotal ?? 0), 0);
+    const tax = sales.reduce((s, r) => s + (r.tax ?? 0), 0);
+    const tip = sales.reduce((s, r) => s + (r.tip ?? 0), 0);
     const count = sales.length;
     const interactions = tipCount + sampleCount;
     const avg = count ? total / count : 0;
-    return { total, count, interactions, avg, sessions: sessions.length };
+    return { total, subtotal, tax, tip, count, interactions, avg, sessions: sessions.length };
   }, [sales, sessions, sampleCount, tipCount]);
 
   // Revenue by session (chronological)
@@ -192,6 +201,20 @@ function StatsPage() {
             <p className="mt-2 text-xs opacity-90">
               {totals.sessions} session{totals.sessions === 1 ? "" : "s"} · {totals.count} sales · {totals.interactions} interaction{totals.interactions === 1 ? "" : "s"}
             </p>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Subtotal</p>
+                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(totals.subtotal)}</p>
+              </div>
+              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Tax</p>
+                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(totals.tax)}</p>
+              </div>
+              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Tips</p>
+                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(totals.tip)}</p>
+              </div>
+            </div>
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">

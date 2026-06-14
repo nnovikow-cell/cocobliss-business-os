@@ -338,10 +338,20 @@ function ReportPage() {
           <div className="rounded-3xl p-6 text-white shadow-xl" style={{ background: "var(--gradient-hero)" }}>
             <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Total revenue</p>
             <p className="mt-1 text-5xl font-black tabular-nums">{fmt(stats.total)}</p>
-            <p className="mt-2 text-xs opacity-90">
-              Subtotal {fmt(stats.subtotal)} · Tax {fmt(stats.tax)}
-              {stats.tip > 0 && ` · Tip ${fmt(stats.tip)}`}
-            </p>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Subtotal</p>
+                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(stats.subtotal)}</p>
+              </div>
+              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Tax</p>
+                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(stats.tax)}</p>
+              </div>
+              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Tips</p>
+                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(stats.tip)}</p>
+              </div>
+            </div>
           </div>
 
           {/* KPI grid */}
