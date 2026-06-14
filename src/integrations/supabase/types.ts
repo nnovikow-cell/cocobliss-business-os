@@ -1726,6 +1726,8 @@ export type Database = {
           id: string
           linked_checklist_session_id: string | null
           location: string | null
+          missed_paletas: number
+          missed_shakes: number
           name: string
           notes: string | null
           opened_at: string
@@ -1749,6 +1751,8 @@ export type Database = {
           id?: string
           linked_checklist_session_id?: string | null
           location?: string | null
+          missed_paletas?: number
+          missed_shakes?: number
           name: string
           notes?: string | null
           opened_at?: string
@@ -1772,6 +1776,8 @@ export type Database = {
           id?: string
           linked_checklist_session_id?: string | null
           location?: string | null
+          missed_paletas?: number
+          missed_shakes?: number
           name?: string
           notes?: string | null
           opened_at?: string

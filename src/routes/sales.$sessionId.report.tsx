@@ -20,6 +20,7 @@ type Session = {
   opened_at: string; closed_at: string | null; status: string;
   shakes_quarts_brought: number; paletas_brought: number; shake_size_oz_snapshot: number;
   weather_label_snapshot: string | null; attendant_names_snapshot: string[] | null;
+  missed_shakes: number; missed_paletas: number;
 };
 
 type Stats = {
@@ -67,13 +68,20 @@ function ReportPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [detailSale, setDetailSale] = useState<SaleDetail | null>(null);
+  const [products, setProducts] = useState<Array<{ type: string; price: number }>>([]);
 
   useEffect(() => {
     (async () => {
       const { data: s } = await supabase.from("sales_sessions")
-        .select("id,name,location,opened_at,closed_at,status,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,weather_label_snapshot,attendant_names_snapshot")
+        .select("id,name,location,opened_at,closed_at,status,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,weather_label_snapshot,attendant_names_snapshot,missed_shakes,missed_paletas")
         .eq("id", sessionId).maybeSingle();
       setSession(s as Session | null);
+
+      const { data: prods } = await supabase
+        .from("products")
+        .select("type,price")
+        .is("deleted_at", null);
+      setProducts((prods ?? []).map((p) => ({ type: p.type as string, price: Number(p.price) })));
 
       const { data: sales } = await supabase
         .from("sales").select("id,subtotal,tax_amount,tip_amount,discount_amount,total,payment_method_name_snapshot,is_sample,note,created_at")
@@ -222,6 +230,20 @@ function ReportPage() {
   }, [stats]);
 
   const conversion = stats && stats.sampleCount > 0 ? stats.count / stats.sampleCount : null;
+
+  const { floorRevenue, cheapestShake, cheapestPaleta } = useMemo(() => {
+    if (!session) return { floorRevenue: 0, cheapestShake: Infinity, cheapestPaleta: Infinity };
+    const cs = products.filter((p) => p.type === "shake").reduce((m, p) => (p.price < m ? p.price : m), Infinity);
+    const cp = products.filter((p) => p.type === "paleta").reduce((m, p) => (p.price < m ? p.price : m), Infinity);
+    const shakeSize = Number(session.shake_size_oz_snapshot) || 12;
+    const totalShakes = Math.floor((Number(session.shakes_quarts_brought) * 32) / shakeSize);
+    const totalPaletas = Number(session.paletas_brought) || 0;
+    const fr =
+      (isFinite(cs) ? totalShakes * cs : 0) +
+      (isFinite(cp) ? totalPaletas * cp : 0);
+    return { floorRevenue: fr, cheapestShake: cs, cheapestPaleta: cp };
+  }, [session, products]);
+  void cheapestShake; void cheapestPaleta;
 
   const downloadCsv = () => {
     if (!stats || !session) return;
@@ -560,6 +582,32 @@ function ReportPage() {
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
+          )}
+
+          {(floorRevenue > 0 || (session.missed_shakes ?? 0) > 0 || (session.missed_paletas ?? 0) > 0) && (
+            <div className="mt-4 rounded-2xl border border-border bg-card p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Revenue forecast vs actual</p>
+              {floorRevenue > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Sellout floor</span>
+                  <span className="font-black tabular-nums">{fmt(floorRevenue)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Actual revenue</span>
+                <span className="font-black tabular-nums">{fmt(stats?.total ?? 0)}</span>
+              </div>
+              {((session.missed_shakes ?? 0) > 0 || (session.missed_paletas ?? 0) > 0) && (
+                <div className="flex justify-between text-sm border-t border-border pt-2">
+                  <span className="text-muted-foreground">Missed demand</span>
+                  <span className="font-black tabular-nums text-amber-500">
+                    {session.missed_shakes > 0 && `${session.missed_shakes} shake${session.missed_shakes !== 1 ? "s" : ""}`}
+                    {session.missed_shakes > 0 && session.missed_paletas > 0 && " · "}
+                    {session.missed_paletas > 0 && `${session.missed_paletas} paleta${session.missed_paletas !== 1 ? "s" : ""}`}
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </>
       )}
