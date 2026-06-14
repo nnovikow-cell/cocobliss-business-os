@@ -26,6 +26,8 @@ type Session = {
   shake_size_oz_snapshot: number;
   weather_label_snapshot: string | null;
   attendant_names_snapshot: string[] | null;
+  missed_shakes: number;
+  missed_paletas: number;
 };
 
 type SaleRow = {
@@ -75,6 +77,26 @@ function ActiveSession() {
   const [topProduct, setTopProduct] = useState<{ name: string; qty: number } | null>(null);
   const [unitsSold, setUnitsSold] = useState<{ shakes: number; paletas: number }>({ shakes: 0, paletas: 0 });
   const [counts, setCounts] = useState<{ sales: number; samples: number; tips: number }>({ sales: 0, samples: 0, tips: 0 });
+
+  // ---------- Missed demand ----------
+  const [missedOpen, setMissedOpen] = useState(false);
+  const [missedShakes, setMissedShakes] = useState(0);
+  const [missedPaletas, setMissedPaletas] = useState(0);
+  const [savingMissed, setSavingMissed] = useState(false);
+
+  const saveMissedDemand = async () => {
+    if (savingMissed) return;
+    setSavingMissed(true);
+    const { error } = await supabase
+      .from("sales_sessions")
+      .update({ missed_shakes: missedShakes, missed_paletas: missedPaletas })
+      .eq("id", sessionId);
+    setSavingMissed(false);
+    if (error) return toast.error(error.message);
+    toast.success("Missed demand saved");
+    setMissedOpen(false);
+    loadSession();
+  };
 
   // ---------- Edit session meta ----------
   type EventInstanceOpt = { id: string; date: string; name: string; location: string | null };
@@ -179,7 +201,7 @@ function ActiveSession() {
 
   const loadSession = async () => {
     const { data } = await supabase.from("sales_sessions")
-      .select("id,name,location,status,opened_at,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,weather_label_snapshot,attendant_names_snapshot")
+      .select("id,name,location,status,opened_at,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,weather_label_snapshot,attendant_names_snapshot,missed_shakes,missed_paletas")
       .eq("id", sessionId).maybeSingle();
     setSession(data as Session | null);
   };
@@ -424,6 +446,21 @@ function ActiveSession() {
   const shakePct = totalShakes > 0 ? Math.min(100, (unitsSold.shakes / totalShakes) * 100) : 0;
   const paletaPct = totalPaletas > 0 ? Math.min(100, (unitsSold.paletas / totalPaletas) * 100) : 0;
   const conversion = counts.samples > 0 ? counts.sales / counts.samples : null;
+  const cheapestShakePrice = products
+    .filter((p) => p.type === "shake")
+    .reduce((min, p) => (p.price < min ? p.price : min), Infinity);
+  const cheapestPalataPrice = products
+    .filter((p) => p.type === "paleta")
+    .reduce((min, p) => (p.price < min ? p.price : min), Infinity);
+  const floorRevenue =
+    (isFinite(cheapestShakePrice) ? totalShakes * cheapestShakePrice : 0) +
+    (isFinite(cheapestPalataPrice) ? totalPaletas * cheapestPalataPrice : 0);
+  const hasForecast = floorRevenue > 0;
+  const missedRevenue =
+    (session.missed_shakes ?? 0) * (isFinite(cheapestShakePrice) ? cheapestShakePrice : 0) +
+    (session.missed_paletas ?? 0) * (isFinite(cheapestPalataPrice) ? cheapestPalataPrice : 0);
+  const hasMissedDemand =
+    (session.missed_shakes ?? 0) > 0 || (session.missed_paletas ?? 0) > 0;
 
   return (
     <AppShell>
@@ -479,6 +516,20 @@ function ActiveSession() {
             </div>
           )}
         </div>
+        {hasForecast && (
+          <div className="mt-3 flex items-center justify-between rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Sellout floor</p>
+              <p className="text-lg font-black tabular-nums">{fmt(floorRevenue)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Progress</p>
+              <p className="text-lg font-black tabular-nums">
+                {floorRevenue > 0 ? Math.min(100, Math.round((total / floorRevenue) * 100)) : 0}%
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {hasInventory && (
@@ -505,6 +556,36 @@ function ActiveSession() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {isOpen && (
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2">
+          <div className="text-xs">
+            <p className="font-bold">Missed demand</p>
+            {hasMissedDemand ? (
+              <p className="text-muted-foreground tabular-nums">
+                {(session.missed_shakes ?? 0) > 0 && `${session.missed_shakes} shake${session.missed_shakes !== 1 ? "s" : ""}`}
+                {(session.missed_shakes ?? 0) > 0 && (session.missed_paletas ?? 0) > 0 && " · "}
+                {(session.missed_paletas ?? 0) > 0 && `${session.missed_paletas} paleta${session.missed_paletas !== 1 ? "s" : ""}`}
+                {missedRevenue > 0 && (
+                  <span className="ml-2 font-black text-foreground">~{fmt(missedRevenue)} potential</span>
+                )}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">Not logged yet</p>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setMissedShakes(session.missed_shakes ?? 0);
+              setMissedPaletas(session.missed_paletas ?? 0);
+              setMissedOpen(true);
+            }}
+            className="rounded-full border-2 border-border bg-card px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary"
+          >
+            {hasMissedDemand ? "Edit" : "Log"}
+          </button>
         </div>
       )}
 
@@ -653,6 +734,45 @@ function ActiveSession() {
       </Dialog>
 
       <SaleDetailDialog sale={detailSale} onClose={() => setDetailSale(null)} />
+
+      <Dialog open={missedOpen} onOpenChange={setMissedOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log missed demand</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            How many customers asked to buy after you sold out?
+          </p>
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Missed shakes</Label>
+              <Input
+                inputMode="numeric"
+                type="number"
+                min={0}
+                value={missedShakes}
+                onChange={(e) => setMissedShakes(Math.max(0, Number(e.target.value)))}
+                className="text-center text-lg font-bold"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Missed paletas</Label>
+              <Input
+                inputMode="numeric"
+                type="number"
+                min={0}
+                value={missedPaletas}
+                onChange={(e) => setMissedPaletas(Math.max(0, Number(e.target.value)))}
+                className="text-center text-lg font-bold"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMissedOpen(false)}>Cancel</Button>
+            <Button onClick={saveMissedDemand} disabled={savingMissed}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
