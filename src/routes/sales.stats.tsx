@@ -24,17 +24,18 @@ type SessionRow = {
   shake_size_oz_snapshot: number;
   missed_shakes: number;
   missed_paletas: number;
+  notes: string | null;
 };
 
 function StatsPage() {
   const [range, setRange] = useState<Range>("30");
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; subtotal: number; tax: number; tip: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
+  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; subtotal: number; tax: number; tip: number; payment_method_name_snapshot: string | null; created_at: string; is_sample: boolean; note: string | null }>>([]);
   const [sampleCount, setSampleCount] = useState(0);
   const [tipCount, setTipCount] = useState(0);
-  const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; product_type_snapshot: string | null; quantity: number; line_total: number }>>([]);
-  const [demos, setDemos] = useState<Array<{ category: string; label: string }>>([]);
+  const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; product_type_snapshot: string | null; flavor_name_snapshot: string | null; quantity: number; line_total: number }>>([]);
+  const [demos, setDemos] = useState<Array<{ sale_id: string; category: string; label: string }>>([]);
   const [products, setProducts] = useState<Array<{ type: string; price: number }>>([]);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ function StatsPage() {
         : new Date(Date.now() - Number(range) * 86400000).toISOString();
 
       let q = supabase.from("sales_sessions")
-        .select("id,name,opened_at,weather_label_snapshot,location,attendant_names_snapshot,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,missed_shakes,missed_paletas")
+        .select("id,name,opened_at,weather_label_snapshot,location,attendant_names_snapshot,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,missed_shakes,missed_paletas,notes")
         .is("deleted_at", null)
         .order("opened_at", { ascending: true });
       if (since) q = q.gte("opened_at", since);
@@ -62,7 +63,7 @@ function StatsPage() {
       }
 
       const { data: sl } = await supabase
-        .from("sales").select("id,session_id,total,subtotal,tax_amount,tip_amount,created_at,is_sample,note")
+        .from("sales").select("id,session_id,total,subtotal,tax_amount,tip_amount,payment_method_name_snapshot,created_at,is_sample,note")
         .in("session_id", sIds).is("deleted_at", null);
       const all = sl ?? [];
       const real = all.filter((r) => !r.is_sample).map((r) => ({
@@ -71,6 +72,7 @@ function StatsPage() {
         subtotal: Number(r.subtotal ?? 0),
         tax: Number(r.tax_amount ?? 0),
         tip: Number(r.tip_amount ?? 0),
+        payment_method_name_snapshot: r.payment_method_name_snapshot ?? "",
       }));
       const saleRows = real.filter((r) => r.note !== "Tip");
       setSampleCount(all.length - real.length);
@@ -81,12 +83,12 @@ function StatsPage() {
       if (saleIds.length === 0) { setItems([]); setDemos([]); setLoading(false); return; }
 
       const [{ data: it }, { data: dm }] = await Promise.all([
-        supabase.from("sale_items").select("sale_id,product_name_snapshot,product_type_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
-        supabase.from("sale_demographics").select("demographic_options(category,label)").in("sale_id", saleIds),
+        supabase.from("sale_items").select("sale_id,product_name_snapshot,product_type_snapshot,flavor_name_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
+        supabase.from("sale_demographics").select("sale_id,demographic_options(category,label)").in("sale_id", saleIds),
       ]);
       setItems((it ?? []).map((r) => ({ ...r, line_total: Number(r.line_total) })));
-      setDemos(((dm ?? []) as Array<{ demographic_options: { category: string; label: string } | null }>)
-        .filter((d) => d.demographic_options).map((d) => d.demographic_options!));
+      setDemos(((dm ?? []) as Array<{ sale_id: string; demographic_options: { category: string; label: string } | null }>)
+        .filter((d) => d.demographic_options).map((d) => ({ sale_id: d.sale_id, ...d.demographic_options! })));
       setLoading(false);
     })();
   }, [range]);
@@ -177,6 +179,7 @@ function StatsPage() {
       "shakes_sold", "paletas_sold",
       "shake_sellthrough_pct", "paleta_sellthrough_pct",
       "missed_shakes", "missed_paletas", "missed_revenue_potential",
+      "closing_note",
     ];
 
     const rows = sessions.map((s) => {
@@ -219,6 +222,7 @@ function StatsPage() {
         missedShakes,
         missedPaletas,
         missedRev.toFixed(2),
+        s.notes ?? "",
       ].map(esc).join(",");
     });
 
@@ -229,6 +233,87 @@ function StatsPage() {
     a.href = url;
     const today = new Date().toISOString().slice(0, 10);
     a.download = `cocobliss-sessions-${range}-${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadTransactionsCsv = () => {
+    const esc = (v: string | number) => {
+      const s = String(v ?? "");
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const sessionMap = new Map<string, SessionRow>();
+    sessions.forEach((s) => sessionMap.set(s.id, s));
+    const itemsBySale = new Map<string, Array<{ product_name_snapshot: string; product_type_snapshot: string | null; flavor_name_snapshot: string | null; quantity: number }>>();
+    items.forEach((i) => {
+      const arr = itemsBySale.get(i.sale_id) ?? [];
+      arr.push(i);
+      itemsBySale.set(i.sale_id, arr);
+    });
+    const demosBySale = new Map<string, Array<{ category: string; label: string }>>();
+    demos.forEach((d) => {
+      const arr = demosBySale.get(d.sale_id) ?? [];
+      arr.push({ category: d.category, label: d.label });
+      demosBySale.set(d.sale_id, arr);
+    });
+    const allDemoCategories = [...new Set(demos.map((d) => d.category))].sort();
+    const headers = [
+      "session_id", "session_name", "date", "location", "weather", "attendants",
+      "closing_note",
+      "timestamp", "event_type",
+      "product", "product_type", "flavor", "quantity",
+      "payment_method",
+      "subtotal", "tax", "tip", "total",
+      "note",
+      ...allDemoCategories.map((c) => `demo_${c.toLowerCase().replace(/\s+/g, "_")}`),
+    ];
+    const rows = sales
+      .slice()
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((sale) => {
+        const session = sessionMap.get(sale.session_id);
+        const saleItems = itemsBySale.get(sale.id) ?? [];
+        const saleDemos = demosBySale.get(sale.id) ?? [];
+        const products = saleItems.map((i) => i.product_name_snapshot).join("; ");
+        const productTypes = [...new Set(saleItems.map((i) => i.product_type_snapshot ?? ""))].join("; ");
+        const flavors = saleItems.map((i) => i.flavor_name_snapshot ?? "").filter(Boolean).join("; ");
+        const quantity = saleItems.reduce((s, i) => s + i.quantity, 0);
+        const demoValues = allDemoCategories.map((cat) => {
+          const match = saleDemos.find((d) => d.category.toLowerCase() === cat.toLowerCase());
+          return match ? match.label : "";
+        });
+        return [
+          sale.session_id,
+          session?.name ?? "",
+          session ? new Date(session.opened_at).toISOString().slice(0, 10) : "",
+          session?.location ?? "",
+          session?.weather_label_snapshot ?? "",
+          (session?.attendant_names_snapshot ?? []).join("; "),
+          session?.notes ?? "",
+          new Date(sale.created_at).toISOString(),
+          "sale",
+          products,
+          productTypes,
+          flavors,
+          quantity || "",
+          sale.payment_method_name_snapshot ?? "",
+          Number(sale.subtotal ?? 0).toFixed(2),
+          Number(sale.tax ?? 0).toFixed(2),
+          Number(sale.tip ?? 0).toFixed(2),
+          Number(sale.total).toFixed(2),
+          sale.note ?? "",
+          ...demoValues,
+        ].map(esc).join(",");
+      });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10);
+    a.download = `cocobliss-transactions-${range}-${today}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -321,15 +406,24 @@ function StatsPage() {
           <h1 className="text-xl font-black">Stats</h1>
           <p className="text-xs text-muted-foreground">Across all sessions</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={downloadSessionsCsv}
-          disabled={loading || sessions.length === 0}
-          className="shrink-0"
-        >
-          <Download className="h-4 w-4" /> CSV
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadSessionsCsv}
+            disabled={loading || sessions.length === 0}
+          >
+            <Download className="h-4 w-4" /> Sessions
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadTransactionsCsv}
+            disabled={loading || sales.length === 0}
+          >
+            <Download className="h-4 w-4" /> Transactions
+          </Button>
+        </div>
       </header>
 
       <div className="mb-3 inline-flex rounded-full border-2 border-border bg-card p-1">
