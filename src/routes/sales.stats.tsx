@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Receipt, DollarSign, Cloud, Percent, Gift } from "lucide-react";
+import { ArrowLeft, Receipt, DollarSign, Cloud, Percent, Gift, Download } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import { AppShell } from "@/components/app/app-shell";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { fmt } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ type Range = "7" | "30" | "all";
 type SessionRow = {
   id: string; name: string; opened_at: string;
   weather_label_snapshot: string | null;
+  location: string | null;
+  attendant_names_snapshot: string[] | null;
   shakes_quarts_brought: number;
   paletas_brought: number;
   shake_size_oz_snapshot: number;
@@ -30,7 +33,7 @@ function StatsPage() {
   const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; subtotal: number; tax: number; tip: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
   const [sampleCount, setSampleCount] = useState(0);
   const [tipCount, setTipCount] = useState(0);
-  const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; quantity: number; line_total: number }>>([]);
+  const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; product_type_snapshot: string | null; quantity: number; line_total: number }>>([]);
   const [demos, setDemos] = useState<Array<{ category: string; label: string }>>([]);
   const [products, setProducts] = useState<Array<{ type: string; price: number }>>([]);
 
@@ -41,7 +44,7 @@ function StatsPage() {
         : new Date(Date.now() - Number(range) * 86400000).toISOString();
 
       let q = supabase.from("sales_sessions")
-        .select("id,name,opened_at,weather_label_snapshot,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,missed_shakes,missed_paletas")
+        .select("id,name,opened_at,weather_label_snapshot,location,attendant_names_snapshot,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,missed_shakes,missed_paletas")
         .is("deleted_at", null)
         .order("opened_at", { ascending: true });
       if (since) q = q.gte("opened_at", since);
@@ -78,7 +81,7 @@ function StatsPage() {
       if (saleIds.length === 0) { setItems([]); setDemos([]); setLoading(false); return; }
 
       const [{ data: it }, { data: dm }] = await Promise.all([
-        supabase.from("sale_items").select("sale_id,product_name_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
+        supabase.from("sale_items").select("sale_id,product_name_snapshot,product_type_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
         supabase.from("sale_demographics").select("demographic_options(category,label)").in("sale_id", saleIds),
       ]);
       setItems((it ?? []).map((r) => ({ ...r, line_total: Number(r.line_total) })));
@@ -123,6 +126,114 @@ function StatsPage() {
     const hasMissed = totalMissedShakes > 0 || totalMissedPaletas > 0;
     return { totalFloor, totalMissedShakes, totalMissedPaletas, missedRevenue, hasMissed };
   }, [sessions, products]);
+
+  const unitsBySesion = useMemo(() => {
+    const saleToSession = new Map<string, string>();
+    sales.forEach((r) => saleToSession.set(r.id, r.session_id));
+    const m = new Map<string, { shakes: number; paletas: number }>();
+    items.forEach((i) => {
+      const sid = saleToSession.get(i.sale_id);
+      if (!sid) return;
+      const cur = m.get(sid) ?? { shakes: 0, paletas: 0 };
+      if (i.product_type_snapshot === "shake") cur.shakes += i.quantity;
+      else if (i.product_type_snapshot === "paleta") cur.paletas += i.quantity;
+      m.set(sid, cur);
+    });
+    return m;
+  }, [sales, items]);
+
+  const revenueBySesion = useMemo(() => {
+    const m = new Map<string, { total: number; subtotal: number; tax: number; tip: number; count: number }>();
+    sales.forEach((r) => {
+      const cur = m.get(r.session_id) ?? { total: 0, subtotal: 0, tax: 0, tip: 0, count: 0 };
+      cur.total += r.total;
+      cur.subtotal += r.subtotal ?? 0;
+      cur.tax += r.tax ?? 0;
+      cur.tip += r.tip ?? 0;
+      cur.count += 1;
+      m.set(r.session_id, cur);
+    });
+    return m;
+  }, [sales]);
+
+  const downloadSessionsCsv = () => {
+    const esc = (v: string | number) => {
+      const s = String(v ?? "");
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const cheapestShake = products.filter((p) => p.type === "shake")
+      .reduce((min, p) => (p.price < min ? p.price : min), Infinity);
+    const cheapestPaleta = products.filter((p) => p.type === "paleta")
+      .reduce((min, p) => (p.price < min ? p.price : min), Infinity);
+    const shakePrice = isFinite(cheapestShake) ? cheapestShake : 0;
+    const palataPrice = isFinite(cheapestPaleta) ? cheapestPaleta : 0;
+
+    const headers = [
+      "session_id", "session_name", "date", "location", "weather", "attendants",
+      "shake_size_oz", "shakes_brought_quarts", "shakes_brought_units", "paletas_brought",
+      "sellout_floor",
+      "total_revenue", "subtotal", "tax", "tips",
+      "sales_count", "samples_count", "tips_count", "avg_ticket",
+      "shakes_sold", "paletas_sold",
+      "shake_sellthrough_pct", "paleta_sellthrough_pct",
+      "missed_shakes", "missed_paletas", "missed_revenue_potential",
+    ];
+
+    const rows = sessions.map((s) => {
+      const shakeSize = Number(s.shake_size_oz_snapshot) || 12;
+      const broughtUnits = Math.floor((Number(s.shakes_quarts_brought) * 32) / shakeSize);
+      const broughtPaletas = Number(s.paletas_brought) || 0;
+      const floor = broughtUnits * shakePrice + broughtPaletas * palataPrice;
+      const rev = revenueBySesion.get(s.id) ?? { total: 0, subtotal: 0, tax: 0, tip: 0, count: 0 };
+      const units = unitsBySesion.get(s.id) ?? { shakes: 0, paletas: 0 };
+      const shakePct = broughtUnits > 0 ? Math.round((units.shakes / broughtUnits) * 100) : "";
+      const paletaPct = broughtPaletas > 0 ? Math.round((units.paletas / broughtPaletas) * 100) : "";
+      const missedShakes = Number(s.missed_shakes ?? 0);
+      const missedPaletas = Number(s.missed_paletas ?? 0);
+      const missedRev = missedShakes * shakePrice + missedPaletas * palataPrice;
+      const avgTicket = rev.count > 0 ? (rev.total / rev.count).toFixed(2) : "";
+      return [
+        s.id,
+        s.name,
+        new Date(s.opened_at).toISOString().slice(0, 10),
+        s.location ?? "",
+        s.weather_label_snapshot ?? "",
+        (s.attendant_names_snapshot ?? []).join("; "),
+        shakeSize,
+        Number(s.shakes_quarts_brought) || 0,
+        broughtUnits,
+        broughtPaletas,
+        floor.toFixed(2),
+        rev.total.toFixed(2),
+        rev.subtotal.toFixed(2),
+        rev.tax.toFixed(2),
+        rev.tip.toFixed(2),
+        rev.count,
+        "",
+        "",
+        avgTicket,
+        units.shakes,
+        units.paletas,
+        shakePct,
+        paletaPct,
+        missedShakes,
+        missedPaletas,
+        missedRev.toFixed(2),
+      ].map(esc).join(",");
+    });
+
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10);
+    a.download = `cocobliss-sessions-${range}-${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Revenue by session (chronological)
   const revenueSeries = useMemo(() => {
@@ -210,6 +321,15 @@ function StatsPage() {
           <h1 className="text-xl font-black">Stats</h1>
           <p className="text-xs text-muted-foreground">Across all sessions</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={downloadSessionsCsv}
+          disabled={loading || sessions.length === 0}
+          className="shrink-0"
+        >
+          <Download className="h-4 w-4" /> CSV
+        </Button>
       </header>
 
       <div className="mb-3 inline-flex rounded-full border-2 border-border bg-card p-1">
