@@ -406,15 +406,24 @@ function StatsPage() {
           <h1 className="text-xl font-black">Stats</h1>
           <p className="text-xs text-muted-foreground">Across all sessions</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={downloadSessionsCsv}
-          disabled={loading || sessions.length === 0}
-          className="shrink-0"
-        >
-          <Download className="h-4 w-4" /> CSV
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadSessionsCsv}
+            disabled={loading || sessions.length === 0}
+          >
+            <Download className="h-4 w-4" /> Sessions
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadTransactionsCsv}
+            disabled={loading || sales.length === 0}
+          >
+            <Download className="h-4 w-4" /> Transactions
+          </Button>
+        </div>
       </header>
 
       <div className="mb-3 inline-flex rounded-full border-2 border-border bg-card p-1">
