@@ -4,8 +4,11 @@ import { ArrowLeft, Receipt, DollarSign, Cloud, Percent, Gift, Download } from "
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
-import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
+import { Protected } from "@/components/app/protected";
+import { SideNav } from "@/components/app/side-nav";
+import { BottomNav } from "@/components/app/bottom-nav";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { fmt } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -29,6 +32,7 @@ type SessionRow = {
 
 function StatsPage() {
   const [range, setRange] = useState<Range>("30");
+  const [sideCollapsed, setSideCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; subtotal: number; tax: number; tip: number; payment_method_name_snapshot: string | null; created_at: string; is_sample: boolean; note: string | null }>>([]);
@@ -397,8 +401,15 @@ function StatsPage() {
   }, [sales]);
 
   return (
-    <AppShell>
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <Protected>
+      <div className="min-h-screen bg-background pb-24 md:pb-0">
+        <SideNav collapsed={sideCollapsed} onToggle={() => setSideCollapsed((v) => !v)} />
+        <div className="fixed right-3 top-3 z-50 md:hidden">
+          <ThemeToggle className="rounded-full bg-card/90 shadow-sm backdrop-blur-md" />
+        </div>
+        <div className={cn("transition-[padding] duration-200", sideCollapsed ? "md:pl-16" : "md:pl-56")}>
+          <div className="mx-auto w-full max-w-[1600px] px-4 pt-4">
+            <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Link to="/sales" className="rounded-full p-2 hover:bg-muted" aria-label="Back to Sales Tracker">
             <ArrowLeft className="h-5 w-5" />
@@ -444,11 +455,11 @@ function StatsPage() {
           No sessions in this range yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 items-start lg:grid-cols-[1fr_340px]">
+        <div className="grid grid-cols-1 gap-4 items-start xl:grid-cols-[1fr_360px]">
           <div className="flex flex-col gap-4">
             {/* Revenue over time */}
             <ChartCard title="Revenue over time">
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={320}>
                 <LineChart data={revenueSeries} margin={{ left: 8, right: 16, top: 8 }}>
                   <CartesianGrid vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
@@ -467,7 +478,7 @@ function StatsPage() {
             {/* Weather vs revenue */}
             {weatherSeries.length > 0 && (
               <ChartCard title={<span className="inline-flex items-center gap-1.5"><Cloud className="h-3.5 w-3.5" /> Weather vs avg revenue</span>}>
-                <ResponsiveContainer width="100%" height={260}>
+                <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={weatherSeries} margin={{ left: 8, right: 16 }}>
                     <CartesianGrid vertical={false} stroke="var(--border)" />
                     <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
@@ -486,7 +497,7 @@ function StatsPage() {
             {/* Sales by time of day */}
             {hourSeries.length > 0 && (
               <ChartCard title="Sales by time of day">
-                <ResponsiveContainer width="100%" height={260}>
+                <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={hourSeries} margin={{ left: 8, right: 8 }}>
                     <CartesianGrid vertical={false} stroke="var(--border)" />
                     <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
@@ -502,7 +513,7 @@ function StatsPage() {
             )}
           </div>
 
-          <div className="flex flex-col gap-3 lg:sticky lg:top-4">
+          <div className="flex flex-col gap-3 xl:sticky xl:top-4">
             <div className="rounded-3xl p-6 text-white shadow-xl" style={{ background: "var(--gradient-hero)" }}>
             <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Revenue</p>
             <p className="mt-1 text-5xl font-black tabular-nums">{fmt(totals.total)}</p>
@@ -588,7 +599,11 @@ function StatsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    </Protected>
   );
 }
 
