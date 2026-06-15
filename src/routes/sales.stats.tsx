@@ -398,15 +398,26 @@ function StatsPage() {
 
   return (
     <AppShell>
-      <header className="mb-4 flex items-center gap-3">
-        <Link to="/sales" className="rounded-full p-2 hover:bg-muted" aria-label="Back to Sales Tracker">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-xl font-black">Stats</h1>
-          <p className="text-xs text-muted-foreground">Across all sessions</p>
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link to="/sales" className="rounded-full p-2 hover:bg-muted" aria-label="Back to Sales Tracker">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-black tracking-tight">Sales Dashboard</h1>
+            <p className="text-xs text-muted-foreground">Performance across all sessions</p>
+          </div>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-full border-2 border-border bg-card p-1">
+            {(["7", "30", "all"] as Range[]).map((r) => (
+              <button key={r} onClick={() => setRange(r)}
+                className={cn("rounded-full px-3 py-1.5 text-xs font-bold transition-colors",
+                  range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+                {r === "all" ? "All time" : `Last ${r}d`}
+              </button>
+            ))}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -426,16 +437,6 @@ function StatsPage() {
         </div>
       </header>
 
-      <div className="mb-3 inline-flex rounded-full border-2 border-border bg-card p-1">
-        {(["7", "30", "all"] as Range[]).map((r) => (
-          <button key={r} onClick={() => setRange(r)}
-            className={cn("rounded-full px-3 py-1.5 text-xs font-bold transition-colors",
-              range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
-            {r === "all" ? "All time" : `Last ${r}d`}
-          </button>
-        ))}
-      </div>
-
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading...</p>
       ) : sessions.length === 0 ? (
@@ -443,8 +444,66 @@ function StatsPage() {
           No sessions in this range yet.
         </p>
       ) : (
-        <>
-          <div className="rounded-3xl p-6 text-white shadow-xl" style={{ background: "var(--gradient-hero)" }}>
+        <div className="grid grid-cols-1 gap-4 items-start lg:grid-cols-[1fr_340px]">
+          <div className="flex flex-col gap-4">
+            {/* Revenue over time */}
+            <ChartCard title="Revenue over time">
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={revenueSeries} margin={{ left: 8, right: 16, top: 8 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                    formatter={(v: number) => fmt(v)}
+                    labelFormatter={(l, p) => p?.[0]?.payload?.name ?? l}
+                  />
+                  <Line type="monotone" dataKey="total" stroke="var(--chart-1)" strokeWidth={3}
+                    dot={{ r: 4, fill: "var(--chart-1)" }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            {/* Weather vs revenue */}
+            {weatherSeries.length > 0 && (
+              <ChartCard title={<span className="inline-flex items-center gap-1.5"><Cloud className="h-3.5 w-3.5" /> Weather vs avg revenue</span>}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={weatherSeries} margin={{ left: 8, right: 16 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                      formatter={(v: number, n) => [fmt(v), n]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar name="Avg / session" dataKey="avg" fill="var(--chart-5)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            )}
+
+            {/* Sales by time of day */}
+            {hourSeries.length > 0 && (
+              <ChartCard title="Sales by time of day">
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={hourSeries} margin={{ left: 8, right: 8 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                      formatter={(v: number, _n, p) => [`${v} sales`, fmt(p.payload.total)]}
+                    />
+                    <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 lg:sticky lg:top-4">
+            <div className="rounded-3xl p-6 text-white shadow-xl" style={{ background: "var(--gradient-hero)" }}>
             <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Revenue</p>
             <p className="mt-1 text-5xl font-black tabular-nums">{fmt(totals.total)}</p>
             <p className="mt-2 text-xs opacity-90">
@@ -485,103 +544,49 @@ function StatsPage() {
                 )}
               </div>
             )}
-          </div>
+            </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Kpi icon={<Receipt className="h-4 w-4" />} label="Sales" value={String(totals.count)} />
-            <Kpi icon={<Gift className="h-4 w-4" />} label="Interactions" value={String(totals.interactions)} />
-            <Kpi icon={<DollarSign className="h-4 w-4" />} label="Avg ticket" value={fmt(totals.avg)} />
-            <Kpi icon={<Percent className="h-4 w-4" />} label="Per session" value={fmt(totals.sessions ? totals.total / totals.sessions : 0)} />
-          </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Kpi icon={<Receipt className="h-4 w-4" />} label="Sales" value={String(totals.count)} />
+              <Kpi icon={<Gift className="h-4 w-4" />} label="Interactions" value={String(totals.interactions)} />
+              <Kpi icon={<DollarSign className="h-4 w-4" />} label="Avg ticket" value={fmt(totals.avg)} />
+              <Kpi icon={<Percent className="h-4 w-4" />} label="Per session" value={fmt(totals.sessions ? totals.total / totals.sessions : 0)} />
+            </div>
 
-          {/* Revenue over time */}
-          <ChartCard title="Revenue over time">
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={revenueSeries} margin={{ left: 8, right: 16, top: 8 }}>
-                <CartesianGrid vertical={false} stroke="var(--border)" />
-                <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
-                <YAxis tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
-                <Tooltip
-                  contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
-                  formatter={(v: number) => fmt(v)}
-                  labelFormatter={(l, p) => p?.[0]?.payload?.name ?? l}
-                />
-                <Line type="monotone" dataKey="total" stroke="var(--chart-1)" strokeWidth={3}
-                  dot={{ r: 4, fill: "var(--chart-1)" }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
+            {/* Best sellers */}
+            <ChartCard title="Best-selling products">
+              {bestProducts.length === 0 ? <Empty /> : (
+                <ResponsiveContainer width="100%" height={Math.max(140, bestProducts.length * 28)}>
+                  <BarChart data={bestProducts} layout="vertical" margin={{ left: 8, right: 16 }}>
+                    <CartesianGrid horizontal={false} stroke="var(--border)" />
+                    <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis type="category" dataKey="name" width={90} stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                      formatter={(v: number, _n, p) => [fmt(v), `${p.payload.qty} sold`]}
+                    />
+                    <Bar dataKey="total" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </ChartCard>
 
-          {/* Best sellers */}
-          <ChartCard title="Best-selling products">
-            {bestProducts.length === 0 ? <Empty /> : (
-              <ResponsiveContainer width="100%" height={Math.max(160, bestProducts.length * 32)}>
-                <BarChart data={bestProducts} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid horizontal={false} stroke="var(--border)" />
-                  <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis type="category" dataKey="name" width={90} stroke="var(--muted-foreground)" fontSize={11} />
-                  <Tooltip
-                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
-                    formatter={(v: number, _n, p) => [fmt(v), `${p.payload.qty} sold`]}
-                  />
-                  <Bar dataKey="total" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            {/* Demographic trends */}
+            {demoTrends.length > 0 && (
+              <ChartCard title="Demographic trends">
+                <ResponsiveContainer width="100%" height={Math.max(120, demoTrends.length * 24)}>
+                  <BarChart data={demoTrends} layout="vertical" margin={{ left: 8, right: 16 }}>
+                    <CartesianGrid horizontal={false} stroke="var(--border)" />
+                    <XAxis type="number" allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis type="category" dataKey="label" width={100} stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                    <Bar dataKey="count" fill="var(--chart-4)" radius={[0, 6, 6, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
             )}
-          </ChartCard>
-
-          {/* Demographic trends */}
-          {demoTrends.length > 0 && (
-            <ChartCard title="Demographic trends">
-              <ResponsiveContainer width="100%" height={Math.max(160, demoTrends.length * 28)}>
-                <BarChart data={demoTrends} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid horizontal={false} stroke="var(--border)" />
-                  <XAxis type="number" allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis type="category" dataKey="label" width={100} stroke="var(--muted-foreground)" fontSize={11} />
-                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                  <Bar dataKey="count" fill="var(--chart-4)" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
-
-          {/* Weather vs revenue */}
-          {weatherSeries.length > 0 && (
-            <ChartCard title={<span className="inline-flex items-center gap-1.5"><Cloud className="h-3.5 w-3.5" /> Weather vs avg revenue</span>}>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={weatherSeries} margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
-                  <Tooltip
-                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
-                    formatter={(v: number, n) => [fmt(v), n]}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar name="Avg / session" dataKey="avg" fill="var(--chart-5)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
-
-          {/* Sales by time of day */}
-          {hourSeries.length > 0 && (
-            <ChartCard title="Sales by time of day">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={hourSeries} margin={{ left: 8, right: 8 }}>
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
-                  <Tooltip
-                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
-                    formatter={(v: number, _n, p) => [`${v} sales`, fmt(p.payload.total)]}
-                  />
-                  <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
-        </>
+          </div>
+        </div>
       )}
     </AppShell>
   );
