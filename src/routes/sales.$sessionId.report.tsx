@@ -35,6 +35,8 @@ type Stats = {
     id: string; created_at: string; total: number; subtotal: number;
     tax: number; tip: number; discount: number; payment: string | null; note: string | null;
     is_sample: boolean;
+    sale_kind: string | null;
+    discountLabel: string | null;
     products: string[];
     quantity: number;
     flavors: string[];
@@ -84,7 +86,7 @@ function ReportPage() {
       setProducts((prods ?? []).map((p) => ({ type: p.type as string, price: Number(p.price) })));
 
       const { data: sales } = await supabase
-        .from("sales").select("id,subtotal,tax_amount,tip_amount,discount_amount,total,payment_method_name_snapshot,is_sample,note,created_at")
+        .from("sales").select("id,sale_kind,subtotal,tax_amount,tip_amount,discount_amount,discount_label_snapshot,total,payment_method_name_snapshot,is_sample,note,created_at")
         .eq("session_id", sessionId).is("deleted_at", null);
       const allRows = sales ?? [];
       const real = allRows.filter((r) => !r.is_sample); // revenue-producing rows (incl. tips)
@@ -182,6 +184,8 @@ function ReportPage() {
               payment: r.payment_method_name_snapshot as string | null,
               note: r.note as string | null,
               is_sample: !!r.is_sample,
+              sale_kind: ((r as { sale_kind?: string | null }).sale_kind ?? null) as string | null,
+              discountLabel: ((r as { discount_label_snapshot?: string | null }).discount_label_snapshot ?? null) as string | null,
               products: its.map((i) => i.product_name_snapshot),
               quantity: its.reduce((s, i) => s + Number(i.quantity), 0),
               flavors: its.map((i) => i.flavor_name_snapshot).filter((f): f is string => !!f),
@@ -231,8 +235,8 @@ function ReportPage() {
 
   const conversion = stats && stats.sampleCount > 0 ? stats.count / stats.sampleCount : null;
 
-  const { floorRevenue, cheapestShake, cheapestPaleta } = useMemo(() => {
-    if (!session) return { floorRevenue: 0, cheapestShake: Infinity, cheapestPaleta: Infinity };
+  const { floorRevenue, missedRevenue, cheapestShake, cheapestPaleta } = useMemo(() => {
+    if (!session) return { floorRevenue: 0, missedRevenue: 0, cheapestShake: Infinity, cheapestPaleta: Infinity };
     const cs = products.filter((p) => p.type === "shake").reduce((m, p) => (p.price < m ? p.price : m), Infinity);
     const cp = products.filter((p) => p.type === "paleta").reduce((m, p) => (p.price < m ? p.price : m), Infinity);
     const shakeSize = Number(session.shake_size_oz_snapshot) || 12;
@@ -241,21 +245,36 @@ function ReportPage() {
     const fr =
       (isFinite(cs) ? totalShakes * cs : 0) +
       (isFinite(cp) ? totalPaletas * cp : 0);
-    return { floorRevenue: fr, cheapestShake: cs, cheapestPaleta: cp };
+    const mr =
+      (isFinite(cs) ? (Number(session.missed_shakes) || 0) * cs : 0) +
+      (isFinite(cp) ? (Number(session.missed_paletas) || 0) * cp : 0);
+    return { floorRevenue: fr, missedRevenue: mr, cheapestShake: cs, cheapestPaleta: cp };
   }, [session, products]);
   void cheapestShake; void cheapestPaleta;
 
   const downloadCsv = () => {
     if (!stats || !session) return;
-    const headers = [
-      "session_date","market_name","weather","attendants","shakes_brought","paletas_brought",
-      "timestamp","event_type","product","quantity","flavor","payment_method",
-      "subtotal","discount","tax","tip","total","note","age_range","gender",
-    ];
-    const findDemo = (demos: Record<string, string[]>, key: RegExp) => {
-      const k = Object.keys(demos).find((c) => key.test(c));
+    const demoCategories = Array.from(
+      new Set(stats.entries.flatMap((e) => Object.keys(e.demos))),
+    ).sort((a, b) => a.localeCompare(b));
+    const dynamicDemoHeaders = demoCategories.map(
+      (c) => `demo_${c.toLowerCase().replace(/\s+/g, "_")}`,
+    );
+    const findDemoExact = (demos: Record<string, string[]>, category: string) => {
+      const k = Object.keys(demos).find((c) => c.toLowerCase() === category.toLowerCase());
       return k ? demos[k].join("; ") : "";
     };
+    const headers = [
+      "session_id", "session_date", "market_name", "weather", "attendants",
+      "shake_size_oz", "shakes_brought_quarts", "shakes_brought_units", "paletas_brought",
+      "sellout_floor", "missed_shakes", "missed_paletas", "missed_revenue_potential",
+      "timestamp", "event_type", "sale_kind",
+      "product", "quantity", "flavor",
+      "payment_method", "discount_label",
+      "subtotal", "discount", "tax", "tip", "total",
+      "note",
+      ...dynamicDemoHeaders,
+    ];
     const esc = (v: string | number) => {
       const s = String(v ?? "");
       return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -264,34 +283,48 @@ function ReportPage() {
     const marketName = session.location ?? session.name ?? "";
     const weather = session.weather_label_snapshot ?? "";
     const attendants = (session.attendant_names_snapshot ?? []).join("; ");
-    const shakesBrought = Number(session.shakes_quarts_brought) || 0;
+    const shakeSize = Number(session.shake_size_oz_snapshot) || 12;
+    const shakesBroughtQuarts = Number(session.shakes_quarts_brought) || 0;
+    const shakesBroughtUnits = Math.floor((shakesBroughtQuarts * 32) / shakeSize);
     const paletasBrought = Number(session.paletas_brought) || 0;
+    const missedShakes = Number(session.missed_shakes ?? 0);
+    const missedPaletas = Number(session.missed_paletas ?? 0);
     const rows = stats.entries
       .slice()
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .map((e) => {
         const eventType = e.is_sample ? "sample" : e.note === "Tip" ? "tip" : "sale";
+        const saleKind = e.is_sample || eventType === "tip" ? "" : (e.sale_kind ?? "");
+        const discountLabel = e.discount > 0 ? (e.discountLabel ?? "") : "";
         return [
+          sessionId,
           sessionDate,
           marketName,
           weather,
           attendants,
-          shakesBrought,
+          shakeSize,
+          shakesBroughtQuarts,
+          shakesBroughtUnits,
           paletasBrought,
+          floorRevenue.toFixed(2),
+          missedShakes,
+          missedPaletas,
+          missedRevenue.toFixed(2),
           new Date(e.created_at).toISOString(),
           eventType,
+          saleKind,
           e.products.join("; "),
           e.quantity || "",
           e.flavors.join("; "),
           e.payment ?? "",
+          discountLabel,
           e.subtotal.toFixed(2),
           e.discount.toFixed(2),
           e.tax.toFixed(2),
           e.tip.toFixed(2),
-          (e.subtotal - e.discount + e.tax + e.tip).toFixed(2),
+          e.total.toFixed(2),
           eventType === "tip" ? "" : (e.note ?? ""),
-          findDemo(e.demos, /age/i),
-          findDemo(e.demos, /gender/i),
+          ...demoCategories.map((c) => findDemoExact(e.demos, c)),
         ].map(esc).join(",");
       });
     const csv = [headers.join(","), ...rows].join("\n");
