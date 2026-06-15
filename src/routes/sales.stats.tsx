@@ -179,6 +179,7 @@ function StatsPage() {
       "shakes_sold", "paletas_sold",
       "shake_sellthrough_pct", "paleta_sellthrough_pct",
       "missed_shakes", "missed_paletas", "missed_revenue_potential",
+      "closing_note",
     ];
 
     const rows = sessions.map((s) => {
@@ -221,6 +222,7 @@ function StatsPage() {
         missedShakes,
         missedPaletas,
         missedRev.toFixed(2),
+        s.notes ?? "",
       ].map(esc).join(",");
     });
 
@@ -231,6 +233,87 @@ function StatsPage() {
     a.href = url;
     const today = new Date().toISOString().slice(0, 10);
     a.download = `cocobliss-sessions-${range}-${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadTransactionsCsv = () => {
+    const esc = (v: string | number) => {
+      const s = String(v ?? "");
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const sessionMap = new Map<string, SessionRow>();
+    sessions.forEach((s) => sessionMap.set(s.id, s));
+    const itemsBySale = new Map<string, Array<{ product_name_snapshot: string; product_type_snapshot: string | null; flavor_name_snapshot: string | null; quantity: number }>>();
+    items.forEach((i) => {
+      const arr = itemsBySale.get(i.sale_id) ?? [];
+      arr.push(i);
+      itemsBySale.set(i.sale_id, arr);
+    });
+    const demosBySale = new Map<string, Array<{ category: string; label: string }>>();
+    demos.forEach((d) => {
+      const arr = demosBySale.get(d.sale_id) ?? [];
+      arr.push({ category: d.category, label: d.label });
+      demosBySale.set(d.sale_id, arr);
+    });
+    const allDemoCategories = [...new Set(demos.map((d) => d.category))].sort();
+    const headers = [
+      "session_id", "session_name", "date", "location", "weather", "attendants",
+      "closing_note",
+      "timestamp", "event_type",
+      "product", "product_type", "flavor", "quantity",
+      "payment_method",
+      "subtotal", "tax", "tip", "total",
+      "note",
+      ...allDemoCategories.map((c) => `demo_${c.toLowerCase().replace(/\s+/g, "_")}`),
+    ];
+    const rows = sales
+      .slice()
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((sale) => {
+        const session = sessionMap.get(sale.session_id);
+        const saleItems = itemsBySale.get(sale.id) ?? [];
+        const saleDemos = demosBySale.get(sale.id) ?? [];
+        const products = saleItems.map((i) => i.product_name_snapshot).join("; ");
+        const productTypes = [...new Set(saleItems.map((i) => i.product_type_snapshot ?? ""))].join("; ");
+        const flavors = saleItems.map((i) => i.flavor_name_snapshot ?? "").filter(Boolean).join("; ");
+        const quantity = saleItems.reduce((s, i) => s + i.quantity, 0);
+        const demoValues = allDemoCategories.map((cat) => {
+          const match = saleDemos.find((d) => d.category.toLowerCase() === cat.toLowerCase());
+          return match ? match.label : "";
+        });
+        return [
+          sale.session_id,
+          session?.name ?? "",
+          session ? new Date(session.opened_at).toISOString().slice(0, 10) : "",
+          session?.location ?? "",
+          session?.weather_label_snapshot ?? "",
+          (session?.attendant_names_snapshot ?? []).join("; "),
+          session?.notes ?? "",
+          new Date(sale.created_at).toISOString(),
+          "sale",
+          products,
+          productTypes,
+          flavors,
+          quantity || "",
+          sale.payment_method_name_snapshot ?? "",
+          Number(sale.subtotal ?? 0).toFixed(2),
+          Number(sale.tax ?? 0).toFixed(2),
+          Number(sale.tip ?? 0).toFixed(2),
+          Number(sale.total).toFixed(2),
+          sale.note ?? "",
+          ...demoValues,
+        ].map(esc).join(",");
+      });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10);
+    a.download = `cocobliss-transactions-${range}-${today}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
