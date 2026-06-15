@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WheelPicker } from "@/components/app/wheel-picker";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,7 @@ function ActiveSession() {
   const [editMode, setEditMode] = useState<"sale" | "sample">("sale");
   const [sampling, setSampling] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [closingNote, setClosingNote] = useState("");
   const [tipOpen, setTipOpen] = useState(false);
   const [tipAmount, setTipAmount] = useState("");
   const [savingTip, setSavingTip] = useState(false);
@@ -416,7 +418,7 @@ function ActiveSession() {
   const closeSession = async () => {
     if (!user) return;
     const { error } = await supabase.from("sales_sessions")
-      .update({ status: "closed", closed_by: user.id, closed_at: new Date().toISOString() })
+      .update({ status: "closed", closed_by: user.id, closed_at: new Date().toISOString(), notes: closingNote || null })
       .eq("id", sessionId);
     if (error) return toast.error(error.message);
     // Auto-close any linked checklist session
@@ -430,6 +432,7 @@ function ActiveSession() {
     }
     toast.success("Session closed");
     setCloseOpen(false);
+    setClosingNote("");
     navigate({ to: "/sales/$sessionId/report", params: { sessionId } });
   };
 
@@ -726,6 +729,15 @@ function ActiveSession() {
           <p className="text-sm text-muted-foreground">
             Total: <strong>{fmt(total)}</strong> · {counts.sales} sale{counts.sales === 1 ? "" : "s"} · {counts.samples} sample{counts.samples === 1 ? "" : "s"} · {counts.tips} tip{counts.tips === 1 ? "" : "s"}.
           </p>
+          <div className="space-y-1.5">
+            <Label>Closing note (optional)</Label>
+            <Textarea
+              placeholder="Anything worth noting about this session…"
+              value={closingNote}
+              onChange={(e) => setClosingNote(e.target.value)}
+              rows={3}
+            />
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCloseOpen(false)}>Cancel</Button>
             <Button onClick={closeSession}>Close session</Button>

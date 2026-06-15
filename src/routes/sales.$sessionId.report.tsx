@@ -21,6 +21,7 @@ type Session = {
   shakes_quarts_brought: number; paletas_brought: number; shake_size_oz_snapshot: number;
   weather_label_snapshot: string | null; attendant_names_snapshot: string[] | null;
   missed_shakes: number; missed_paletas: number;
+  notes: string | null;
 };
 
 type Stats = {
@@ -75,7 +76,7 @@ function ReportPage() {
   useEffect(() => {
     (async () => {
       const { data: s } = await supabase.from("sales_sessions")
-        .select("id,name,location,opened_at,closed_at,status,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,weather_label_snapshot,attendant_names_snapshot,missed_shakes,missed_paletas")
+        .select("id,name,location,opened_at,closed_at,status,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,weather_label_snapshot,attendant_names_snapshot,missed_shakes,missed_paletas,notes")
         .eq("id", sessionId).maybeSingle();
       setSession(s as Session | null);
 
@@ -268,6 +269,7 @@ function ReportPage() {
       "session_id", "session_date", "market_name", "weather", "attendants",
       "shake_size_oz", "shakes_brought_quarts", "shakes_brought_units", "paletas_brought",
       "sellout_floor", "missed_shakes", "missed_paletas", "missed_revenue_potential",
+      "closing_note",
       "timestamp", "event_type", "sale_kind",
       "product", "quantity", "flavor",
       "payment_method", "discount_label",
@@ -310,6 +312,7 @@ function ReportPage() {
           missedShakes,
           missedPaletas,
           missedRevenue.toFixed(2),
+          session.notes ?? "",
           new Date(e.created_at).toISOString(),
           eventType,
           saleKind,
