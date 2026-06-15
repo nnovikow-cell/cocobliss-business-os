@@ -24,17 +24,18 @@ type SessionRow = {
   shake_size_oz_snapshot: number;
   missed_shakes: number;
   missed_paletas: number;
+  notes: string | null;
 };
 
 function StatsPage() {
   const [range, setRange] = useState<Range>("30");
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; subtotal: number; tax: number; tip: number; created_at: string; is_sample: boolean; note: string | null }>>([]);
+  const [sales, setSales] = useState<Array<{ id: string; session_id: string; total: number; subtotal: number; tax: number; tip: number; payment_method_name_snapshot: string | null; created_at: string; is_sample: boolean; note: string | null }>>([]);
   const [sampleCount, setSampleCount] = useState(0);
   const [tipCount, setTipCount] = useState(0);
-  const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; product_type_snapshot: string | null; quantity: number; line_total: number }>>([]);
-  const [demos, setDemos] = useState<Array<{ category: string; label: string }>>([]);
+  const [items, setItems] = useState<Array<{ sale_id: string; product_name_snapshot: string; product_type_snapshot: string | null; flavor_name_snapshot: string | null; quantity: number; line_total: number }>>([]);
+  const [demos, setDemos] = useState<Array<{ sale_id: string; category: string; label: string }>>([]);
   const [products, setProducts] = useState<Array<{ type: string; price: number }>>([]);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ function StatsPage() {
         : new Date(Date.now() - Number(range) * 86400000).toISOString();
 
       let q = supabase.from("sales_sessions")
-        .select("id,name,opened_at,weather_label_snapshot,location,attendant_names_snapshot,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,missed_shakes,missed_paletas")
+        .select("id,name,opened_at,weather_label_snapshot,location,attendant_names_snapshot,shakes_quarts_brought,paletas_brought,shake_size_oz_snapshot,missed_shakes,missed_paletas,notes")
         .is("deleted_at", null)
         .order("opened_at", { ascending: true });
       if (since) q = q.gte("opened_at", since);
@@ -62,7 +63,7 @@ function StatsPage() {
       }
 
       const { data: sl } = await supabase
-        .from("sales").select("id,session_id,total,subtotal,tax_amount,tip_amount,created_at,is_sample,note")
+        .from("sales").select("id,session_id,total,subtotal,tax_amount,tip_amount,payment_method_name_snapshot,created_at,is_sample,note")
         .in("session_id", sIds).is("deleted_at", null);
       const all = sl ?? [];
       const real = all.filter((r) => !r.is_sample).map((r) => ({
@@ -71,6 +72,7 @@ function StatsPage() {
         subtotal: Number(r.subtotal ?? 0),
         tax: Number(r.tax_amount ?? 0),
         tip: Number(r.tip_amount ?? 0),
+        payment_method_name_snapshot: r.payment_method_name_snapshot ?? "",
       }));
       const saleRows = real.filter((r) => r.note !== "Tip");
       setSampleCount(all.length - real.length);
@@ -81,12 +83,12 @@ function StatsPage() {
       if (saleIds.length === 0) { setItems([]); setDemos([]); setLoading(false); return; }
 
       const [{ data: it }, { data: dm }] = await Promise.all([
-        supabase.from("sale_items").select("sale_id,product_name_snapshot,product_type_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
-        supabase.from("sale_demographics").select("demographic_options(category,label)").in("sale_id", saleIds),
+        supabase.from("sale_items").select("sale_id,product_name_snapshot,product_type_snapshot,flavor_name_snapshot,quantity,line_total").in("sale_id", saleIds).is("deleted_at", null),
+        supabase.from("sale_demographics").select("sale_id,demographic_options(category,label)").in("sale_id", saleIds),
       ]);
       setItems((it ?? []).map((r) => ({ ...r, line_total: Number(r.line_total) })));
-      setDemos(((dm ?? []) as Array<{ demographic_options: { category: string; label: string } | null }>)
-        .filter((d) => d.demographic_options).map((d) => d.demographic_options!));
+      setDemos(((dm ?? []) as Array<{ sale_id: string; demographic_options: { category: string; label: string } | null }>)
+        .filter((d) => d.demographic_options).map((d) => ({ sale_id: d.sale_id, ...d.demographic_options! })));
       setLoading(false);
     })();
   }, [range]);
