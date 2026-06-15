@@ -602,11 +602,11 @@ function StatsPage() {
   );
 }
 
-function ChartCard({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
+function ChartCard({ title, children, className }: { title: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</h2>
-      {children}
+    <section className={cn("rounded-2xl border border-border bg-card p-3 flex flex-col", className)}>
+      <h2 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">{title}</h2>
+      <div className="flex-1 min-h-0">{children}</div>
     </section>
   );
 }
