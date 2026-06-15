@@ -6,6 +6,10 @@ import {
 } from "recharts";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
+import { Protected } from "@/components/app/protected";
+import { SideNav } from "@/components/app/side-nav";
+import { BottomNav } from "@/components/app/bottom-nav";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { fmt } from "@/lib/money";
 import { cn } from "@/lib/utils";
