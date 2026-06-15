@@ -409,7 +409,7 @@ function StatsPage() {
         </div>
         <div className={cn("transition-[padding] duration-200", sideCollapsed ? "md:pl-16" : "md:pl-56")}>
           <div className="mx-auto w-full max-w-[1600px] px-4 pt-4">
-            <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <header className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Link to="/sales" className="rounded-full p-2 hover:bg-muted" aria-label="Back to Sales Tracker">
             <ArrowLeft className="h-5 w-5" />
@@ -455,11 +455,11 @@ function StatsPage() {
           No sessions in this range yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 items-start xl:grid-cols-[1fr_360px]">
-          <div className="flex flex-col gap-4">
-            {/* Revenue over time */}
-            <ChartCard title="Revenue over time">
-              <ResponsiveContainer width="100%" height={320}>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_300px] lg:h-[calc(100vh-80px)]">
+          {/* COL 1 */}
+          <div className="flex flex-col gap-3 min-h-0">
+            <ChartCard title="Revenue over time" className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={revenueSeries} margin={{ left: 8, right: 16, top: 8 }}>
                   <CartesianGrid vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
@@ -475,29 +475,9 @@ function StatsPage() {
               </ResponsiveContainer>
             </ChartCard>
 
-            {/* Weather vs revenue */}
-            {weatherSeries.length > 0 && (
-              <ChartCard title={<span className="inline-flex items-center gap-1.5"><Cloud className="h-3.5 w-3.5" /> Weather vs avg revenue</span>}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={weatherSeries} margin={{ left: 8, right: 16 }}>
-                    <CartesianGrid vertical={false} stroke="var(--border)" />
-                    <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
-                    <YAxis tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
-                    <Tooltip
-                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
-                      formatter={(v: number, n) => [fmt(v), n]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar name="Avg / session" dataKey="avg" fill="var(--chart-5)" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            )}
-
-            {/* Sales by time of day */}
             {hourSeries.length > 0 && (
-              <ChartCard title="Sales by time of day">
-                <ResponsiveContainer width="100%" height={300}>
+              <ChartCard title="Sales by time of day" className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={hourSeries} margin={{ left: 8, right: 8 }}>
                     <CartesianGrid vertical={false} stroke="var(--border)" />
                     <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
@@ -513,61 +493,29 @@ function StatsPage() {
             )}
           </div>
 
-          <div className="flex flex-col gap-3 xl:sticky xl:top-4">
-            <div className="rounded-3xl p-6 text-white shadow-xl" style={{ background: "var(--gradient-hero)" }}>
-            <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Revenue</p>
-            <p className="mt-1 text-5xl font-black tabular-nums">{fmt(totals.total)}</p>
-            <p className="mt-2 text-xs opacity-90">
-              {totals.sessions} session{totals.sessions === 1 ? "" : "s"} · {totals.count} sales · {totals.interactions} interaction{totals.interactions === 1 ? "" : "s"}
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Subtotal</p>
-                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(totals.subtotal)}</p>
-              </div>
-              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Tax</p>
-                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(totals.tax)}</p>
-              </div>
-              <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Tips</p>
-                <p className="mt-0.5 text-base font-black tabular-nums">{fmt(totals.tip)}</p>
-              </div>
-            </div>
-            {(forecastStats.totalFloor > 0 || forecastStats.hasMissed) && (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {forecastStats.totalFloor > 0 && (
-                  <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Sellout floor</p>
-                    <p className="mt-0.5 text-base font-black tabular-nums">{fmt(forecastStats.totalFloor)}</p>
-                  </div>
-                )}
-                {forecastStats.hasMissed && (
-                  <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Missed potential</p>
-                    <p className="mt-0.5 text-base font-black tabular-nums">{fmt(forecastStats.missedRevenue)}</p>
-                    <p className="text-[10px] opacity-70">
-                      {forecastStats.totalMissedShakes > 0 && `${forecastStats.totalMissedShakes} shake${forecastStats.totalMissedShakes !== 1 ? "s" : ""}`}
-                      {forecastStats.totalMissedShakes > 0 && forecastStats.totalMissedPaletas > 0 && " · "}
-                      {forecastStats.totalMissedPaletas > 0 && `${forecastStats.totalMissedPaletas} paleta${forecastStats.totalMissedPaletas !== 1 ? "s" : ""}`}
-                    </p>
-                  </div>
-                )}
-              </div>
+          {/* COL 2 */}
+          <div className="flex flex-col gap-3 min-h-0">
+            {weatherSeries.length > 0 && (
+              <ChartCard title={<span className="inline-flex items-center gap-1.5"><Cloud className="h-3.5 w-3.5" /> Weather vs avg revenue</span>} className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weatherSeries} margin={{ left: 8, right: 16 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }}
+                      formatter={(v: number, n) => [fmt(v), n]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar name="Avg / session" dataKey="avg" fill="var(--chart-5)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
             )}
-            </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Kpi icon={<Receipt className="h-4 w-4" />} label="Sales" value={String(totals.count)} />
-              <Kpi icon={<Gift className="h-4 w-4" />} label="Interactions" value={String(totals.interactions)} />
-              <Kpi icon={<DollarSign className="h-4 w-4" />} label="Avg ticket" value={fmt(totals.avg)} />
-              <Kpi icon={<Percent className="h-4 w-4" />} label="Per session" value={fmt(totals.sessions ? totals.total / totals.sessions : 0)} />
-            </div>
-
-            {/* Best sellers */}
-            <ChartCard title="Best-selling products">
+            <ChartCard title="Best-selling products" className="flex-1 min-h-0">
               {bestProducts.length === 0 ? <Empty /> : (
-                <ResponsiveContainer width="100%" height={Math.max(140, bestProducts.length * 28)}>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={bestProducts} layout="vertical" margin={{ left: 8, right: 16 }}>
                     <CartesianGrid horizontal={false} stroke="var(--border)" />
                     <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="var(--muted-foreground)" fontSize={11} />
@@ -581,11 +529,58 @@ function StatsPage() {
                 </ResponsiveContainer>
               )}
             </ChartCard>
+          </div>
 
-            {/* Demographic trends */}
+          {/* COL 3: sidebar */}
+          <div className="flex flex-col gap-2 min-h-0 overflow-y-auto">
+            <div className="rounded-2xl p-4 text-white shadow-lg shrink-0" style={{ background: "var(--gradient-hero)" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider opacity-90">Revenue</p>
+              <p className="mt-0.5 text-3xl font-black tabular-nums">{fmt(totals.total)}</p>
+              <p className="mt-1 text-[10px] opacity-90">
+                {totals.sessions} sessions · {totals.count} sales · {totals.interactions} interactions
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-1.5">
+                <div className="rounded-xl bg-white/15 px-2 py-1.5 backdrop-blur-sm">
+                  <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">Subtotal</p>
+                  <p className="mt-0.5 text-sm font-black tabular-nums">{fmt(totals.subtotal)}</p>
+                </div>
+                <div className="rounded-xl bg-white/15 px-2 py-1.5 backdrop-blur-sm">
+                  <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">Tax</p>
+                  <p className="mt-0.5 text-sm font-black tabular-nums">{fmt(totals.tax)}</p>
+                </div>
+                <div className="rounded-xl bg-white/15 px-2 py-1.5 backdrop-blur-sm">
+                  <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">Tips</p>
+                  <p className="mt-0.5 text-sm font-black tabular-nums">{fmt(totals.tip)}</p>
+                </div>
+              </div>
+              {(forecastStats.totalFloor > 0 || forecastStats.hasMissed) && (
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                  {forecastStats.totalFloor > 0 && (
+                    <div className="rounded-xl bg-white/15 px-2 py-1.5 backdrop-blur-sm">
+                      <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">Sellout floor</p>
+                      <p className="mt-0.5 text-sm font-black tabular-nums">{fmt(forecastStats.totalFloor)}</p>
+                    </div>
+                  )}
+                  {forecastStats.hasMissed && (
+                    <div className="rounded-xl bg-white/15 px-2 py-1.5 backdrop-blur-sm">
+                      <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">Missed potential</p>
+                      <p className="mt-0.5 text-sm font-black tabular-nums">{fmt(forecastStats.missedRevenue)}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 shrink-0">
+              <Kpi icon={<Receipt className="h-3.5 w-3.5" />} label="Sales" value={String(totals.count)} />
+              <Kpi icon={<Gift className="h-3.5 w-3.5" />} label="Interactions" value={String(totals.interactions)} />
+              <Kpi icon={<DollarSign className="h-3.5 w-3.5" />} label="Avg ticket" value={fmt(totals.avg)} />
+              <Kpi icon={<Percent className="h-3.5 w-3.5" />} label="Per session" value={fmt(totals.sessions ? totals.total / totals.sessions : 0)} />
+            </div>
+
             {demoTrends.length > 0 && (
-              <ChartCard title="Demographic trends">
-                <ResponsiveContainer width="100%" height={Math.max(120, demoTrends.length * 24)}>
+              <ChartCard title="Demographics" className="flex-1 min-h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={demoTrends} layout="vertical" margin={{ left: 8, right: 16 }}>
                     <CartesianGrid horizontal={false} stroke="var(--border)" />
                     <XAxis type="number" allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} />
@@ -609,7 +604,7 @@ function StatsPage() {
 
 function ChartCard({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="mt-4 rounded-2xl border border-border bg-card p-4">
+    <section className="rounded-2xl border border-border bg-card p-4">
       <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</h2>
       {children}
     </section>
@@ -618,11 +613,11 @@ function ChartCard({ title, children }: { title: React.ReactNode; children: Reac
 
 function Kpi({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-3">
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-xl border border-border bg-card p-2.5">
+      <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
         {icon} {label}
       </div>
-      <p className="mt-1 text-lg font-black tabular-nums">{value}</p>
+      <p className="mt-0.5 text-base font-black tabular-nums">{value}</p>
     </div>
   );
 }
